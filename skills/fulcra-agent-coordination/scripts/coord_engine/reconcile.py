@@ -724,7 +724,7 @@ def reconcile(
     # operator copying old legacy docs still gets retention) but the legacy
     # default of 30 is not adopted — coord-engine stays opt-in. Routing through the
     # shared parser also gives retention the NaN/inf guard the fold budgets have
-    # (ENG-1-8: an inf/NaN value now disables cleanly instead of running unbounded).
+    # (an inf/NaN value disables cleanly instead of running unbounded).
     archived_map: dict = {}
     days = config.env_float(
         "COORD_RETENTION_DAYS", 0.0,
