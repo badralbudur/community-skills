@@ -1,10 +1,10 @@
 """Fulcra File Store transport for L1 — a thin wrapper over ``fulcra-api file``.
 
-``file`` output is human TEXT (not JSON), so this module owns the parsers. The
+``file`` output is human text (not JSON), so this module owns the parsers. The
 subprocess methods (``list_dir``/``read``/``write``/``stat``/``delete``) form the
 duck-typed interface ``reconcile`` depends on; tests substitute an in-memory fake.
 
-Change detection uses the ``list`` minute-granular timestamp via EQUALITY (re-read
+Change detection uses the ``list`` minute-granular timestamp via equality (re-read
 when it differs), the conservative reading of the documented minute-resolution
 limit — sub-minute double-edits are re-scanned on the next pass.
 """
@@ -25,7 +25,7 @@ from . import config
 
 DEFAULT_COMMAND = ("fulcra-api",)
 
-#: Fulcra REST root. The file API is published in the OpenAPI spec; overridable
+#: Fulcra rest root. The file API is published in the OpenAPI spec; overridable
 #: for a staging host via ``FULCRA_API_BASE`` (same var name the other repo
 #: packages use).
 DEFAULT_API_BASE = "https://api.fulcradynamics.com"
@@ -50,7 +50,7 @@ def _transport_timeout() -> float:
 
 
 def _kill_process_group(proc: "subprocess.Popen") -> None:
-    """SIGKILL the child's WHOLE process group so a grandchild that inherited
+    """SIGKILL the child's whole process group so a grandchild that inherited
     the stdout/stderr pipes dies with it (``start_new_session`` gave the child
     its own group). Guards the ``getpgid`` race (child already reaped) and the
     non-POSIX case (no ``killpg``): falls back to killing the direct child so we
@@ -75,7 +75,7 @@ def run_bounded(
     ``(returncode, stdout, stderr)``.
 
     ``subprocess.run(timeout=)`` is not enough: on ``TimeoutExpired`` it kills
-    only the DIRECT child and (on POSIX) ``wait()``s on it alone, so a grandchild
+    only the direct child and (on POSIX) ``wait()``s on it alone, so a grandchild
     that inherited the pipes is left running — a leaked tree still holding the
     fds — and on non-POSIX the post-kill drain can block on it indefinitely. We
     put the child in its own session/process group and, on timeout, SIGKILL the
@@ -88,7 +88,7 @@ def run_bounded(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        start_new_session=True,  # child gets its OWN process group
+        start_new_session=True,  # child gets its own process group
         **popen_kw,
     )
     try:
@@ -131,8 +131,8 @@ def _split_command() -> list[str]:
 def parse_list_output(text: str) -> list[dict[str, Any]]:
     """Parse ``fulcra-api file list`` text into entries.
 
-    Line shape observed (v0.1.34): ``93B     2026-07-01 04:12PM UTC  probe.md``
-    i.e. ``<size> <date> <time> <tz> <name>``. Directories may end with ``/``.
+    Line shape — ``20B     2026-01-02 03:05PM UTC  notes.md`` — i.e.
+    ``<size> <date> <time> <tz> <name>``. Directories may end with ``/``.
     Unparseable lines are skipped.
     """
     entries: list[dict[str, Any]] = []
@@ -232,7 +232,7 @@ class FulcraFileTransport:
     def recent_changes(self, start_iso: str, end_iso: str) -> Optional[list]:
         """Tree-wide what-changed query over ``[start_iso, end_iso]`` — the ack
         fold's evidence source. Returns the endpoint's flat entry list (each
-        ``{full_name, size, state, uploaded_at, ...}``), or **None on ANY
+        ``{full_name, size, state, uploaded_at, ...}``), or **None on any
         failure**: no token, HTTP error (the endpoint 500s on an over-wide
         window rather than truncating), timeout, or an unparseable body. Never
         raises.
@@ -241,7 +241,7 @@ class FulcraFileTransport:
         a full fold. Nothing about this method may ever be read as evidence of
         absence.
 
-        REST, not CLI: ``GET /input/v1/file/recent_changes`` is published in the
+        rest, not CLI: ``GET /input/v1/file/recent_changes`` is published in the
         OpenAPI spec but has no ``fulcra-api file`` verb, so this is the one op
         the CLI can't carry. Auth still comes from the CLI (``_access_token``);
         the call itself is stdlib ``urllib``, time-bounded by ``self.timeout``,
@@ -316,8 +316,8 @@ class FulcraFileTransport:
         return cp.stdout
 
     def write(self, path: str, content: str) -> bool:
-        # contract: True on success, False on any REMOTE failure (incl. timeout/exec
-        # error) — the upload subprocess. NOTE: staging the content to a local
+        # contract: True on success, False on any remote failure (incl. timeout/exec
+        # error) — the upload subprocess. Note: staging the content to a local
         # tempfile happens first and can still raise OSError (disk full, bad perms);
         # that surfaces to the caller rather than returning False.
         with tempfile.NamedTemporaryFile(

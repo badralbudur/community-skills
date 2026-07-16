@@ -132,7 +132,7 @@ def test_cap_bad_env_falls_back_to_default(monkeypatch):
 
 def test_row_carries_current_schema_version_stamp():
     # Every freshly projected row stamps the current row-schema version so
-    # reconcile can force-reparse rows built by an OLDER projection (e.g. the
+    # reconcile can force-reparse rows built by an older projection (e.g. the
     # legacy uncapped rows).
     row = model.row_from_frontmatter({"type": "Task"}, name="foo", path="task/foo.md")
     assert row["sv"] == model.ROW_SCHEMA_VERSION

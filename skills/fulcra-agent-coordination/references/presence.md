@@ -39,7 +39,7 @@ health shards only). A stale agent reappears by beating again.
 ```yaml
 ---
 type: Presence
-agent: claude-code:host:repo
+agent: release-reviewer
 workstreams: [web, api]
 summary: draining the review queue
 timestamp: 2026-07-02T12:00:00Z

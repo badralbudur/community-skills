@@ -117,7 +117,7 @@ def apply_update(
             raise TaskError(f"invalid status {status!r}")
         if not is_valid_transition(old_status, status):
             raise TaskError(f"illegal transition {old_status} -> {status}")
-        # Enforce "done requires evidence" HERE so it holds through every entry
+        # Enforce "done requires evidence" here so it holds through every entry
         # point (`task update --status done`, not only `task done`).
         if status == "done" and not evidence:
             raise TaskError("done requires evidence")
@@ -160,7 +160,7 @@ def apply_answer(existing: Optional[str], *, now: str, answer: str,
                  relayer: Optional[str] = None, human: str = "human") -> tuple[str, str]:
     """The operator return-leg: validate the task is a
     waiting-for-operator ask, then in one write: record the answer, unblock
-    (blocked -> active), hand the task back to its OWNER (so it lands in their
+    (blocked -> active), hand the task back to its owner (so it lands in their
     inbox and their listener fires), and strip the needs:human marker.
     Returns (new_doc, owner). Raises TaskError on a non-ask or missing owner."""
     if not answer or not answer.strip():

@@ -1,6 +1,6 @@
 """Directives — inbox/ack folds for the fulcra-agent-directives skill.
 
-A directive IS a task with an ``assignee``: ``tell`` /
+A directive is a task with an ``assignee``: ``tell`` /
 ``broadcast`` / ``remind`` / ``later`` are sugar over task creation. What needs
 deterministic code is the read side: *which open directives does agent X still
 owe attention to* — a fold over the aggregate rows plus per-agent **ack shards**
@@ -53,7 +53,7 @@ def is_directed_at(
     a = row.get("assignee")
     if a == agent or a == "*":
         return True
-    # Role routing: a directive assigned to a ROLE is directed at whoever holds a
+    # Role routing: a directive assigned to a role is directed at whoever holds a
     # fresh lease on it. The caller resolves holders (a lease read) and passes the
     # roles this agent holds; an empty/None set leaves behavior unchanged.
     return bool(held_roles) and a in held_roles
@@ -69,7 +69,7 @@ def inbox(
     held_roles: "Optional[set[str] | list[str]]" = None,
 ) -> list[dict[str, Any]]:
     """Open directives agent X still owes attention to: assigned to X, ``*``, or a
-    ROLE X holds (``held_roles``), not acked by X, ``not_before`` gate applied.
+    role X holds (``held_roles``), not acked by X, ``not_before`` gate applied.
     Priority-sorted. ``acks`` maps slug -> list of agents who acked."""
     out: list[dict[str, Any]] = []
     for r in rows:

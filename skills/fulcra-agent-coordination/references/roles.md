@@ -111,12 +111,12 @@ Freshness window: a lease is fresh if its `timestamp` is within the role's `sla_
 
 ### Role-as-identity
 
-When a session exists to serve one role, use the role name AS its agent identity
+When a session exists to serve one role, use the role name as its agent identity
 (`FULCRA_COORD_AGENT=release-reviewer`) — see [presence](presence.md), "Pick your identity by role". Claim
 the role's lease while you act as it. Know what each guard does and does not catch:
 
 - **Different ids claiming an exclusive role** (e.g. `release-reviewer` and a stray
-  `claude-code:host:repo`): two fresh lease shards within `sla_hours` make `roles status` report
+  `session-b7`): two fresh lease shards within `sla_hours` make `roles status` report
   `CONTESTED`. A stale stray shard yields `HELD` instead. This case is detected.
 - **Two sessions under the same id string**: they write the same lease shard (shard names derive from the
   id), so leases alone cannot see this — the last write silently wins. The engine detects it via a session

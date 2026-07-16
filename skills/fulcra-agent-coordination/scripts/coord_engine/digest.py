@@ -1,6 +1,6 @@
 """Operator digest — the situational-awareness fold (fulcra-agent-health).
 
-Answers four questions from the aggregate + presence: what's blocked on YOU,
+Answers four questions from the aggregate + presence: what's blocked on you,
 what's upcoming, what each agent is doing, what's stale. Pure fold; the CLI
 renders it and (optionally) persists it to the team store.
 """

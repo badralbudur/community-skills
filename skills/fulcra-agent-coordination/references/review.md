@@ -51,7 +51,7 @@ One command, not a hand-written doc:
 ```
 
 This writes `review/<slug>.md` at the exact path the tally reads and echoes the verdict path each required
-reviewer must fill. The request doc IS the durable obligation: it surfaces in every required reviewer's
+reviewer must fill. The request doc is the durable obligation: it surfaces in every required reviewer's
 `needs-me` as a pending marker and stays there until that reviewer's verdict file exists — no inbox message
 to remember, and no way for a dropped review to gate on nothing.
 

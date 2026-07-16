@@ -48,7 +48,7 @@ def is_task(frontmatter: Optional[dict]) -> bool:
 
 
 #: Default per-field character cap for summaries-row text (`COORD_SUMMARY_TEXT_CAP`).
-#: The summaries index is a SUMMARY: rows carry enough of `title`/`description` to
+#: The summaries index is a summary: rows carry enough of `title`/`description` to
 #: triage a fold; the full payload stays in the task doc. Uncapped, a fleet whose
 #: directives carry multi-KB payloads inflates `_coord/summaries.json` past what a
 #: remote transport can read inside the fold budgets — every remote briefing then
@@ -57,7 +57,7 @@ DEFAULT_SUMMARY_TEXT_CAP = 280
 _TRUNCATION_MARK = "…"
 
 #: Version of the summaries-row projection produced by :func:`row_from_frontmatter`.
-#: BUMP this whenever the row projection changes in a way that must self-heal an
+#: Bump this whenever the row projection changes in a way that must self-heal an
 #: already-serialized index — e.g. a text cap that older uncapped rows predate.
 #: Reconcile stamps every fresh row with the current value ("sv") and
 #: force-reparses any prior row whose stamp != this, so a projection change heals
@@ -69,7 +69,7 @@ ROW_SCHEMA_VERSION = 1
 def cap_summary_text(text: str, cap: Optional[int] = None) -> str:
     """Bound a summaries-row text field to the configured cap, ellipsis-marked.
 
-    The marker fits INSIDE the cap so a capped field never exceeds it. A cap
+    The marker fits inside the cap so a capped field never exceeds it. A cap
     is a positive int (`config` policy: unparseable/non-positive env falls back
     to the default — a bad value must never unbound the index)."""
     if cap is None:
@@ -132,7 +132,7 @@ def sort_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     newest ``timestamp`` first (missing timestamps last). Stable, so input order
     breaks remaining ties."""
     # ISO-8601 timestamps sort lexically; reverse=True gives newest-first and
-    # pushes "" (missing) to the end. A second STABLE sort by priority then keeps
+    # pushes "" (missing) to the end. A second stable sort by priority then keeps
     # that recency order within each priority band.
     by_recency = sorted(rows, key=lambda r: str(r.get("timestamp") or ""), reverse=True)
     return sorted(by_recency, key=priority_key)

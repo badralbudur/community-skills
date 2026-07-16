@@ -11,7 +11,7 @@ from typing import Any, Optional
 
 SCHEMA = "coord.teams.summaries.v1"
 
-#: The top-level keys this function OWNS: recomputed from scratch every pass, so
+#: The top-level keys this function owns: recomputed from scratch every pass, so
 #: whatever the prior aggregate held for them is authoritative-stale and gets
 #: overwritten. Every other top-level key is fold state — carried, not read.
 OWNED_KEYS = ("schema", "team", "generated_at", "reconcile_host", "rows", "warnings")
@@ -34,8 +34,8 @@ def build_aggregate(
     top-level key in it that this build does not own (``OWNED_KEYS``) is carried
     forward untouched.
 
-    THE INVARIANT, and why the passthrough exists: **summaries.json is one shared
-    document written by MANY hosts at MANY versions, and any top-level key added
+    The invariant, and why the passthrough exists: **summaries.json is one shared
+    document written by many hosts at many versions, and any top-level key added
     in version N is silently wiped by every host older than N** — an older host
     rebuilds the document from the keys it knows about and writes the result over
     everyone else's. The wipe is not a race that eventually settles: the older
@@ -91,7 +91,7 @@ def _label(row: dict[str, Any]) -> str:
 # Categorization — the single source of truth for what counts as a transition
 # ---------------------------------------------------------------------------
 #
-# WHICH changes count as a transition, and in WHAT order, is decided here and
+# Which changes count as a transition, and in what order, is decided here and
 # nowhere else. Rendering is a separate concern layered on top: the byte-identity
 # guard pins ``diff_rows``' formatting, not its categorization, so keeping the
 # rule in one generator is what stops a formatter and a fold from drifting on the
@@ -105,7 +105,7 @@ def _categorize(
     ``create`` / ``update`` / ``deprecate``.
 
     * ``create``   — id present in new only; ``row`` = new row, ``prior_row`` None.
-    * ``update``   — id in both with a CHANGED ``status``; ``row`` = new row,
+    * ``update``   — id in both with a changed ``status``; ``row`` = new row,
                      ``prior_row`` = the prior row (its old status, for the arrow).
     * ``deprecate``— id present in prior only; ``row`` = the removed prior row,
                      ``prior_row`` None.

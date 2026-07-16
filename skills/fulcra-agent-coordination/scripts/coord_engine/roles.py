@@ -1,7 +1,7 @@
 """Role status fold — the deterministic core of the fulcra-agent-roles skill.
 
 A role's status is a fold over multiple lease files' freshness — exactly the
-category that must be code, not prose an agent eyeballs (two agents must AGREE
+category that must be code, not prose an agent eyeballs (two agents must agree
 whether a role is vacant before one escalates). Pure functions here; the I/O
 wrapper + CLI live in ``cli.py``.
 """
@@ -74,15 +74,15 @@ def dormant_state(dormant_until: Optional[str], *, now: str) -> tuple[bool, bool
     """Fold a role doc's ``dormant_until`` into ``(is_dormant, parse_error)``.
 
     A deliberately-parked role sets ``dormant_until: <ISO>`` on its doc; the
-    ENGINE (not agent-side convention) must suppress the mechanical vacancy sweep
+    engine (not agent-side convention) must suppress the mechanical vacancy sweep
     until that date. This is the code half of that decision.
 
     - absent / None / blank -> ``(False, False)``: current behavior, not parked.
-    - ISO ts in the FUTURE  -> ``(True, False)``:  dormant, suppress escalation.
-    - ISO ts in the PAST    -> ``(False, False)``: park elapsed, resume normally.
-    - unparseable garbage    -> ``(False, True)``:  fail OPEN toward escalation and
+    - ISO ts in the future  -> ``(True, False)``:  dormant, suppress escalation.
+    - ISO ts in the past    -> ``(False, False)``: park elapsed, resume normally.
+    - unparseable garbage    -> ``(False, True)``:  fail open toward escalation and
       report the error, so a typo can never silently suppress an escalation
-      (the safe direction HERE, since dormancy is what SUPPRESSES).
+      (the safe direction here, since dormancy is what suppresses).
     """
     if dormant_until is None:
         return (False, False)
@@ -106,7 +106,7 @@ def escalation_due(
     marker_exists_today: bool = False,
     dormant: bool = False,
 ) -> bool:
-    """Engine DECIDES escalation (the SKILL prose ACTS): true iff the role is
+    """The engine decides escalation; the skill prose acts on it. True iff the role is
     vacant past its SLA, not deliberately parked (``dormant``), and today's dedupe
     marker isn't already present."""
     if dormant or marker_exists_today:

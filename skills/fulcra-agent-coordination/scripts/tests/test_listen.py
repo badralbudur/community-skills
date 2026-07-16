@@ -127,7 +127,7 @@ def test_directive_json_mode_one_object_per_line(capsys):
 
 
 def test_id_diff_not_count_ack_plus_new_still_fires(capsys):
-    """An ack removes A and a new B arrives — open count stays 1, but B is a NEW
+    """An ack removes A and a new B arrives — open count stays 1, but B is a new
     id and must fire (the id-diff-not-count lesson)."""
     t = FakeTransport()
     _put_directive(t, "aaa-1", "Alpha", owner="alice", assignee="bob")
@@ -225,7 +225,7 @@ def test_transport_failure_degraded_once_no_advance_then_recovers(capsys):
     _put_response(t, "owned-3", "20260710T0000-carol", agent="carol", outcome="ACK")
     state = _fresh_state()
 
-    # tick 1: responses listing fails -> one DEGRADED line to stderr, no advance
+    # tick 1: responses listing fails -> one degraded line to stderr, no advance
     t.fail_list = True
     events, failures = cli._run_listen_tick(t, TEAM, "bob", state,
                                             json_mode=False, verbose=False)
@@ -235,7 +235,7 @@ def test_transport_failure_degraded_once_no_advance_then_recovers(capsys):
     assert err.out == ""  # nothing to stdout on a degraded/quiet tick
     assert err.err.count("LISTEN DEGRADED") == 1
     assert state["degraded"]["responses"] is True
-    assert state["response_keys"] == []  # NOT advanced over unknown data
+    assert state["response_keys"] == []  # not advanced over unknown data
     assert state["slug_owned"] == {}     # ownership not cached from a failed pass
 
     # tick 2: still failing -> suppressed (once per streak, no flooding)
@@ -260,7 +260,7 @@ def test_owner_unresolved_does_not_cache_or_advance(capsys):
     """A response whose directive doc can't be read is UNKNOWN ownership: don't
     cache, don't advance, flag degraded — then resolve once the doc appears."""
     t = FakeTransport()
-    # response exists but NO directive doc yet (owner unresolvable)
+    # response exists but no directive doc yet (owner unresolvable)
     _put_response(t, "ghost-1", "20260710T0000-carol", agent="carol", outcome="ACK")
     state = _fresh_state()
     events, failures = cli._run_listen_tick(t, TEAM, "bob", state,
@@ -286,7 +286,7 @@ def test_owner_unresolved_does_not_cache_or_advance(capsys):
 def test_inbox_index_unreadable_is_degraded_not_silent(capsys):
     """M1: an unreadable summaries index must surface as degraded, not fold to a
     silent empty inbox indistinguishable from 'no directives'. Without the guard: a
-    corrupt index was swallowed to [] with no LISTEN DEGRADED line."""
+    corrupt index was swallowed to [] with no listen degraded line."""
     t = FakeTransport()
     # index present but corrupt -> json parse fails (was silently folded to [])
     t.put(reconcile.summaries_path(TEAM), "{ not json")
@@ -328,9 +328,9 @@ def test_absent_index_is_readable_empty_not_degraded(capsys):
 
 def test_pinned_orphan_does_not_silence_a_new_distinct_failure(capsys):
     """M2: per-source streaks. A permanent orphan (owner unresolved every tick)
-    pins the `orphans` streak, but must not silence a NEW, distinct outage. Red at
+    pins the `orphans` streak, but must not silence a new, distinct outage. Red at
     HEAD: one shared `degraded` bool stayed True from the orphan and swallowed the
-    later transport failure — no second LISTEN DEGRADED ever fired."""
+    later transport failure — no second listen degraded ever fired."""
     t = FakeTransport()
     # a response whose directive doc never resolves -> owner unresolved every tick
     _put_response(t, "ghost-x", "20260710T0000-carol", agent="carol", outcome="ACK")
@@ -342,13 +342,13 @@ def test_pinned_orphan_does_not_silence_a_new_distinct_failure(capsys):
     assert e1.count("LISTEN DEGRADED") == 1
     assert state["degraded"]["orphans"] is True
 
-    # tick 2: orphan STILL unresolved AND a NEW distinct failure — the responses
+    # tick 2: orphan still unresolved and a new distinct failure — the responses
     # subtree goes unreadable. A single shared flag would stay pinned and swallow
     # this; per-source streaks must re-alarm on the new source.
     t.fail_list = True
     cli._run_listen_tick(t, TEAM, "bob", state, json_mode=False, verbose=False)
     e2 = capsys.readouterr().err
-    assert "LISTEN DEGRADED" in e2                 # the new outage is NOT silenced
+    assert "LISTEN DEGRADED" in e2                 # the new outage is not silenced
     assert state["degraded"]["responses"] is True
 
 
@@ -393,7 +393,7 @@ def test_verbose_heartbeat_only_on_quiet_tick_and_only_stderr(capsys):
     assert "listen: quiet" in err.err
 
 
-# --- Source 3: verdicts on reviews the agent REQUESTED --------------------
+# --- Source 3: verdicts on reviews the agent requested --------------------
 
 def test_verdict_on_requested_review_fires_then_quiet(capsys):
     t = FakeTransport()
@@ -459,11 +459,11 @@ def test_verdict_json_mode_one_object_per_line(capsys):
 
 
 def test_settling_tick_emits_final_verdict_and_settled_then_stops_listings(capsys):
-    # THE DOMINANT FLOW: a single approve settles the review and the reviewer
+    # The dominant flow: a single approve settles the review and the reviewer
     # settles it themselves (`review status` after filing, per doctrine), so the
-    # verdict shard and `.settled` CO-EXIST before the requester's next tick.
+    # verdict shard and `.settled` co-exist before the requester's next tick.
     # That tick must emit the settling (often only) verdict + one terminal
-    # SETTLED line — dropping the slug first would swallow the final verdict
+    # settled line — dropping the slug first would swallow the final verdict
     # and make `await verdicts:` false in the standard single-reviewer flow.
     t = ListCountingTransport()
     _put_review(t, "pr-s", requested_by="me")
@@ -471,7 +471,7 @@ def test_settling_tick_emits_final_verdict_and_settled_then_stops_listings(capsy
     t.put(cli._settled_marker_path(TEAM, "pr-s"),
           "---\nschema: review-settled/v1\nstate: APPROVED\n---\n")
     state = _fresh_state()
-    # tick 1: the settling tick EMITS (verdict first, then the terminal line)
+    # tick 1: the settling tick emits (verdict first, then the terminal line)
     events, failures = cli._run_listen_tick(t, TEAM, "me", state,
                                             json_mode=False, verbose=False)
     out = capsys.readouterr().out
@@ -492,8 +492,8 @@ def test_settling_tick_emits_final_verdict_and_settled_then_stops_listings(capsy
 
 
 def test_settle_after_seen_verdicts_emits_settled_only(capsys):
-    # All shards previously seen, THEN the marker lands: the requester still
-    # learns the terminal state via one SETTLED event (json contract included).
+    # All shards previously seen, then the marker lands: the requester still
+    # learns the terminal state via one settled event (json contract included).
     t = FakeTransport()
     _put_review(t, "pr-a", requested_by="me")
     _put_verdict(t, "pr-a", "rev")
@@ -512,7 +512,7 @@ def test_settle_after_seen_verdicts_emits_settled_only(capsys):
     assert obj == {"type": "settled", "slug": "pr-a", "state": "APPROVED"}
     assert "pr-a" in state["settled_reviews"]
 
-    # re-tick: quiet (SETTLED fires exactly once per slug lifetime)
+    # re-tick: quiet (settled fires exactly once per slug lifetime)
     events2, _ = cli._run_listen_tick(t, TEAM, "me", state,
                                       json_mode=True, verbose=False)
     assert events2 == []
@@ -521,8 +521,8 @@ def test_settle_after_seen_verdicts_emits_settled_only(capsys):
 
 def test_unreadable_final_shard_at_settle_not_swallowed(capsys):
     # Settling must not swallow an unreadable final verdict: a None shard read
-    # on a settling tick flags `verdicts` degraded and keeps the slug ACTIVE
-    # (not dropped) — recovery emits the verdict + SETTLED, then drops.
+    # on a settling tick flags `verdicts` degraded and keeps the slug active
+    # (not dropped) — recovery emits the verdict + settled, then drops.
     class ShardReadFails(FakeTransport):
         def __init__(self):
             super().__init__()
@@ -550,7 +550,7 @@ def test_unreadable_final_shard_at_settle_not_swallowed(capsys):
     assert "pr-f" not in state["settled_reviews"], \
         "an unreadable final verdict must keep the slug active (retry)"
 
-    # transport recovers -> the final verdict emits, THEN the slug settles
+    # transport recovers -> the final verdict emits, then the slug settles
     t.shard_fail = False
     events2, failures2 = cli._run_listen_tick(t, TEAM, "me", state,
                                               json_mode=False, verbose=False)
@@ -688,7 +688,7 @@ def test_main_wires_listen_once(tmp_path, monkeypatch, capsys):
 
 def test_listen_state_path_prints_and_does_not_tick(tmp_path, monkeypatch, capsys):
     """The hidden `--state-path` resolver (listener-tick.sh's migration uses it)
-    prints the engine-resolved state file path and exits 0 WITHOUT ticking or
+    prints the engine-resolved state file path and exits 0 without ticking or
     writing — the slug/agent_key naming stays owned by the engine, not the shell."""
     monkeypatch.setenv("COORD_LISTENER_STATE", str(tmp_path))
     t = FakeTransport()
@@ -718,7 +718,7 @@ def _put_lease(t, role, agent, *, ts=NOW):
 
 
 def test_role_routed_directive_fires_holder_listen_then_quiet(capsys):
-    # A directive assigned to a ROLE fires the current fresh-lease holder's listen.
+    # A directive assigned to a role fires the current fresh-lease holder's listen.
     t = FakeTransport()
     _put_role(t, "reviewer")
     _put_lease(t, "reviewer", "bob")
@@ -762,7 +762,7 @@ def test_role_routed_directive_lease_expiry_stops_it(capsys):
 
 
 def test_role_holder_change_new_holder_sees_unseen_directive(capsys):
-    # Holder-change semantics: state files are PER-AGENT, so the id-diff is per
+    # Holder-change semantics: state files are per-agent, so the id-diff is per
     # holder. amy (current holder) sees the directive once; when the lease moves to
     # bob, bob's own fresh state has never seen the id, so bob fires — while amy,
     # who already recorded the id, stays quiet even before losing the lease.
@@ -784,7 +784,7 @@ def test_role_holder_change_new_holder_sees_unseen_directive(capsys):
     bob_events, _ = cli._run_listen_tick(t, TEAM, "bob", bob_state,
                                          json_mode=False, verbose=False)
     assert [e["slug"] for e in bob_events] == ["role-do-4"], \
-        "new holder sees the directive iff its id is unseen in THEIR state"
+        "new holder sees the directive iff its id is unseen in their state"
     # amy re-ticks: id already in amy's state -> quiet regardless of lease
     amy_events2, _ = cli._run_listen_tick(t, TEAM, "amy", amy_state,
                                           json_mode=False, verbose=False)
@@ -792,7 +792,7 @@ def test_role_holder_change_new_holder_sees_unseen_directive(capsys):
 
 
 def test_role_lease_read_degraded_is_visible_not_crash(capsys):
-    # Fail-closed: a lease LISTING that raises must degrade VISIBLY (the agent may
+    # Fail-closed: a lease listing that raises must degrade visibly (the agent may
     # miss role-routed work) — never crash the tick, never falsely fire.
     class LeaseListFails(FakeTransport):
         def list_dir(self, prefix):
@@ -838,7 +838,7 @@ def test_orphan_review_dir_emits_one_listen_event_cached(capsys):
 
 
 def test_empty_review_dir_is_tombstone_no_listen_orphan_or_degrade(capsys):
-    # A `<slug>/` dir with NO verdict shards and no doc is a soft-delete ghost:
+    # A `<slug>/` dir with no verdict shards and no doc is a soft-delete ghost:
     # listen must not emit an orphan event, must not degrade, and must not cache it
     # (it carries zero information). A `.settled`-only dir is the same tombstone.
     t = FakeTransport()
@@ -854,7 +854,7 @@ def test_empty_review_dir_is_tombstone_no_listen_orphan_or_degrade(capsys):
 
 
 def test_orphan_dir_listing_raise_degrades_listen_not_tombstone(capsys):
-    # Fail-closed outranks tombstone-skip: a verdicts LISTING that RAISES is
+    # Fail-closed outranks tombstone-skip: a verdicts listing that raises is
     # UNKNOWN — surface a degraded `verdicts` source, never a silent tombstone.
     class OrphanListFails(FakeTransport):
         def list_dir(self, prefix):
@@ -868,18 +868,18 @@ def test_orphan_dir_listing_raise_degrades_listen_not_tombstone(capsys):
     events, failures = cli._run_listen_tick(t, TEAM, "me", state,
                                             json_mode=False, verbose=False)
     assert not [e for e in events if e.get("type") == "orphan"], "unknown is not an orphan event"
-    assert "verdicts" in failures, "a raised listing must degrade VISIBLY"
+    assert "verdicts" in failures, "a raised listing must degrade visibly"
     assert state["orphan_slugs"] == [], "an unknown dir must not be cached as seen"
 
 
 def test_listen_dir_classification_bounded_by_budget(capsys, monkeypatch):
-    # The dir-only set is PERMANENT and growing (soft deletes), unlike
+    # The dir-only set is permanent and growing (soft deletes), unlike
     # the my-unsettled-slugs set bounding the source's other listings — so the
     # listener's classification pass must run under its own small time budget
     # (COORD_LISTEN_CLASSIFY_BUDGET). Adversarial: several tombstones + slow
     # listings + a tiny budget -> the tick returns before visiting them all, the
-    # `verdicts` source degrades (existing streak), NO classification knowledge is
-    # cached for the unvisited (no ORPHAN events, no orphan_slugs entries — unknown
+    # `verdicts` source degrades (existing streak), no classification knowledge is
+    # cached for the unvisited (no orphan events, no orphan_slugs entries — unknown
     # is not classified), and a recovery tick classifies correctly.
     monkeypatch.setenv("COORD_LISTEN_CLASSIFY_BUDGET", "0.05")
 
@@ -904,10 +904,10 @@ def test_listen_dir_classification_bounded_by_budget(capsys, monkeypatch):
                                             json_mode=False, verbose=False)
     assert "verdicts" in failures, "budget exhaustion must degrade the verdicts source"
     assert not [e for e in events if e.get("type") == "orphan"], \
-        "unvisited dirs must emit no ORPHAN events"
+        "unvisited dirs must emit no orphan events"
     assert state["orphan_slugs"] == [], \
         "no classification knowledge may persist for unvisited dirs"
-    # recovery: fast transport -> next tick classifies ALL, finds the real orphan
+    # recovery: fast transport -> next tick classifies all, finds the real orphan
     t.slow = False
     events2, failures2 = cli._run_listen_tick(t, TEAM, "me", state,
                                               json_mode=False, verbose=False)
@@ -941,7 +941,7 @@ def test_pinned_roles_streak_does_not_mask_fresh_inbox_outage(capsys):
     _put_directive(t, "role-do-m", "Review", owner="alice", assignee="reviewer")
     _reconcile(t)
     state = _fresh_state()
-    # tick 1: chronic role degradation alarms once, on ITS own "roles" streak
+    # tick 1: chronic role degradation alarms once, on its own "roles" streak
     _, failures = cli._run_listen_tick(t, TEAM, "bob", state,
                                        json_mode=False, verbose=False)
     err1 = capsys.readouterr().err
@@ -949,7 +949,7 @@ def test_pinned_roles_streak_does_not_mask_fresh_inbox_outage(capsys):
     assert state["degraded"]["roles"] is True
     assert state["degraded"]["inbox"] is False
     assert "LISTEN DEGRADED" in err1
-    # tick 2: roles STILL degraded (suppressed) AND a fresh summaries outage —
+    # tick 2: roles still degraded (suppressed) and a fresh summaries outage —
     # the inbox source must still alarm.
     t.fail_summaries = True
     _, failures2 = cli._run_listen_tick(t, TEAM, "bob", state,
@@ -964,7 +964,7 @@ def test_pinned_roles_streak_does_not_mask_fresh_inbox_outage(capsys):
 # --- live-freshness overlay in the listen inbox source ---------------------
 
 def test_listen_overlay_fires_fresh_directive_before_reconcile(capsys):
-    """A directive delivered BETWEEN reconciles (task doc present, summaries index
+    """A directive delivered between reconciles (task doc present, summaries index
     stale) fires the holder's listen immediately via the freshness overlay — no
     heartbeat rebuild required. Re-tick is quiet (id-diff seen)."""
     t = FakeTransport()
@@ -1008,7 +1008,7 @@ def test_listen_overlay_no_duplicate_after_reconcile(capsys):
 
 def test_listen_overlay_listing_failure_degraded_not_silent(capsys):
     """The overlay task-dir listing raises while the summaries read succeeds: the
-    inbox source degrades VISIBLY (never silent) AND the index rows are still served
+    inbox source degrades visibly (never silent) and the index rows are still served
     — a directive already in the index still fires despite the overlay outage."""
     t = FakeTransport()
     _put_directive(t, "anchor-0", "Anchor", owner="alice", assignee="bob")
@@ -1025,7 +1025,7 @@ def test_listen_overlay_listing_failure_degraded_not_silent(capsys):
     err = capsys.readouterr().err
     assert "inbox" in failures                     # degraded, attributed to inbox source
     assert "LISTEN DEGRADED" in err                # not silent
-    # honest attribution: the OVERLAY failed, not the summaries index
+    # honest attribution: the overlay failed, not the summaries index
     assert "task-dir overlay" in err
     assert "summaries index unreadable" not in err
     assert state["degraded"]["inbox"] is True
@@ -1035,7 +1035,7 @@ def test_listen_overlay_listing_failure_degraded_not_silent(capsys):
 # --- fail-open holes in _role_fresh_holders --------------------------------
 
 def test_role_doc_none_but_listed_degrades_roles_then_recovers(capsys):
-    # A role-doc read that returns None for a name PRESENT in the roles/ listing
+    # A role-doc read that returns None for a name present in the roles/ listing
     # is a transport failure, not a non-role: the directive must not be silently
     # unrouted with zero degradation. Roles source degrades; the id must not enter
     # state (no false advance); the recovery tick fires the directive.
@@ -1058,7 +1058,7 @@ def test_role_doc_none_but_listed_degrades_roles_then_recovers(capsys):
     events, failures = cli._run_listen_tick(t, TEAM, "bob", state,
                                             json_mode=False, verbose=False)
     capsys.readouterr()
-    assert "roles" in failures, "doc-None on a LISTED role must degrade, not non-role"
+    assert "roles" in failures, "doc-None on a listed role must degrade, not non-role"
     assert not [e for e in events if e.get("slug") == "role-do-t"]
     assert "role-do-t" not in state["inbox_ids"], \
         "id must never enter state while holders were unknown"
@@ -1072,7 +1072,7 @@ def test_role_doc_none_but_listed_degrades_roles_then_recovers(capsys):
 
 
 def test_listed_lease_read_none_is_unknown_not_stale():
-    # A just-LISTED lease shard whose read returns None must not parse as {} and
+    # A just-listed lease shard whose read returns None must not parse as {} and
     # get silently folded out as stale (fail-open vacancy inside the fold).
     class LeaseReadFails(FakeTransport):
         def read(self, path):
@@ -1082,7 +1082,7 @@ def test_listed_lease_read_none_is_unknown_not_stale():
 
     t = LeaseReadFails()
     _put_role(t, "reviewer")
-    _put_lease(t, "reviewer", "bob")  # fresh lease; only its shard READ fails
+    _put_lease(t, "reviewer", "bob")  # fresh lease; only its shard read fails
     holders, ok = cli._role_fresh_holders(t, TEAM, "reviewer", now=NOW)
     assert ok is False, "listed-lease read-None is UNKNOWN, never dropped-as-stale"
     assert holders == []
@@ -1108,9 +1108,9 @@ def test_foreign_literal_assignee_no_roles_degradation(capsys):
 
 
 # --- orphan/requester-unresolved degrade is emit-once, not per-tick ---------
-# A response/verdict dir whose directive|review doc is PERMANENTLY absent (a
+# A response/verdict dir whose directive|review doc is permanently absent (a
 # settled/archived/tombstoned directive) must degrade exactly once, then stay
-# silent — a fail-closed watcher treats persistent DEGRADED stderr as fatal, so a
+# silent — a fail-closed watcher treats persistent degraded stderr as fatal, so a
 # per-tick re-degrade murders it. Recovery (doc reappears) re-arms fail-loud.
 
 
@@ -1141,7 +1141,7 @@ def test_owner_unresolved_degrade_emits_once_not_per_tick(capsys):
 
 
 class _ReviewDocReadNone(FakeTransport):
-    """A review `<slug>.md` doc that is LISTED (so the Source-3 loop enters) but
+    """A review `<slug>.md` doc that is listed (so the Source-3 loop enters) but
     whose read returns None — models a settled/archived review whose doc is gone
     while its verdicts subtree still lists. ``doc_fail`` toggles for recovery."""
 
@@ -1180,7 +1180,7 @@ def test_requester_unresolved_degrade_emits_once_not_per_tick(capsys):
 
 def test_owner_unresolved_flag_cleared_on_recovery(capsys):
     # Recovery re-arms: a slug flagged on tick 1 whose directive doc becomes
-    # readable on tick 2 is processed normally AND discarded from the flagged set,
+    # readable on tick 2 is processed normally and discarded from the flagged set,
     # so a genuine future orphaning re-degrades once rather than being suppressed
     # forever by a stale flag.
     t = FakeTransport()
@@ -1225,7 +1225,7 @@ def test_requester_unresolved_flag_cleared_on_recovery(capsys):
 
 
 def test_response_listing_raise_still_fails_loud_not_emit_once(capsys):
-    # Emit-once is only for the None-doc/missing-doc case. A transport ERROR
+    # Emit-once is only for the None-doc/missing-doc case. A transport error
     # (list_dir raises) on the responses root must still fail loud on its streak —
     # never silenced by the orphan-flag mechanism, and never cached as an orphan.
     t = FakeTransport()

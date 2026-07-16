@@ -102,7 +102,7 @@ def test_reconcile_incremental_reuses_unchanged_without_download():
     from coord_engine import model
     t = FakeTransport()
     body = _task("A", "active")
-    # A well-formed prior row carries a stamped `size` AND the current row-schema
+    # A well-formed prior row carries a stamped `size` and the current row-schema
     # stamp `sv` (the row format now includes both); an old mtime (no generated_at
     # anchor) reuses on the mtime+size compare.
     prior = {"rows": [{"id": "a", "name": "a", "status": "active", "title": "A",
@@ -152,18 +152,18 @@ def test_reconcile_same_minute_double_write_not_fossilized():
 
 def test_reconcile_same_minute_equal_length_edit_reflects_latest():
     """The mtime+size blind spot: a same-length edit in the same
-    clock-minute leaves mtime AND byte size identical, so mtime+size alone would
+    clock-minute leaves mtime and byte size identical, so mtime+size alone would
     fossilize the stale row. The same-minute guard (mtime-minute not proven closed
     before our last reconcile) forces a reparse — the row reflects the latest
     content. `blocked`->`waiting` are both 7 chars, so the doc size is unchanged."""
     t = FakeTransport()
     minute = "2026-07-01 04:23PM UTC"
     t.put("team/r/task/a.md", _task("A", "blocked"), mtime=minute)
-    _reconcile_at(t, "2026-07-01T16:23:20Z")  # pass 1 reads DURING minute 16:23
+    _reconcile_at(t, "2026-07-01T16:23:20Z")  # pass 1 reads during minute 16:23
     a1 = json.loads(t.store["team/r/_coord/summaries.json"])
     assert a1["rows"][0]["status"] == "blocked"
     assert a1["rows"][0].get("size") is not None  # size stamped
-    t.put("team/r/task/a.md", _task("A", "waiting"), mtime=minute)  # SAME size, SAME minute
+    t.put("team/r/task/a.md", _task("A", "waiting"), mtime=minute)  # same size, same minute
     _reconcile_at(t, "2026-07-01T16:24:05Z")  # last reconcile (16:23) did not outlast minute 16:23
     a2 = json.loads(t.store["team/r/_coord/summaries.json"])
     assert a2["rows"][0]["status"] == "waiting", \
@@ -171,7 +171,7 @@ def test_reconcile_same_minute_equal_length_edit_reflects_latest():
 
 
 def test_reconcile_legacy_no_size_row_reparsed_once():
-    """A legacy prior row carries NO stamped
+    """A legacy prior row carries no stamped
     `size` (pre-upgrade aggregate). It must be reparsed once — never reused on
     mtime alone — so a pre-existing stale/fossilized row is healed and re-stamped
     on the first post-upgrade reconcile, even for a same-length live edit."""
@@ -179,7 +179,7 @@ def test_reconcile_legacy_no_size_row_reparsed_once():
     minute = "2026-07-01 04:23PM UTC"
     prior = {"schema": "coord.teams.summaries.v1", "generated_at": "2026-07-01T16:20:00Z",
              "rows": [{"id": "a", "name": "a", "status": "blocked", "title": "A",
-                       "mtime": minute, "description": ""}]}  # NO `size` -> legacy
+                       "mtime": minute, "description": ""}]}  # no `size` -> legacy
     t.put("team/r/_coord/summaries.json", json.dumps(prior))
     t.put("team/r/task/a.md", _task("A", "waiting"), mtime=minute)  # live doc moved on
     _reconcile_at(t, "2026-07-01T16:25:00Z")
@@ -191,7 +191,7 @@ def test_reconcile_legacy_no_size_row_reparsed_once():
 
 def test_reconcile_legacy_unstamped_row_reparsed_and_capped():
     """A legacy row built before the text cap carries an uncapped
-    title/description and NO `sv` stamp. Even with matching mtime+size
+    title/description and no `sv` stamp. Even with matching mtime+size
     (an unchanged, static task) it must not be reused — it is force-reparsed so
     the cap applies, then re-stamped with the current schema version."""
     from coord_engine import model
@@ -207,7 +207,7 @@ def test_reconcile_legacy_unstamped_row_reparsed_and_capped():
     prior = {"schema": "coord.teams.summaries.v1", "generated_at": "2026-06-01T00:00:00Z",
              "rows": [{"id": "a", "name": "a", "status": "proposed", "title": long_title,
                        "description": long_desc, "mtime": minute,
-                       "size": f"{len(body)}B"}]}  # matching mtime+size, NO `sv` -> legacy
+                       "size": f"{len(body)}B"}]}  # matching mtime+size, no `sv` -> legacy
     t.put("team/r/_coord/summaries.json", json.dumps(prior))
     t.put("team/r/task/a.md", body, mtime=minute)
     res = _run(t)
@@ -369,7 +369,7 @@ def test_fast_path_ignores_own_derived_artifacts_in_feed():
 
 
 def test_fast_path_normalizes_missing_leading_slash():
-    # a relevant change WITHOUT the leading slash must still decline (fail-closed)
+    # a relevant change without the leading slash must still decline (fail-closed)
     t = FakeTransport()
     t.put("team/r/task/a.md", _task("Alpha", "active"))
     _reconciled(t)
@@ -417,7 +417,7 @@ def test_fast_path_does_not_gate_on_row_schema_stamps():
 
     Gating it there would stop a quiet fleet perpetuating legacy unstamped rows —
     but that reasoning only holds for a fleet that converges. It does not: a
-    MIXED fleet reconciles one shared index, and every pass by a pre-stamp host
+    mixed fleet reconciles one shared index, and every pass by a pre-stamp host
     re-introduces unstamped rows. The gate therefore never settles — it declines
     forever, making a mixed fleet do more full passes than before it existed.
     Healing is the reuse gate's job (below), not the fast path's."""
@@ -449,7 +449,7 @@ def test_stale_schema_rows_still_heal_via_the_reuse_gate():
 
 
 def test_fast_path_still_declines_when_ack_fold_owes_a_pass():
-    """The OTHER fast-path guard is untouched. Unlike the row-schema gate, the ack
+    """The other fast-path guard is untouched. Unlike the row-schema gate, the ack
     anchor is self-settling — it is about a fold owing a pass, and one full fold
     settles it — so it stays."""
     t = FakeTransport()
@@ -556,7 +556,7 @@ def test_acks_incremental_folds_only_changed_slugs():
           "---\ntype: Ack\nagent: dan\ntimestamp: 2026-07-01T16:10:00Z\n---\n")
     calls = _spy_lists(t)
     _reconciled(t, now="2026-07-01T16:15:00Z")
-    assert _ack_lists(calls) == ["team/r/_coord/acks/b/"]   # ONE dir, not all three
+    assert _ack_lists(calls) == ["team/r/_coord/acks/b/"]   # one dir, not all three
     assert _acked(t) == {"a": ["amy"], "b": ["bob", "dan"], "c": ["cat"]}
     assert len(t.rc_calls) == 1
 
@@ -680,7 +680,7 @@ def test_acks_stale_anchor_falls_back_to_full_fold():
 def test_acks_gc_runs_on_full_fold_but_not_on_the_incremental_path():
     """GC is cleanup, not correctness: it rides the full fold (which already lists
     every dir) and is deliberately skipped on the incremental path, which never
-    sees the orphan dirs. It is never DROPPED — the backstop full fold collects."""
+    sees the orphan dirs. It is never dropped — the backstop full fold collects."""
     t = _seeded()
     t.put("team/r/_coord/acks/ghost/amy.md",
           "---\ntype: Ack\nagent: amy\ntimestamp: 2020-01-01T00:00:00Z\n---\n")
@@ -703,7 +703,7 @@ def test_acks_change_query_window_covers_the_anchor_with_skew_margin():
 
 # --- the no-false-advance discipline ---
 #
-# A fold that could not READ a slug it knew had changed must not let the pass
+# A fold that could not read a slug it knew had changed must not let the pass
 # behave as though it had. The ack anchor is what makes that enforceable: it is
 # the engine's own record of what it has provably folded through, separate from
 # generated_at (which the task path advances every pass, unconditionally). An
@@ -731,7 +731,7 @@ def _fail_list_for(t, *prefixes):
 
 
 def _windowed_changes(entries):
-    """A change query that answers HONESTLY: only entries inside [start, end].
+    """A change query that answers honestly: only entries inside [start, end].
     Anything the pass fails to consume must stay reachable by a later window —
     that is what these tests prove."""
     def files(start_iso, end_iso):
@@ -740,7 +740,7 @@ def _windowed_changes(entries):
 
 
 def test_acks_changed_slug_listing_failure_falls_back_to_full_fold():
-    """(a) The slug we KNOW changed is the one we couldn't read: that is doubt, so
+    """(a) The slug we know changed is the one we couldn't read: that is doubt, so
     the pass full-folds like any other doubt path — it does not reuse-and-continue."""
     t = _seeded()
     _with_recent_changes(t, [_ack_change("b", "dan")])
@@ -753,7 +753,7 @@ def test_acks_changed_slug_listing_failure_falls_back_to_full_fold():
                         host="h", logger=log)
     assert "team/r/_coord/acks/" in _ack_lists(calls)   # escalated to the full fold
     assert "full fold" in stream.getvalue()
-    # b is unreadable, so its prior acks are PRESERVED, never stamped to []
+    # b is unreadable, so its prior acks are preserved, never stamped to []
     assert _acked(t) == {"a": ["amy"], "b": ["bob"], "c": ["cat"]}
 
 
@@ -765,7 +765,7 @@ def test_acks_inconclusive_fold_does_not_advance_the_anchor_or_streak():
     _with_recent_changes(t, [_ack_change("b", "dan")])
     _fail_list_for(t, "team/r/_coord/acks/b/")
     _reconciled(t, now="2026-07-01T16:15:00Z")
-    assert _anchor(t) == "2026-07-01T16:05:00Z"        # held back, NOT advanced to 16:15
+    assert _anchor(t) == "2026-07-01T16:05:00Z"        # held back, not advanced to 16:15
     assert _streak(t) == 0                             # not spent on false evidence
 
 
@@ -796,7 +796,7 @@ def test_acks_change_unfolded_in_one_pass_is_still_folded_in_the_next():
 
 
 def test_acks_full_fold_preserves_prior_acks_when_the_root_listing_fails():
-    """(c) A transport failure must never DROP acknowledgements. The full fold's
+    """(c) A transport failure must never drop acknowledgements. The full fold's
     error paths return an incomplete map, and the caller stamps every missing slug
     to [] — so an unreadable ack root would silently un-ack every task."""
     t = _seeded()
@@ -862,7 +862,7 @@ def test_fast_path_declines_while_the_ack_fold_owes_a_pass():
     res = reconcile.reconcile(t, "r", now="2026-07-01T16:45:00Z", today="2026-07-01",
                               host="h", logger=log)
     assert not res.get("fast_path"), "ack evidence is inconclusive — must not skip the fold"
-    assert "ack fold" in stream.getvalue()             # declined for its OWN reason
+    assert "ack fold" in stream.getvalue()             # declined for its own reason
     assert _acked(t)["b"] == ["bob", "dan"]            # the 16:06 ack finally lands
     assert _anchor(t) == "2026-07-01T16:45:00Z"        # conclusive -> anchor advances
 
@@ -892,24 +892,24 @@ def test_fast_path_declines_on_a_legacy_aggregate_without_an_ack_anchor():
 
 # --- aggregate round-trip persistence ----------------------------------------
 #
-# WHY THIS CLASS EXISTS. Fold state that lives as a top-level aggregate key is
-# easy to test in ISOLATION, against a hand-built prior-aggregate dict — and such
-# a suite stays green even if reconcile never PERSISTS the key at all. The class
-# of test that closes that gap: reconcile for real, read the aggregate back OUT of
+# why this class exists. Fold state that lives as a top-level aggregate key is
+# easy to test in isolation, against a hand-built prior-aggregate dict — and such
+# a suite stays green even if reconcile never persists the key at all. The class
+# of test that closes that gap: reconcile for real, read the aggregate back out of
 # the transport (never from an in-memory return), and feed it to the next pass.
-# Anything that must survive a pass gets a test HERE, not just a fold-level one.
+# Anything that must survive a pass gets a test here, not just a fold-level one.
 #
 # What these pin (see build_aggregate's docstring): the aggregate is one shared
 # document written by many hosts at many versions, and a top-level key added in
 # version N is wiped by any host older than N. Preservation cannot save a fleet
 # from a host that predates the key, but it stops a preserving host from erasing
-# a NEWER host's fold state — the same defect, one version later.
+# a newer host's fold state — the same defect, one version later.
 
 class TestAggregateRoundTrip:
     """Real write -> read-back-from-the-transport -> write cycles."""
 
     def _agg_from_store(self, t):
-        """The aggregate as the NEXT pass will actually see it: parsed from the
+        """The aggregate as the next pass will actually see it: parsed from the
         transport's bytes, not the reconcile return value. The distinction is the
         entire point of this class."""
         return json.loads(t.store["team/r/_coord/summaries.json"])
@@ -923,7 +923,7 @@ class TestAggregateRoundTrip:
         assert agg[reconcile.ACKS_STREAK_KEY] == 0     # full fold resets the counter
 
     def test_pass_two_reads_the_persisted_anchor_and_folds_incrementally(self):
-        """The end-to-end claim: pass 2 picks the anchor up OFF THE STORE and takes
+        """The end-to-end claim: pass 2 picks the anchor up off the store and takes
         the incremental path. If persistence breaks, pass 2 silently full-folds
         every ack dir forever — correct, but at full cost, and nothing says so."""
         t = _seed_acks(FakeTransport())
@@ -935,7 +935,7 @@ class TestAggregateRoundTrip:
         _reconciled(t, now="2026-07-01T16:15:00Z")
 
         assert _ack_lists(calls) == [], "pass 2 full-folded: it did not read the anchor"
-        # ...and the query it ran was anchored on the PERSISTED value, not on
+        # ...and the query it ran was anchored on the persisted value, not on
         # generated_at (they differ here only by the pass cadence, so assert the
         # window start is derived from the anchor we actually wrote).
         assert t.rc_calls, "no change query ran"
@@ -970,7 +970,7 @@ class TestAggregateRoundTrip:
         assert after["some_future_state"] == {"nested": [1, 2]}
 
     def test_this_builds_own_keys_win_over_the_prior_aggregates(self):
-        """Preservation must not resurrect stale state: a key this build OWNS is
+        """Preservation must not resurrect stale state: a key this build owns is
         recomputed every pass and overwrites whatever the prior aggregate held."""
         t = _seed_acks(FakeTransport())
         _reconciled(t, now="2026-07-01T16:05:00Z")
@@ -993,7 +993,7 @@ class TestAggregateRoundTrip:
         A host predating the anchor rebuilds the aggregate from its own fixed key
         set, so every pass it makes against the shared index deletes the anchor
         this build wrote. Preservation cannot help: that host has no code to
-        preserve with. The heal is a FLEET UPGRADE, not a code change here.
+        preserve with. The heal is a fleet upgrade, not a code change here.
         """
         t = _seed_acks(FakeTransport())
         _reconciled(t, now="2026-07-01T16:05:00Z")

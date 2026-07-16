@@ -36,7 +36,7 @@ def _task_docs(t):
 
 
 def test_late_racer_cannot_destroy_verified_delivery(capsys):
-    # The post-write read-back proves the slot held OUR payload
+    # The post-write read-back proves the slot held our payload
     # at read-back time, but nothing stops a later write to the same base slot
     # from destroying it. Interleaving: A writes+verifies (rc 0), then B — which
     # snapshotted the slot as absent before A wrote — writes the base slot,
@@ -112,7 +112,7 @@ def test_same_payload_race_is_idempotent_one_doc(capsys):
     b = StaleAbsentForB(t.store)
     capsys.readouterr()
     assert cli.main(["tell", "r", "amy", "Ship it", "-s", "AAA"], transport=b) == 0
-    assert _task_docs(b) == [path], "same-payload race collapses to ONE doc"
+    assert _task_docs(b) == [path], "same-payload race collapses to one doc"
     assert "AAA" in b.store[path]
 
 
@@ -122,7 +122,7 @@ def test_write_readback_none_fails_loud(capsys):
     # success on an unverifiable delivery.
     class ReadBackNone(FakeTransport):
         def read(self, path):
-            return None  # absence check AND read-back both time out
+            return None  # absence check and read-back both time out
 
         def list_dir(self, prefix):
             return []  # slot genuinely absent -> we proceed to write
@@ -205,7 +205,7 @@ def test_retry_of_distinct_message_dedupes_rc0(capsys):
 
 
 def test_same_text_different_assignees_delivers_both(capsys):
-    # Assignee IS message identity: the same text told to a different agent is a
+    # Assignee is message identity: the same text told to a different agent is a
     # different directive with a different hash -> bob must get his own copy.
     amy_slug = _dslug("Ship it", summary="now", assignee="amy")
     bob_slug = _dslug("Ship it", summary="now", assignee="bob")
@@ -260,7 +260,7 @@ def test_identical_rebroadcast_dedupes(capsys):
 
 
 def test_unparseable_doc_at_canonical_slot_fails_loud(capsys):
-    # With the hash-bearing canonical path, an unparseable doc at OUR slot can no
+    # With the hash-bearing canonical path, an unparseable doc at our slot can no
     # longer be a colliding different message (distinct payloads never share a
     # path) — only corruption. Fail loud and never overwrite it; a duplicate is
     # cheaper than a dropped message, but a clobbered slot is worse than both.
@@ -290,7 +290,7 @@ def test_write_timeout_fails_loud_reports_nothing_delivered(capsys):
     assert rc == 1
     assert _task_docs(t) == [], "a failed write must leave the slot empty"
     assert "directive write failed" in cap.err
-    assert "-> zed" not in cap.out, "must NOT report an undelivered message as delivered"
+    assert "-> zed" not in cap.out, "must not report an undelivered message as delivered"
 
 
 def test_read_timeout_over_occupied_slot_refuses_to_clobber(capsys):
@@ -322,7 +322,7 @@ def test_reremind_new_when_dedupes_and_keeps_original_schedule(monkeypatch, caps
     # same message (not_before is delivery metadata, outside identity) -> rc 0
     # dedup, original schedule kept, one doc.
     #
-    # The clock is PINNED (established cli._now monkeypatch pattern, cf.
+    # The clock is pinned (established cli._now monkeypatch pattern, cf.
     # test_cli_respond_response_paths_do_not_collide): the directive doc stamps a
     # `created` timestamp from cli._now(), so an unpinned wall clock landing on
     # 2026-07-12 (UTC) would inject "2026-07-12" into the doc and false-fail the
@@ -342,7 +342,7 @@ def test_reremind_new_when_dedupes_and_keeps_original_schedule(monkeypatch, caps
     assert "already delivered" in capsys.readouterr().out
     assert _task_docs(t) == [path]
     doc = t.store[path]
-    # assert on the not_before FIELD, not the whole doc — the doc's write
+    # assert on the not_before field, not the whole doc — the doc's write
     # timestamp contains the current date, so a blanket "date not in doc"
     # fails whenever the wall clock reaches the re-remind date
     assert "not_before: 2030-01-01T09:00:00+00:00" in doc, "original schedule kept"

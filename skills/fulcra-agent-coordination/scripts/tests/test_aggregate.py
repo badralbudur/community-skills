@@ -62,7 +62,7 @@ def _row(rid, status, *, title=None, ts="2026-07-09T09:00:00Z", **extra):
 
 
 def test_diff_rows_bullets_are_byte_identical_to_before():
-    # GUARDRAIL: adding diff_transitions must not perturb diff_rows' output.
+    # Guardrail: adding diff_transitions must not perturb diff_rows' output.
     prior = [_row("a", "active"), _row("b", "active")]
     new = [_row("a", "done"), _row("c", "proposed")]  # a: update, b: removed, c: created
     # order: new.items() first (a=update, c=create), then removals (b)
@@ -74,7 +74,7 @@ def test_diff_rows_bullets_are_byte_identical_to_before():
 
 
 def test_categorize_is_the_single_source_of_the_diff_view():
-    # diff_rows folds over _categorize, so the rule for WHICH changes count (and
+    # diff_rows folds over _categorize, so the rule for which changes count (and
     # their order) lives in exactly one place.
     prior = [_row("a", "active"), _row("b", "active")]
     new = [_row("a", "done"), _row("c", "proposed")]

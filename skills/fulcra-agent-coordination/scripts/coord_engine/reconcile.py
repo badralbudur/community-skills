@@ -42,7 +42,7 @@ def _same_minute_reuse_safe(entry_mtime: Any, last_reconcile_iso: Any) -> Option
     Store ``file list`` mtimes are minute-granular, so a doc written twice inside
     one clock-minute keeps one mtime and an equal-length second write is invisible
     to a mtime+size compare. A prior row is provably unchanged only if our last
-    reconcile READ happened after that minute fully closed — i.e. the row's
+    reconcile read happened after that minute fully closed — i.e. the row's
     mtime-minute + 1 minute is at or before ``last_reconcile``. Returns:
 
     * True  — the minute closed before the last reconcile: safe to reuse.
@@ -100,7 +100,7 @@ FAST_PATH_SKEW_MARGIN_SECONDS = 900
 
 def _fast_path_no_changes(transport: Any, team: str, prior_agg: dict, *, now: str, log: Any) -> bool:
     """True iff the store's data-updates feed proves nothing fold-relevant
-    changed since the prior aggregate. ANY doubt (no feed support, feed error,
+    changed since the prior aggregate. any doubt (no feed support, feed error,
     stale/missing aggregate, unparseable entries) returns False -> full pass."""
     updates_fn = getattr(transport, "updates", None)
     if updates_fn is None:
@@ -109,11 +109,11 @@ def _fast_path_no_changes(transport: Any, team: str, prior_agg: dict, *, now: st
     if not gen:
         return False
     # not gated on the rows' schema stamp (`sv`), deliberately. Such a gate would
-    # assume the fleet CONVERGES: decline the fast path until one full pass stamps
+    # assume the fleet converges: decline the fast path until one full pass stamps
     # every row, then resume. A mixed-version fleet never converges. All hosts
     # reconcile one shared index, and every pass by a host that predates the stamp
     # writes unstamped rows straight back in, so the gate declines on every beat,
-    # forever — strictly worse than no gate, since it costs such a fleet MORE full
+    # forever — strictly worse than no gate, since it costs such a fleet more full
     # passes than it would pay without it.
     #
     # Stale rows still heal, just not from here: the incremental-reuse gate
@@ -123,12 +123,12 @@ def _fast_path_no_changes(transport: Any, team: str, prior_agg: dict, *, now: st
     # a periodic full pass sweeps whatever a quiet stretch left behind.
     #
     # The ack-anchor guard below is not the same shape of rule, and stays: it is
-    # about a sub-fold OWING a pass, and it settles itself in one.
+    # about a sub-fold owing a pass, and it settles itself in one.
     #
-    # That guard: the fast path may only fire when every sub-fold is SETTLED. The
+    # That guard: the fast path may only fire when every sub-fold is settled. The
     # ack fold advances its own anchor only when it read everything it
     # meant to (see ACKS_ANCHOR_KEY); an anchor behind generated_at means it is owed
-    # a change from BEFORE this window — which this probe cannot see, because it
+    # a change from before this window — which this probe cannot see, because it
     # asks about generated_at onward. Skipping here would strand that change until
     # the periodic backstop, defeating the held anchor entirely. So: decline until
     # the ack fold settles, then resume. (A legacy aggregate has no anchor at all —
@@ -144,7 +144,7 @@ def _fast_path_no_changes(transport: Any, team: str, prior_agg: dict, *, now: st
         return False
     period = f"{int(age * 3600) + FAST_PATH_SKEW_MARGIN_SECONDS} seconds"
     relevant = (f"/team/{team}/task/", f"/team/{team}/_coord/acks/")
-    # Derived artifacts are OUTPUTS of reconcile, not inputs — a prior pass's own
+    # Derived artifacts are outputs of reconcile, not inputs — a prior pass's own
     # index/log writes must not poison the next pass's no-change evidence. (Cost:
     # hand-corruption of index/log self-heals within MAX_FAST_PATH_HOURS instead
     # of one beat — accepted, the engine owns those files.)
@@ -154,7 +154,7 @@ def _fast_path_no_changes(transport: Any, team: str, prior_agg: dict, *, now: st
         if changes is None:
             return False
         for c in changes:
-            # Shape guard, fail-CLOSED: any entry we cannot positively parse is
+            # Shape guard, fail-closed: any entry we cannot positively parse is
             # doubt, and doubt means full pass — feed-shape drift must degrade
             # to full passes, never to false no-change evidence.
             if not isinstance(c, dict) or not isinstance(c.get("full_name"), str):
@@ -195,12 +195,12 @@ def _write_health_shard(transport: Any, team: str, *, host: str, now: str,
 
 #: Retention: terminal tasks older than this many days are archived during
 #: reconcile when retention is enabled (env COORD_RETENTION_DAYS or --retention-days).
-#: OPTIONAL — off unless configured. Bounded per pass; throttled to once/day.
+#: Optional — off unless configured. Bounded per pass; throttled to once/day.
 RETENTION_CAP_PER_PASS = 20
 
 GC_GRACE_HOURS = 24.0  #: never GC a shard younger than this (or undatable)
 
-#: How many passes may fold acks incrementally before one full fold is FORCED
+#: How many passes may fold acks incrementally before one full fold is forced
 #: (env ``COORD_ACKS_FULL_EVERY``; positive-finite, bad value -> this default).
 #: The backstop bounds the blast radius of a change the query never reported: a
 #: missed ack is corrected within this many passes, so it can never persist
@@ -224,7 +224,7 @@ GC_GRACE_HOURS = 24.0  #: never GC a shard younger than this (or undatable)
 #: in here.
 DEFAULT_ACKS_FULL_EVERY = 72
 
-#: Key under which the aggregate carries the count of consecutive INCREMENTAL ack
+#: Key under which the aggregate carries the count of consecutive incremental ack
 #: folds since the last full one — the backstop's counter. It lives in
 #: summaries.json (already read + written every pass) so the backstop costs zero
 #: extra transport ops. Losing it (deleted aggregate) is harmless: no prior
@@ -235,13 +235,13 @@ ACKS_STREAK_KEY = "acks_incremental_streak"
 #: through which acks are provably folded. The change-query window starts here.
 #:
 #: Why not ``generated_at``: that anchor advances every pass, unconditionally. If
-#: a pass knew a slug had changed but could not READ it, reusing generated_at
+#: a pass knew a slug had changed but could not read it, reusing generated_at
 #: would consume the change — the next window would start past it and the new ack
-#: would stay invisible until the periodic backstop. That is a FALSE ADVANCE (the
+#: would stay invisible until the periodic backstop. That is a false advance (the
 #: `listen` fold's discipline: a failed read must never mark unknown state as
 #: seen). This anchor advances only on a fold that read everything it meant to,
 #: so an unread change stays inside the next pass's window. Absent (a legacy
-#: aggregate, or a pass that never got a conclusive fold) means NO anchor — a
+#: aggregate, or a pass that never got a conclusive fold) means no anchor — a
 #: full fold — never a silent fallback to generated_at.
 ACKS_ANCHOR_KEY = "acks_folded_through"
 
@@ -261,7 +261,7 @@ def _changed_ack_slugs(transport: Any, team: str, *, since: Any, now: str,
     store's tree-wide change query — or **None for UNKNOWN**.
 
     None is returned for every kind of doubt: no change-query capability, an
-    unusable/too-old anchor, a query failure (the endpoint fails LOUD — HTTP 500
+    unusable/too-old anchor, a query failure (the endpoint fails loud — HTTP 500
     on an over-wide window — it never truncates), or an entry we cannot positively
     parse. UNKNOWN is never an empty set: the caller must full-fold, never reuse.
 
@@ -287,7 +287,7 @@ def _changed_ack_slugs(transport: Any, team: str, *, since: Any, now: str,
     prefix = "/" + _acks_prefix(team)
     slugs: set[str] = set()
     for c in changes:
-        # Shape guard, fail-CLOSED (the fast path's rule): an entry we cannot
+        # Shape guard, fail-closed (the fast path's rule): an entry we cannot
         # positively parse is doubt, and doubt is UNKNOWN — feed-shape drift must
         # degrade to full folds, never to false no-change evidence.
         if not isinstance(c, dict) or not isinstance(c.get("full_name"), str):
@@ -331,11 +331,11 @@ def _full_fold_and_gc(transport: Any, team: str, live_slugs: set, *, now: str,
     path that can see orphan dirs, hence the GC's home.
 
     Returns ``(acks, gc_count, conclusive)``. ``conclusive`` is False when any
-    listing this fold NEEDED failed, i.e. when the result is not a complete
+    listing this fold needed failed, i.e. when the result is not a complete
     picture of the ack tree as of ``now``. The caller must not advance the ack
     anchor on an inconclusive fold.
 
-    A failed listing PRESERVES the slug's prior acked_by rather than omitting it:
+    A failed listing preserves the slug's prior acked_by rather than omitting it:
     the caller stamps every slug missing from this map to ``[]``, so an omission
     is not a neutral gap — it is a silent un-ack of a real acknowledgement. A
     transport failure must never cost us data we already had.
@@ -412,25 +412,25 @@ def _fold_and_gc_acks(transport: Any, team: str, live_slugs: set, *, now: str,
     """Fold per-agent ack shards (_coord/acks/<slug>/<agent>.md) into
     {slug: [agent, ...]}. See :class:`AckFold` for the return.
 
-    THE INVARIANT: the incremental path is an OPTIMIZATION, and its failure mode
+    the invariant: the incremental path is an optimization, and its failure mode
     is always "fall back to the full fold and say so" — never "assume unchanged".
     Every unknown (no change-query capability, a query error/500, feed-shape
     drift, no ``since`` anchor, an anchor too old to query, a slug the prior
     aggregate never saw, a slug we knew had changed but could not read) resolves
-    to folding, not to reusing. Reuse happens only on POSITIVE evidence: the store
+    to folding, not to reusing. Reuse happens only on positive evidence: the store
     answered, and it did not name this slug.
 
-    Its COROLLARY, equally load-bearing: a fold that could not read what it meant
+    Its corollary, equally load-bearing: a fold that could not read what it meant
     to must not let the pass advance past it. Falling back to the full fold is
     only half the fix — the pass must also leave the ack anchor where it was
     (``conclusive=False``), or the change we failed to read is consumed by the
     window that reported it and stays invisible until the backstop. Failing
-    closed means failing SLOW, not failing quiet.
+    closed means failing slow, not failing quiet.
 
     Why it exists: the full fold costs one ``list_dir`` per ack dir per pass, so
     its cost grows with the team's whole ack history while the work per pass is
     bounded by the handful of shards that actually changed since the last one.
-    The invariant: pass cost must scale with what CHANGED, not with what EXISTS.
+    The invariant: pass cost must scale with what changed, not with what exists.
     So we ask the store what changed since ``since`` (the ack anchor — see
     ``ACKS_ANCHOR_KEY``), re-fold only those slugs, and reuse ``prior_acks`` — the
     prior aggregate rows' ``acked_by`` — for the rest, at zero ops.
@@ -460,7 +460,7 @@ def _fold_and_gc_acks(transport: Any, team: str, live_slugs: set, *, now: str,
                                  affected=affected, log=log)
         if fold is not None:
             return fold
-        # A slug we KNEW had changed would not list. Reusing its prior acks and
+        # A slug we knew had changed would not list. Reusing its prior acks and
         # carrying on would be a false advance; re-fold everything instead.
         reason = "a changed slug could not be listed"
 
@@ -559,7 +559,7 @@ def _run_retention(transport: Any, team: str, rows: list, *, now: str, today: st
                 shards_moved = True
                 archived += 1
                 archived_map[slug] = (month, r.get("title") or slug)
-                # move coordination shards WITH the task (plan-review requirement)
+                # move coordination shards with the task (plan-review requirement)
                 for kind in ("acks", "responses"):
                     pfx = f"team/{team}/_coord/{kind}/{slug}/"
                     try:
@@ -619,18 +619,18 @@ def reconcile(
     prior_agg = _load_prior_aggregate(transport, team)
     prior_rows = aggregate.aggregate_rows(prior_agg)
     prior_by_name = aggregate.rows_by_name(prior_rows)
-    # Prior acks, snapshotted BEFORE the fold re-stamps acked_by onto these same
+    # Prior acks, snapshotted before the fold re-stamps acked_by onto these same
     # row objects (reused rows are the prior dicts). A row that carries no
     # acked_by list is simply absent here -> its slug is folded, not assumed empty.
     prior_acks = {name: row["acked_by"] for name, row in prior_by_name.items()
                   if isinstance(row.get("acked_by"), list)}
-    # When our LAST full pass ran — the anchor for the same-minute reuse guard
+    # When our last full pass ran — the anchor for the same-minute reuse guard
     # (see _same_minute_reuse_safe). Absent on a legacy aggregate -> guard falls
     # back to mtime+size.
     last_reconcile_iso = (prior_agg or {}).get("generated_at")
 
     if _fast_path_no_changes(transport, team, prior_agg, now=now, log=log):
-        # NOTE: warnings from the prior aggregate are not resurfaced here; they
+        # Note: warnings from the prior aggregate are not resurfaced here; they
         # reappear on the next full pass (<= MAX_FAST_PATH_HOURS away).
         result = {"tasks": len(prior_rows), "parsed": 0, "reused": len(prior_rows),
                   "transitions": 0, "warnings": [], "fast_path": True}
@@ -657,25 +657,25 @@ def reconcile(
         prior = prior_by_name.get(slug)
         entry_mtime = entry.get("mtime")
         entry_size = entry.get("size")
-        # Incremental reuse. The store listing carries only size + a MINUTE-granular
-        # mtime + name — NO per-file content fingerprint (the `Version:` UUID lives
+        # Incremental reuse. The store listing carries only size + a minute-granular
+        # mtime + name — no per-file content fingerprint (the `Version:` UUID lives
         # in per-file `file stat`, one read per doc, too expensive for a fold). So
-        # reuse rests on THREE listing-only checks, all of which must hold:
+        # reuse rests on three listing-only checks, all of which must hold:
         #   (a) mtime unchanged — a new write bumps it to a new minute;
-        #   (b) byte size unchanged AND the prior row actually CARRIES a size —
+        #   (b) byte size unchanged and the prior row actually carries a size —
         #       a legacy pre-`size` row (or any length-changing edit) is reparsed
         #       once and re-stamped, so no row lingers on mtime-only reuse;
-        #   (c) the mtime-minute provably CLOSED before our last reconcile read
+        #   (c) the mtime-minute provably closed before our last reconcile read
         #       (_same_minute_reuse_safe) — mtime+size alone cannot see a
         #       same-length edit made in the same clock-minute (the fossil: the row
         #       lies stale until an unrelated write). This is the honest narrow
-        #       guarantee: same-minute-TOUCHED docs are reparsed, not reused; it is
+        #       guarantee: same-minute-touched docs are reparsed, not reused; it is
         #       the index-side companion to the read-side doc-authoritative status
         #       guard. When there is no anchor (legacy aggregate w/o generated_at)
         #       (c) is skipped and reuse falls back to (a)+(b).
-        #   (d) the prior row carries the CURRENT row-schema stamp — a row projected
+        #   (d) the prior row carries the current row-schema stamp — a row projected
         #       by an older `row_from_frontmatter` (uncapped title/description, no
-        #       `sv`) is not content-stale but PROJECTION-stale, so mtime+size can't
+        #       `sv`) is not content-stale but projection-stale, so mtime+size can't
         #       detect it (the doc never changed). Force one reparse so the current
         #       projection (cap + stamp) applies; it then reuses normally. This is
         #       what self-heals a legacy uncapped index, and it is the only place
@@ -712,15 +712,15 @@ def reconcile(
         row = model.row_from_frontmatter(
             fm, name=slug, path=f"task/{name}", mtime=entry_mtime
         )
-        # Stamp the listed size so the NEXT pass can sub-minute-compare (above).
+        # Stamp the listed size so the next pass can sub-minute-compare (above).
         row["size"] = entry_size
         rows.append(row)
         parsed += 1
 
-    # --- retention sub-pass (OPTIONAL: only when configured) ---
-    # Off unless configured (default 0.0 -> disabled): NO positive fallback, unlike
+    # --- retention sub-pass (optional: only when configured) ---
+    # Off unless configured (default 0.0 -> disabled): no positive fallback, unlike
     # the fold budgets. Precedence: --retention-days flag > COORD_RETENTION_DAYS >
-    # legacy FULCRA_COORD_RETENTION_DAYS. The legacy prefix is alias-ACCEPTED (an
+    # legacy FULCRA_COORD_RETENTION_DAYS. The legacy prefix is alias-accepted (an
     # operator copying old legacy docs still gets retention) but the legacy
     # default of 30 is not adopted — coord-engine stays opt-in. Routing through the
     # shared parser also gives retention the NaN/inf guard the fold budgets have
@@ -739,7 +739,7 @@ def reconcile(
     # --- ack fold + shard-GC sub-pass ---
     # Change-driven: re-fold only the slugs the store says changed since our last
     # pass, reuse the prior rows' acked_by for the rest, and force a full fold
-    # every Nth pass (and on ANY doubt — see _fold_and_gc_acks' invariant).
+    # every Nth pass (and on any doubt — see _fold_and_gc_acks' invariant).
     full_every = config.env_int("COORD_ACKS_FULL_EVERY", DEFAULT_ACKS_FULL_EVERY)
     streak = (prior_agg or {}).get(ACKS_STREAK_KEY)
     streak = streak if isinstance(streak, int) and streak >= 0 else 0
@@ -791,12 +791,12 @@ def reconcile(
         if prior_anchor:
             ack_state[ACKS_ANCHOR_KEY] = prior_anchor
         ack_state[ACKS_STREAK_KEY] = streak
-    # `prior` carries any top-level key a NEWER host wrote that this build does not
+    # `prior` carries any top-level key a newer host wrote that this build does not
     # know about — see build_aggregate's invariant. Hosts running different builds
-    # write the same aggregate, so rebuilding it from THIS build's fixed key set
+    # write the same aggregate, so rebuilding it from this build's fixed key set
     # silently drops whatever a newer one added: passthrough, not reconstruction,
     # is what makes a mixed-version fleet safe. The ack keys are cut from the
-    # passthrough first because THIS build owns them: `ack_state` above is
+    # passthrough first because this build owns them: `ack_state` above is
     # their complete, recomputed value, including the case where it deliberately
     # writes no anchor at all (inconclusive fold, no prior anchor). Passing them
     # through would resurrect a value this pass decided not to keep.

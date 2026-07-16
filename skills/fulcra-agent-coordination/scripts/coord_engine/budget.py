@@ -14,13 +14,13 @@ bare ``>``), the degraded row was rebuilt inline at ~11 sites, and three
 ``_*_degraded_line`` renderers were byte-for-byte the same template. Duplication
 that shape invites semantic drift (a NaN/inf wording or a ``>`` vs ``>=`` boundary
 that differs by helper). One helper, used everywhere, makes the family move as a
-unit — and is the shape any NEW bounded fan-out is expected to adopt.
+unit — and is the shape any new bounded fan-out is expected to adopt.
 
 **Deadline discipline** (the invariant every fold upholds): a deadline is an
 absolute ``time.monotonic()`` instant, or ``None`` for "no bound". It is checked
 both before and after each blocking transport op — a strict wall-clock bound is
 impossible without cancellable transport, so the guarantee is that an overrun is
-DETECTED immediately after the op that caused it (a single stalled read can no
+detected immediately after the op that caused it (a single stalled read can no
 longer return a clean row), and overshoot is bounded by one transport timeout.
 
 stdlib-only; nothing here raises.
@@ -62,7 +62,7 @@ class Deadline:
         return self.instant is not None and time.monotonic() >= self.instant
 
     def reserve(self, fraction: float) -> "Deadline":
-        """A sub-deadline that reserves ``fraction`` of the budget for LATER work,
+        """A sub-deadline that reserves ``fraction`` of the budget for later work,
         giving the current phase the remainder. ``reserve(0.5)`` on a 30s budget
         yields a sub-deadline 15s out — the phase runs to the halfway instant, the
         reserved half is left for the phase that follows. Unbounded or

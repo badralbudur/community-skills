@@ -227,8 +227,8 @@ def test_cli_task_assign(capsys):
     from coord_engine import okf
     t = FakeTransport()
     cli.main(["task", "start", "r", "A"], transport=t)
-    assert cli.main(["task", "assign", "r", "a", "zed:h:r"], transport=t) == 0
-    assert okf.parse_frontmatter(t.store["team/r/task/a.md"])["assignee"] == "zed:h:r"
+    assert cli.main(["task", "assign", "r", "a", "zed"], transport=t) == 0
+    assert okf.parse_frontmatter(t.store["team/r/task/a.md"])["assignee"] == "zed"
 
 
 def test_cli_task_assign_clears_needs_human_when_reassigned_away(monkeypatch):
@@ -321,7 +321,7 @@ def test_cli_roles_release_without_lease_errors(capsys):
 
 def test_agent_key_collision_safe():
     from coord_engine import tasks
-    a, b = "claude-code:host:repo", "claude_code/host/repo"
+    a, b = "agent-one:two", "agent_one/two"
     assert tasks.slugify(a) == tasks.slugify(b)          # the lossy collision
     assert tasks.agent_key(a) != tasks.agent_key(b)      # keys stay distinct
 
@@ -329,8 +329,8 @@ def test_agent_key_collision_safe():
 def test_cli_presence_colliding_ids_both_survive(capsys):
     import json as _j
     t = FakeTransport()
-    cli.main(["presence", "beat", "r", "-a", "claude-code:host:repo"], transport=t)
-    cli.main(["presence", "beat", "r", "-a", "claude_code/host/repo"], transport=t)
+    cli.main(["presence", "beat", "r", "-a", "agent-one:two"], transport=t)
+    cli.main(["presence", "beat", "r", "-a", "agent_one/two"], transport=t)
     capsys.readouterr()
     cli.main(["presence", "show", "r", "--json"], transport=t)
     ros = _j.loads(capsys.readouterr().out)
@@ -406,7 +406,7 @@ def test_cli_handoff_atomic_single_write(capsys):
     orig = t.write
     t.write = lambda p, c: (writes.append(p), orig(p, c))[1]
     assert cli.main(["handoff", "r", "h", "--to", "bob", "--checkpoint", "CHK-1", "-n", "resume"], transport=t) == 0
-    assert writes == ["team/r/task/h.md"]                    # ONE write: atomic
+    assert writes == ["team/r/task/h.md"]                    # one write: atomic
     fm = okf.parse_frontmatter(t.store["team/r/task/h.md"])
     assert fm["assignee"] == "bob" and fm["checkpoint_ref"] == "CHK-1"
 
@@ -426,7 +426,7 @@ def test_cli_respond_closes_and_records(capsys):
 
 
 def test_cli_respond_fails_loud_on_unresolved_directive(capsys):
-    """A name that resolves to no directive doc must FAIL rc-1 and write NO
+    """A name that resolves to no directive doc must fail rc-1 and write no
     response shard. A slugified display-title matches no hash-suffixed slug, and
     the old code recorded a ghost response (rc 0) while the real directive stayed
     open in needs-me forever — fail-loud, same doctrine as review status."""
@@ -437,7 +437,7 @@ def test_cli_respond_fails_loud_on_unresolved_directive(capsys):
     assert rc == 1
     err = capsys.readouterr().err
     assert "a-display-title" in err  # the message names the unresolved directive
-    # crucially: NO ghost response shard was written
+    # crucially: no ghost response shard was written
     assert not any(p.startswith("team/r/_coord/responses/") for p in t.store)
 
 
@@ -485,7 +485,7 @@ def test_tell_sender_from_env_when_no_from_flag(capsys, monkeypatch):
 
 def test_tell_no_breadcrumb_when_sender_anonymous(capsys, monkeypatch):
     # No --from and no FULCRA_COORD_AGENT: only the host fallback exists, which is
-    # not an identity anyone listens as -> print NO breadcrumb (a hostname would
+    # not an identity anyone listens as -> print no breadcrumb (a hostname would
     # mislead the reader into `listen --agent coord-reconcile:...`).
     monkeypatch.delenv("FULCRA_COORD_AGENT", raising=False)
     t = FakeTransport()
@@ -554,7 +554,7 @@ def test_cli_inbox_ack_hides_immediately_pre_reconcile(capsys):
     cli.main(["inbox", "r", "-a", "amy", "--ack",
               _dslug("Quick", assignee="amy")], transport=t)
     capsys.readouterr()
-    # NO reconcile between ack and read — live self-hide must apply
+    # no reconcile between ack and read — live self-hide must apply
     cli.main(["inbox", "r", "-a", "amy", "--json"], transport=t)
     assert _j.loads(capsys.readouterr().out) == []
 
@@ -568,7 +568,7 @@ def test_cli_inbox_overlay_surfaces_fresh_directive_before_reconcile(capsys):
     t = FakeTransport()
     cli.main(["tell", "r", "amy", "Old news", "--from", "boss"], transport=t)
     cli.main(["reconcile", "r"], transport=t)            # summaries now has old-news
-    # NEW directive between reconciles: task doc written, index not rebuilt
+    # New directive between reconciles: task doc written, index not rebuilt
     cli.main(["tell", "r", "amy", "Fresh work", "--from", "boss"], transport=t)
     fresh = _dslug("Fresh work", assignee="amy")
     capsys.readouterr()
@@ -582,7 +582,7 @@ def test_cli_inbox_overlay_no_duplicate_for_indexed_doc(capsys):
     the index row wins, the overlay never re-reads it."""
     t = FakeTransport()
     cli.main(["tell", "r", "amy", "Do it", "--from", "boss"], transport=t)
-    cli.main(["reconcile", "r"], transport=t)            # now in index AND task dir
+    cli.main(["reconcile", "r"], transport=t)            # now in index and task dir
     capsys.readouterr()
     cli.main(["inbox", "r", "-a", "amy", "--json"], transport=t)
     names = [r["name"] for r in json.loads(capsys.readouterr().out)]
@@ -606,8 +606,8 @@ def test_cli_inbox_overlay_skips_unparseable_doc(capsys):
 
 def test_load_rows_overlay_listing_failure_degrades_not_silent():
     """Overlay task-dir listing raises while the summaries read succeeds: the index
-    rows are STILL served and ``ok`` flips False so the caller surfaces the
-    degradation (never a silent empty) — attributed to the OVERLAY, not the index."""
+    rows are still served and ``ok`` flips False so the caller surfaces the
+    degradation (never a silent empty) — attributed to the overlay, not the index."""
     from coord_engine.transport import TransportError
     t = FakeTransport()
     cli.main(["tell", "r", "amy", "Indexed", "--from", "boss"], transport=t)
@@ -621,7 +621,7 @@ def test_load_rows_overlay_listing_failure_degrades_not_silent():
     t.list_dir = boom_on_task
     rows, ok, reason = cli._load_rows_status(t, "r")
     assert ok is False                                   # degraded, not silent
-    assert "task-dir overlay" in reason                  # NOT "summaries index unreadable"
+    assert "task-dir overlay" in reason                  # not "summaries index unreadable"
     assert {r["name"] for r in rows} == {indexed}        # index rows still served
 
 
@@ -631,14 +631,14 @@ def test_load_rows_no_summaries_is_unchanged_no_overlay():
     the reconcile-first contract unchanged."""
     t = FakeTransport()
     cli.main(["tell", "r", "amy", "No index yet", "--from", "boss"], transport=t)
-    rows, ok, reason = cli._load_rows_status(t, "r")     # NO reconcile: index absent
+    rows, ok, reason = cli._load_rows_status(t, "r")     # no reconcile: index absent
     assert rows == [] and ok is True and reason == ""    # unchanged: absence != failure
 
 
 def test_load_rows_overlay_listed_doc_read_failure_degrades_not_silent():
     """must 1: a doc the overlay's own listing just proved exists but that reads as
     None must not vanish silently (the false-clear class, at the overlay's read
-    step) — ``ok`` flips False with overlay attribution; the index rows AND the
+    step) — ``ok`` flips False with overlay attribution; the index rows and the
     other readable fresh docs are still served. Parse-garbage stays a sanctioned
     silent skip (separate test)."""
     t = FakeTransport()
@@ -661,7 +661,7 @@ def test_load_rows_overlay_listed_doc_read_failure_degrades_not_silent():
 
 
 def test_load_rows_overlay_unparseable_stays_silent_skip():
-    """Sanctioned silent skip preserved: a fresh doc that READS fine but is
+    """Sanctioned silent skip preserved: a fresh doc that reads fine but is
     parse-garbage / not a Task does not degrade (mirrors reconcile's tolerance)."""
     t = FakeTransport()
     cli.main(["tell", "r", "amy", "Anchor", "--from", "boss"], transport=t)
@@ -683,7 +683,7 @@ def _put_fresh_docs(t, n):
 
 def test_overlay_cap_truncates_deterministically_and_degrades():
     """must 2: the overlay read-cost is bounded when reconcile is down. 20 fresh
-    docs + default cap 16 -> exactly the first 16 BY SORTED NAME are served (every
+    docs + default cap 16 -> exactly the first 16 by sorted name are served (every
     agent converges on the same subset) and the fold degrades visibly with the
     {served, absent_total} counts — capped-but-visible, never silent truncation."""
     t = FakeTransport()
@@ -724,7 +724,7 @@ def test_overlay_under_cap_unchanged_no_flag():
 
 
 def test_overlay_budget_stops_slow_reads_partial_served(monkeypatch):
-    """must (whole-branch review): the cap bounds read COUNT, not TIME — slow
+    """The cap bounds read count, not time — slow
     per-doc reads (each running toward the transport's subprocess timeout) must not
     starve every canonical surface read. A tiny budget + reads that sleep past it →
     the overlay stops after the first slow read (after-op discipline), serves what
@@ -750,7 +750,7 @@ def test_overlay_budget_stops_slow_reads_partial_served(monkeypatch):
 
 
 def test_overlay_budget_fast_none_keeps_unreadable_degrade(monkeypatch):
-    """A FAST None (doc deleted between list and read — returns quickly) keeps the
+    """A fast None (doc deleted between list and read — returns quickly) keeps the
     continue-and-degrade behavior under a small budget: all readables served, and
     the degrade reason is the unreadable one, not a budget breach."""
     t = FakeTransport()
@@ -1013,7 +1013,7 @@ def test_cli_escalate_renotifies_next_day_with_new_directive(capsys):
           "---\ntype: Task\ntitle: old\nstatus: proposed\n---\n")
     assert cli.main(["escalate", "r"], transport=t) == 0
     out = capsys.readouterr().out
-    assert "escalated reviewer -> ada" in out          # a NEW day-scoped directive
+    assert "escalated reviewer -> ada" in out          # a new day-scoped directive
     todays = [p for p in t.store if p.startswith("team/r/task/role-vacant-") and "2026-07-01" not in p]
     assert len(todays) == 1
 
@@ -1098,7 +1098,7 @@ def test_park_respects_per_role_sla(capsys):
     t.put("team/r/roles/tight/leases/amy-" + __import__("hashlib").sha1(b"amy").hexdigest()[:6] + ".md",
           "---\ntype: Lease\nagent: amy\ntimestamp: 2020-01-01T00:00:00Z\n---\n")
     cli.main(["continuity", "park", "r", "-a", "amy"], transport=t)
-    assert "nothing to park" in capsys.readouterr().out    # stale vs the role's OWN sla
+    assert "nothing to park" in capsys.readouterr().out    # stale vs the role's own sla
 
 
 def test_park_failed_snapshot_write_leaves_ref_unchanged(capsys):
@@ -1327,7 +1327,7 @@ def test_needs_me_review_role_aware(capsys):
     t.put(f"team/r/roles/peer-reviewer/leases/{agent_key('wren')}.md",
           f"---\ntype: Lease\nagent: wren\ntimestamp: {_now_iso()}\n---\n")
     cli.main(["reconcile", "r"], transport=t); capsys.readouterr()
-    for who in ("peer-reviewer", "wren"):        # role id itself AND lease holder
+    for who in ("peer-reviewer", "wren"):        # role id itself and lease holder
         cli.main(["needs-me", "r", "--agent", who, "--json"], transport=t)
         got = _j.loads(capsys.readouterr().out)
         assert any(g.get("name") == "pr-7" for g in got if g.get("type") == "review-pending"), who
@@ -1388,7 +1388,7 @@ def test_needs_me_review_honors_role_doc_sla(capsys):
     from coord_engine.tasks import agent_key
     t = FakeTransport()
     _seed_review(t, "pr-slow", "patient-role")
-    # role doc grants 72h SLA; lease is 30h old — stale by DEFAULT (24h), fresh per doc
+    # role doc grants 72h SLA; lease is 30h old — stale by default (24h), fresh per doc
     t.put("team/r/roles/patient-role.md", "---\ntype: Role\npolicy: shared\nsla_hours: 72\n---\n")
     ts = (datetime.now(timezone.utc) - timedelta(hours=30)).isoformat().replace("+00:00", "Z")
     t.put(f"team/r/roles/patient-role/leases/{agent_key('tortoise')}.md",
@@ -1434,11 +1434,11 @@ def test_answer_rejects_terminal_task_with_stale_needs_human(capsys):
 
 # --- presence-shard budget ---------------------------------------------------
 # `cmd_briefing -> presence.roster(_presence_shards(...))` is a team-global per-
-# shard fan-out, so it must run UNDER the shared briefing deadline or a degraded
-# transport hangs the whole briefing in the PRESENCE section. These pin that:
+# shard fan-out, so it must run under the shared briefing deadline or a degraded
+# transport hangs the whole briefing in the presence section. These pin that:
 # `COORD_BRIEFING_BUDGET` opens at the top of cmd_briefing and bounds the presence
 # fan-out too, mirroring the review fold — breach/failure -> a `presence-degraded`
-# row `{scanned, total[, skipped]}` (json passthrough + one text line), a PARTIAL
+# row `{scanned, total[, skipped]}` (json passthrough + one text line), a partial
 # roster served, never a hang or a silent drop. Healthy path stays byte-identical.
 
 import time as _time  # noqa: E402
@@ -1475,7 +1475,7 @@ def _seed_presence(t, agents=("amy", "bob", "cid", "dee")):
 def test_presence_shards_bounded_healthy_byte_identical():
     # Healthy transport, generous/absent deadline: the bounded reader yields the
     # same shards as the legacy `_presence_shards` (folds to an identical roster)
-    # and NO degraded marker — the healthy path must not change.
+    # and no degraded marker — the healthy path must not change.
     t = FakeTransport()
     _seed_presence(t)
     legacy = cli._presence_shards(t, "r")
@@ -1492,7 +1492,7 @@ def test_presence_shards_bounded_healthy_byte_identical():
 
 def test_presence_shards_bounded_budget_emits_degraded_marker():
     # Slow per-shard reads + a tiny deadline: the fan-out must stop early, return a
-    # PARTIAL roster plus exactly one degraded marker, and not read every shard.
+    # partial roster plus exactly one degraded marker, and not read every shard.
     t = _SlowPresenceTransport(delay=0.03)
     _seed_presence(t)
     start = _time.monotonic()
@@ -1540,7 +1540,7 @@ def test_presence_shard_unreadable_counts_skipped_not_crash():
 
 
 def test_presence_shards_deadline_spent_before_listing_skips_call():
-    # An already-spent deadline must SKIP the listing entirely
+    # An already-spent deadline must skip the listing entirely
     # (never pay one more transport timeout of stall) and return the degraded
     # marker, not a falsely-clean empty roster.
     class _ListingMustNotRun(FakeTransport):
@@ -1558,7 +1558,7 @@ def test_presence_shards_deadline_spent_before_listing_skips_call():
 
 def test_presence_shards_slow_listing_overrun_visible_even_when_empty():
     # The deadline passing during the listing itself must be
-    # detected AFTER the blocking op — even when the listing returns [] (no shard
+    # detected after the blocking op — even when the listing returns [] (no shard
     # reads happen, so the per-shard loop can't catch it): `([], None)` here would
     # be a falsely-clean empty roster despite blowing the budget.
     class _SlowListingOnly(FakeTransport):
@@ -1567,7 +1567,7 @@ def test_presence_shards_slow_listing_overrun_visible_even_when_empty():
                 _time.sleep(0.05)
             return super().list_dir(prefix)
 
-    t = _SlowListingOnly()  # NO shards seeded: listing returns [] after the stall
+    t = _SlowListingOnly()  # no shards seeded: listing returns [] after the stall
     shards, marker = cli._presence_shards_bounded(t, "r", deadline=_time.monotonic() + 0.01)
     assert shards == []
     assert marker is not None and marker["type"] == "presence-degraded"
@@ -1609,7 +1609,7 @@ def test_briefing_presence_degraded_exits_zero_other_sections_intact(capsys, mon
 
 
 def test_briefing_presence_healthy_no_degraded_row(capsys):
-    # Healthy transport: real roster, NO presence-degraded marker in text or json.
+    # Healthy transport: real roster, no presence-degraded marker in text or json.
     t = FakeTransport()
     _seed_presence(t, agents=("amy",))
     cli.main(["reconcile", "r"], transport=t)
@@ -1632,7 +1632,7 @@ def test_version_coherent_and_doctor_reports_it(capsys):
 # --- fail-closed roles/vacancy fold ------------------------------------------
 
 def test_roles_status_lease_listing_unknown_rc1_no_vacancy(capsys):
-    # ADDED SCOPE (fail-closed): a lease LISTING that raises must read as UNKNOWN,
+    # Fail-closed: a lease listing that raises must read as UNKNOWN,
     # never VACANT — a degraded transport must not assert vacancy and fire a false
     # SLA escalation. rc 1, same "unknown, retry" register as review status.
     from coord_engine.transport import TransportError
@@ -1772,7 +1772,7 @@ def test_roles_status_listed_lease_shard_unreadable_unknown_rc1(capsys):
 
 
 def test_escalate_skips_role_on_lease_shard_read_failure(capsys):
-    # Same class on the ACTING path: a listed lease shard read-None must not fold
+    # Same class on the acting path: a listed lease shard read-None must not fold
     # to {} -> stale -> false VACANT escalation. Skip as unknown.
     class LeaseReadFails(FakeTransport):
         def read(self, path):
@@ -1833,7 +1833,7 @@ def test_escalate_dormant_past_escalates_as_normal(capsys):
 
 def test_escalate_dormant_garbage_notes_stderr_and_escalates(capsys):
     # Unparseable dormant_until -> treat as absent, note it on stderr, and escalate.
-    # Fail OPEN: a typo must never silently suppress an escalation.
+    # Fail open: a typo must never silently suppress an escalation.
     t = FakeTransport()
     t.put("team/r/roles/reviewer.md",
           "---\ntype: Role\nsla_hours: 24\nmaintainer: ada\n"
@@ -1922,7 +1922,7 @@ def test_inbox_degraded_transport_marker_not_clean_empty(capsys):
     rc = cli.main(["inbox", "r", "-a", "amy", "--json"], transport=t)
     out = json.loads(capsys.readouterr().out)
     assert rc == 0
-    assert out != [], "degraded inbox must NOT be a clean empty list"
+    assert out != [], "degraded inbox must not be a clean empty list"
     assert any(r.get("type") == "inbox-degraded" for r in out), \
         f"degraded inbox must carry the inbox-degraded marker: {out}"
 
@@ -2000,7 +2000,7 @@ def test_briefing_degraded_transport_marker(capsys):
 
 
 def test_public_reads_healthy_no_degraded_marker(capsys):
-    # Positive control: a HEALTHY read must not emit the marker (no over-alarm).
+    # Positive control: a healthy read must not emit the marker (no over-alarm).
     t = FakeTransport()
     _seed_indexed_directive(t)
     capsys.readouterr()
@@ -2017,8 +2017,8 @@ def test_public_reads_healthy_no_degraded_marker(capsys):
 # --- listen daemon per-tick guard ------------------------------------------
 
 def test_listen_daemon_survives_tick_exception(monkeypatch, capsys):
-    """A:25 — the load-bearing `listen` daemon (`while True: tick()`) must survive
-    an UNMODELED tick exception: it degrades that tick and continues, never lets
+    """The load-bearing `listen` daemon (`while True: tick()`) must survive
+    an unmodeled tick exception: it degrades that tick and continues, never lets
     the fault kill the watcher."""
     import coord_engine.cli as _cli
     t = FakeTransport()
@@ -2045,7 +2045,7 @@ def test_listen_daemon_survives_tick_exception(monkeypatch, capsys):
 # --- registered top-level error envelope -----------------------------------
 
 def test_toplevel_unexpected_error_is_registered(monkeypatch, capsys):
-    """A:26 — an unexpected exception surfaces as a REGISTERED, machine-parseable
+    """An unexpected exception surfaces as a registered, machine-parseable
     envelope (an `error:` token + command + type), distinct from the retryable
     degrade voice, not an off-register prose line."""
     import coord_engine.cli as _cli

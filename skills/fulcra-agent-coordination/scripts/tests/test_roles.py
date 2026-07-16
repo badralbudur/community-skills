@@ -95,7 +95,7 @@ def test_dormant_state_absent_is_not_dormant():
 
 
 def test_dormant_state_garbage_is_parse_error_not_dormant():
-    # Fail OPEN toward escalation: a typo must never silently suppress. Report the
+    # Fail open toward escalation: a typo must never silently suppress. Report the
     # parse error so the caller can note it; never treat garbage as dormant.
     assert roles.dormant_state("not-a-date", now=NOW) == (False, True)
 

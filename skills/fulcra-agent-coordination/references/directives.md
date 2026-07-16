@@ -1,7 +1,7 @@
 # Directives
 
 Teams' native inbox is a drop-zone of markdown files. Directives adds **structured directed work**: a
-directive IS a task with an `assignee`, so it shows up in the reconcile views, carries a priority and a
+directive is a task with an `assignee`, so it shows up in the reconcile views, carries a priority and a
 status machine, and has a deterministic per-agent **inbox** with **acks** (acking hides an item for you and
 stops re-notify) — without replacing the teams inbox for freeform messages.
 
@@ -54,7 +54,7 @@ aggregate.
 ```yaml
 ---
 type: Ack
-agent: claude-code:host:repo
+agent: release-reviewer
 timestamp: 2026-07-02T12:00:00Z
 ---
 ```

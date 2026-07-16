@@ -1,20 +1,20 @@
 """Contract test: every test module that defines a module-level ``NOW`` also
-PINS the clock. Catches the date-boundary flake class at author time instead of
+pins the clock. Catches the date-boundary flake class at author time instead of
 days later in someone else's CI.
 
-The flake: a module fixes a ``NOW`` for its DATA, but the code under test computes
+The flake: a module fixes a ``NOW`` for its data, but the code under test computes
 windows/staleness from the real clock (``cli._now()`` or a module ``_now``). Once
 wall-clock time advances past ``NOW + window`` the suite flips red for good, and
 it does so on a schedule nobody is watching. The remedy is an autouse fixture that
 monkeypatches the relevant ``_now`` to a ``PINNED_NOW`` at/just after ``NOW``;
 never weaken the assertion, derive relative ages from ``PINNED_NOW``.
 
-This guard makes the NEXT unpinned NOW-module fail here, immediately: for every
+This guard makes the next unpinned NOW-module fail here, immediately: for every
 ``tests/test_*.py`` that carries a top-level ``NOW =`` / ``_NOW =`` literal, it
 requires the module to also contain a ``monkeypatch.setattr(<mod>, "_now", ...)``
-— satisfied by the autouse fixture OR by an in-body clock move (a test that MOVES
+— satisfied by the autouse fixture or by an in-body clock move (a test that moves
 time pins its own ``_now``, which is still a pin). A module that genuinely must
-run against the real clock goes in ``_CLOCK_PIN_EXEMPT`` WITH a reason.
+run against the real clock goes in ``_CLOCK_PIN_EXEMPT`` with a reason.
 
 Cheap-beats-clever: grep the tracked test files, match two regexes.
 """
@@ -64,7 +64,7 @@ def test_every_now_module_pins_the_clock():
         "(monkeypatch.setattr(<mod>, \"_now\", ...)): "
         + ", ".join(unpinned)
         + " — add the autouse `_pin_module_clock` fixture (derive relative ages "
-        "from PINNED_NOW, never weaken assertions), or, only if it MUST use the "
+        "from PINNED_NOW, never weaken assertions), or, only if it must use the "
         "real clock, add it to _CLOCK_PIN_EXEMPT with a reason."
     )
 

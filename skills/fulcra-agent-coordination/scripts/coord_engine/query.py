@@ -53,7 +53,7 @@ def needs_me(
 
 
 def asks(rows: list[dict[str, Any]], *, now: str, human: str = "human") -> list[dict[str, Any]]:
-    """Waiting-for-operator asks, OLDEST FIRST (age drives nagging): open rows
+    """Waiting-for-operator asks, oldest first (age drives nagging): open rows
     that are blocked-on-human — needs:human tag, or blocked with the human as
     assignee, or blocked_on naming the human. Each row gains age_hours."""
     from .roles import age_hours
@@ -73,7 +73,7 @@ def asks(rows: list[dict[str, Any]], *, now: str, human: str = "human") -> list[
         row = dict(r)
         row["age_hours"] = None if age == float("inf") else round(age, 1)
         out.append(row)
-    # unknown-age asks sort LAST deliberately (a malformed timestamp shouldn't
+    # unknown-age asks sort last deliberately (a malformed timestamp shouldn't
     # outrank datable asks in the nag order; it still appears in every pull)
     return sorted(out, key=lambda r: -(r.get("age_hours") if r.get("age_hours") is not None else -1.0))
 

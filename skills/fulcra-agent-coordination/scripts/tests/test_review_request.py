@@ -81,7 +81,7 @@ def test_pending_slug_fully_tallied_and_unmarked(capsys):
     pend = [r for r in out if r.get("type") == "review-pending"]
     assert len(pend) == 1 and pend[0]["name"] == "pr-pend"
     assert "team/r/review/pr-pend/verdicts/.settled" not in t.store, \
-        "a pending review must NOT be settled"
+        "a pending review must not be settled"
 
 
 def test_review_status_writes_settled_marker(capsys):
@@ -166,14 +166,14 @@ def _trap(t, slug="pr-t"):
 
 
 def test_doc_read_timeout_never_writes_false_settled(capsys):
-    # Regression (review rejected finding): doc read -> None => required=None
+    # Regression: doc read -> None => required=None
     # => tally APPROVED off one readable approval => durable false .settled.
     t = DocReadFailsTransport()
     _trap(t)
     capsys.readouterr()
     out = cli._pending_reviews_for(t, "r", "alice")
     assert "team/r/review/pr-t/verdicts/.settled" not in t.store, \
-        "a doc-read timeout must NEVER settle the review"
+        "a doc-read timeout must never settle the review"
     # the slug is unknown, not silently dropped: surfaced via skipped
     deg = [r for r in out if r.get("type") == "review-fold-degraded"]
     assert len(deg) == 1 and deg[0]["skipped"] == 1, deg
@@ -208,7 +208,7 @@ def test_recovered_transport_tallies_pending_again(capsys):
 
 
 def test_unreadable_verdict_blocks_settle_marker(capsys):
-    # Same defect class one level down: a listed verdict whose READ returns None
+    # Same defect class one level down: a listed verdict whose read returns None
     # could be a hidden CHANGES — an APPROVED tally over it must not be cached.
     class VerdictReadFails(CountingTransport):
         def read(self, path):
@@ -227,7 +227,7 @@ def test_unreadable_verdict_blocks_settle_marker(capsys):
     capsys.readouterr()
     cli._pending_reviews_for(t, "r", "alice")
     assert "team/r/review/pr-v/verdicts/.settled" not in t.store
-    # F1: an unreadable verdict shard makes the tally a floor (carol's CHANGES is
+    # An unreadable verdict shard makes the tally a floor (carol's CHANGES is
     # hidden) — `review status` must fail closed, not print a false APPROVED rc 0.
     assert cli.main(["review", "status", "r", "pr-v", "--json"], transport=t) == 1
     cap = capsys.readouterr()
@@ -273,7 +273,7 @@ def test_single_slug_transport_error_skipped_and_counted(capsys):
 
 
 def test_single_slug_many_verdicts_bounded_by_budget(capsys):
-    # F2: the budget was checked only BETWEEN slugs, so one review with many
+    # The budget was checked only between slugs, so one review with many
     # verdict shards read every shard unbounded (N x transport.timeout) with no
     # degraded marker. The deadline must be threaded into the per-verdict loop:
     # the fold stops mid-slug, counts it skipped, and surfaces the marker.
@@ -294,7 +294,7 @@ def test_single_slug_many_verdicts_bounded_by_budget(capsys):
     assert len(shard_reads) < 40, f"budget must stop mid-slug, read {len(shard_reads)}/40"
     deg = [r for r in out if r.get("type") == "review-fold-degraded"]
     assert len(deg) == 1, "a mid-slug budget breach must surface a degraded marker"
-    # coherent accounting: the cut-off slug is counted (scanned) AND skipped.
+    # coherent accounting: the cut-off slug is counted (scanned) and skipped.
     assert deg[0]["total"] == 1 and deg[0]["scanned"] == 1 and deg[0]["skipped"] == 1, deg[0]
 
 
@@ -302,7 +302,7 @@ def test_single_slow_verdict_read_overrun_marks_slug_skipped(capsys):
     # Checking the deadline only before each verdict read is not enough: one
     # stalled read that sleeps past the budget still completes and the slug
     # returns a clean `fully_scanned` row — budget blown, no degraded marker.
-    # The check must also run AFTER the blocking read: a read that pushes
+    # The check must also run after the blocking read: a read that pushes
     # us over budget marks the slug not-fully-scanned (skipped) and surfaces the
     # degraded marker. Overshoot is bounded by one transport timeout.
     class SlowVerdictRead(CountingTransport):
@@ -324,12 +324,12 @@ def test_single_slow_verdict_read_overrun_marks_slug_skipped(capsys):
     assert len(deg) == 1, f"a single over-budget read must surface a degraded marker: {out}"
     assert deg[0]["scanned"] == 1 and deg[0]["skipped"] == 1, deg[0]
     assert not any(r.get("type") == "review-pending" for r in out), \
-        "a slug whose read blew the budget must NOT return a clean pending row"
+        "a slug whose read blew the budget must not return a clean pending row"
 
 
 def test_review_status_removes_stale_marker_on_pending(capsys):
-    # F4: a `.settled` marker planted on a since-reopened (still-PENDING) review
-    # is provably stale. `review status` recomputes the truth AND best-effort
+    # A `.settled` marker planted on a since-reopened (still-PENDING) review
+    # is provably stale. `review status` recomputes the truth and best-effort
     # deletes the marker, so the next fan-out fold sees the pending obligation
     # again instead of settled-skipping it.
     t = FakeTransport()
@@ -349,9 +349,9 @@ def test_review_status_removes_stale_marker_on_pending(capsys):
 
 
 class VerdictsListFails(CountingTransport):
-    """The verdicts-prefix LISTING raises (the prefix is unlistable under a
+    """The verdicts-prefix listing raises (the prefix is unlistable under a
     degraded transport — its very membership is unknown, not empty) while the
-    doc and everything else read fine. Distinct from an EMPTY verdicts dir
+    doc and everything else read fine. Distinct from an empty verdicts dir
     (list_dir returns []), which is a legitimate no-verdicts PENDING."""
 
     def __init__(self):
@@ -365,16 +365,16 @@ class VerdictsListFails(CountingTransport):
 
 
 def test_review_status_verdicts_listing_failure_fails_loud_keeps_marker(capsys):
-    # F-listing: the verdicts LISTING raised, but `_review_tally` swallowed it and
-    # fell back to entries=[] -> vreads_ok VACUOUSLY True -> two fail-closed
+    # The verdicts listing raised, but `_review_tally` swallowed it and
+    # fell back to entries=[] -> vreads_ok vacuously True -> two fail-closed
     # violations on a direct query: (1) a false PENDING printed rc 0 (clean output
-    # on a failed listing), and (2) the F4 self-heal DELETES a legitimate .settled
+    # on a failed listing), and (2) the stale-marker self-heal deletes a legitimate .settled
     # marker off that vacuous non-settleable tally. Now: rc 1 in the same register
     # as the doc/shard-unreadable cases, and the marker is left untouched.
     t = VerdictsListFails()
     cli.main(["review", "request", "r", "pr-ll", "--of", "url",
               "--reviewer", "alice"], transport=t)
-    # a legitimate settled marker that must SURVIVE an unreadable-listing query
+    # a legitimate settled marker that must survive an unreadable-listing query
     t.put("team/r/review/pr-ll/verdicts/.settled",
           "---\nschema: review-settled/v1\nstate: APPROVED\n---\n")
     capsys.readouterr()
@@ -384,7 +384,7 @@ def test_review_status_verdicts_listing_failure_fails_loud_keeps_marker(capsys):
     assert "PENDING" not in cap.out and "APPROVED" not in cap.out, \
         "a failed listing must not print any clean state"
     assert "team/r/review/pr-ll/verdicts/.settled" in t.store, \
-        "a failed listing must NOT delete a legitimate .settled marker"
+        "a failed listing must not delete a legitimate .settled marker"
 
 
 def test_review_status_recovers_after_verdicts_listing_failure(capsys):
@@ -482,7 +482,7 @@ def test_needs_me_lists_named_role_until_verdict(capsys):
 
 
 def test_needs_me_routes_role_to_fresh_holder(capsys):
-    # role-awareness: a request naming a ROLE surfaces to its fresh lease holder.
+    # role-awareness: a request naming a role surfaces to its fresh lease holder.
     t = FakeTransport()
     # huge SLA keeps the lease fresh regardless of wall-clock `now`
     t.put("team/r/roles/reviewer.md",
@@ -520,11 +520,11 @@ def test_review_status_reflects_required_gating(capsys):
 
 
 def test_rerequest_under_read_timeout_fails_closed_no_overwrite(capsys):
-    # A re-request whose review-doc READ times out (returns None) must not fall
-    # through to WRITE — that would clobber a live review under a degraded
-    # transport. The listing guard sees the doc PRESENT in the
+    # A re-request whose review-doc read times out (returns None) must not fall
+    # through to write — that would clobber a live review under a degraded
+    # transport. The listing guard sees the doc present in the
     # listing + read None -> rc 1 "unreadable, retry", never overwrite. (Changing a
-    # required set re-opens only via a NEW slug; a matching request recovers once
+    # required set re-opens only via a new slug; a matching request recovers once
     # the read succeeds.)
     t = FakeTransport()
     cli.main(["review", "request", "r", "pr-u", "--of", "url",
@@ -557,7 +557,7 @@ def test_rerequest_under_read_timeout_fails_closed_no_overwrite(capsys):
 def test_matching_rerequest_clears_stale_settled_marker(capsys):
     # The stale-marker self-heal rides the matching-recovery path:
     # a re-request byte-identical in of/required/requested_by clears a lingering
-    # `.settled` marker so the next fold recomputes — WITHOUT the dangerous
+    # `.settled` marker so the next fold recomputes — without the dangerous
     # rewrite-on-read-timeout the old path relied on, and without rewriting the doc.
     t = FakeTransport()
     cli.main(["review", "request", "r", "pr-m", "--of", "url",
@@ -580,8 +580,8 @@ def test_partial_failure_then_recovery_notifies_missing_reviewer(capsys):
     # bob's directive write fails on the first request, so the
     # doc lands but bob is never notified -> rc 1 "retry". Before the fix every retry died
     # at the exists-guard ("already exists" rc 1) because the doc now exists, so bob
-    # stayed an invisible orphan forever. Fix: a MATCHING re-request is idempotent
-    # RECOVERY — alice's already-delivered directive dedupes (rc 0), bob's missing
+    # stayed an invisible orphan forever. Fix: a matching re-request is idempotent
+    # recovery — alice's already-delivered directive dedupes (rc 0), bob's missing
     # one is delivered, the doc is byte-unchanged, and each reviewer ends with
     # exactly one canonical directive.
     fail = {"bob": True}
@@ -610,7 +610,7 @@ def test_partial_failure_then_recovery_notifies_missing_reviewer(capsys):
     assert rc2 == 0, "a matching re-request after partial failure must recover"
     assert "matching" in out and "re-verified" in out
     assert t.read("team/r/review/pr-rec.md") == doc_before, \
-        "recovery must NOT rewrite the doc (byte-compare)"
+        "recovery must not rewrite the doc (byte-compare)"
     # both reviewers now hold exactly one canonical directive each.
     for reviewer in ("alice", "bob"):
         hits = [p for p, c in t.store.items()
@@ -677,7 +677,7 @@ def test_request_write_timeout_fails_loud(capsys):
 # --- atomic notification: request also delivers a directive per reviewer -----
 
 def test_request_notifies_each_required_reviewer(capsys):
-    # Atomicity: the doc lands AND every required reviewer gets a directive
+    # Atomicity: the doc lands and every required reviewer gets a directive
     # through the canonical task path, so a verb-opened review fires the
     # reviewer's inbox/listen instead of relying on a hand-sent tell.
     t = FakeTransport()
@@ -686,7 +686,7 @@ def test_request_notifies_each_required_reviewer(capsys):
                      "--from", "requester"], transport=t) == 0
     assert t.read("team/r/review/pr-note.md") is not None, "the review doc must land"
 
-    # the directive text carries the slug + the EXACT verdict-file path (the
+    # the directive text carries the slug + the exact verdict-file path (the
     # fail-closed watcher contract)
     task_docs = [c for p, c in t.store.items() if p.startswith("team/r/task/")]
     for reviewer in ("alice", "bob"):
@@ -707,12 +707,12 @@ def test_request_notifies_each_required_reviewer(capsys):
 
 
 def test_doc_write_fail_writes_no_directive(capsys):
-    # doc-write fail -> rc 1 and NOTHING else (no reviewer directive attempted).
+    # doc-write fail -> rc 1 and nothing else (no reviewer directive attempted).
     class ReviewDocWriteFails(FakeTransport):
         def write(self, path, content):
             if (path.startswith("team/r/review/") and path.endswith(".md")
                     and "/" not in path[len("team/r/review/"):]):
-                return False  # the review DOC write times out
+                return False  # the review doc write times out
             return super().write(path, content)
 
     t = ReviewDocWriteFails()
@@ -740,7 +740,7 @@ def test_partial_directive_failure_is_loud_rc1(capsys):
     cap = capsys.readouterr()
     assert rc == 1
     assert t.read("team/r/review/pr-p.md") is not None, "the doc still landed"
-    # names what FAILED (bob) and what was DELIVERED (alice)
+    # names what failed (bob) and what was delivered (alice)
     assert "bob" in cap.err and "FAILED" in cap.err
     assert "alice" in cap.err
     # alice's directive really landed
@@ -772,7 +772,7 @@ def test_request_rejects_whitespace_only_reviewer(capsys):
 # --- orphan review dirs + fail-closed role resolution -----------------------
 
 def test_fold_emits_review_orphan_row_each_pass(capsys):
-    # A review-root <slug>/ dir with no <slug>.md doc is an ORPHAN: the fold
+    # A review-root <slug>/ dir with no <slug>.md doc is an orphan: the fold
     # surfaces a `review-orphan` row naming it (visibility only, no repair). A
     # doc-ful review is unaffected; the row reappears every pass (not one-shot).
     t = FakeTransport()
@@ -783,7 +783,7 @@ def test_fold_emits_review_orphan_row_each_pass(capsys):
     t.put("team/r/review/pr-orphan/verdicts/x.md",
           "---\ntype: Verdict\nreviewer: x\nverdict: approve\n---\n")
     capsys.readouterr()
-    for _ in range(2):  # emitted EACH pass, not cached in the fold
+    for _ in range(2):  # emitted each pass, not cached in the fold
         assert cli.main(["needs-me", "r", "--agent", "me", "--json"], transport=t) == 0
         got = json.loads(capsys.readouterr().out)
         orphans = [g for g in got if g.get("type") == "review-orphan"]
@@ -794,7 +794,7 @@ def test_fold_emits_review_orphan_row_each_pass(capsys):
 
 
 def test_fold_role_lease_listing_degraded_is_visible_not_vacant(capsys):
-    # A review whose pending_required names a ROLE whose lease LISTING raises must
+    # A review whose pending_required names a role whose lease listing raises must
     # not silently read as "no holders" (dropping the obligation). The fold
     # surfaces a role-degraded marker and never crashes; exit 0.
     class LeaseListFails(FakeTransport):
@@ -812,11 +812,11 @@ def test_fold_role_lease_listing_degraded_is_visible_not_vacant(capsys):
     assert cli.main(["needs-me", "r", "--agent", "amy", "--json"], transport=t) == 0
     got = json.loads(capsys.readouterr().out)
     assert [g for g in got if g.get("type") == "review-role-degraded"], \
-        "a degraded role lease read must be VISIBLE, not a silent vacancy"
+        "a degraded role lease read must be visible, not a silent vacancy"
 
 
 def test_fold_role_doc_none_but_listed_degrades_visibly(capsys):
-    # needs-me's role expansion: a pending_required ROLE whose doc read returns
+    # needs-me's role expansion: a pending_required role whose doc read returns
     # None while the roles/ listing shows the doc is UNKNOWN — the obligation must
     # not be silently dropped as "not a role"; a review-role-degraded marker shows.
     class RoleDocReadFails(FakeTransport):
@@ -833,21 +833,21 @@ def test_fold_role_doc_none_but_listed_degrades_visibly(capsys):
     assert cli.main(["needs-me", "r", "--agent", "amy", "--json"], transport=t) == 0
     got = json.loads(capsys.readouterr().out)
     assert [g for g in got if g.get("type") == "review-role-degraded"], \
-        "doc-None on a LISTED role doc must degrade visibly, not silently non-role"
+        "doc-None on a listed role doc must degrade visibly, not silently non-role"
 
 
-# --- tombstone ontology: EMPTY review dir carries zero information ------------
+# --- tombstone ontology: empty review dir carries zero information ------------
 #
-# The store's deletes are SOFT: an archived/deleted review leaves its `<slug>/`
+# The store's deletes are soft: an archived/deleted review leaves its `<slug>/`
 # prefix behind forever. Fail-closed folding would surface each such ghost as a
 # forever-unknown orphan/[?] row in every briefing — correct fail-closed behavior
-# over the WRONG ontology. An EMPTY review dir (no verdict shards) must fold as a
-# TOMBSTONE: silently skipped. The three-way is: doc -> normal, verdicts-no-doc ->
+# over the wrong ontology. An empty review dir (no verdict shards) must fold as a
+# tombstone: silently skipped. The three-way is: doc -> normal, verdicts-no-doc ->
 # orphan (surface), empty/`.settled`-only -> tombstone (skip), listing-raise ->
 # UNKNOWN-degraded (never assume tombstone on transport failure).
 
 def test_empty_review_dir_folds_as_tombstone_invisible(capsys):
-    # A `<slug>/` dir with NO verdict `.md` shards and no `<slug>.md` doc is a
+    # A `<slug>/` dir with no verdict `.md` shards and no `<slug>.md` doc is a
     # soft-delete ghost: it must not surface as review-orphan, a [?] pending row,
     # or a degraded marker. A real orphan (verdicts present) and a real pending
     # review are untouched.
@@ -881,7 +881,7 @@ def test_settled_only_review_dir_folds_as_tombstone(capsys):
 
 
 def test_orphan_dir_verdicts_listing_raise_is_degraded_not_tombstone(capsys):
-    # Fail-closed outranks tombstone-skip: a verdicts LISTING that RAISES means the
+    # Fail-closed outranks tombstone-skip: a verdicts listing that raises means the
     # dir's contents are UNKNOWN — never assume it is empty (a tombstone). Surface
     # a degraded marker; do not silently skip.
     class OrphanListFails(FakeTransport):
@@ -895,7 +895,7 @@ def test_orphan_dir_verdicts_listing_raise_is_degraded_not_tombstone(capsys):
     capsys.readouterr()
     out = cli._pending_reviews_for(t, "r", "alice")
     assert any(r.get("type") == "review-orphan-degraded" and r.get("name") == "pr-unknown"
-               for r in out), "a raised verdicts listing must degrade VISIBLY, not tombstone"
+               for r in out), "a raised verdicts listing must degrade visibly, not tombstone"
 
 
 def test_needs_me_tombstone_absent_orphan_degraded_present(capsys):
@@ -918,12 +918,12 @@ def test_needs_me_tombstone_absent_orphan_degraded_present(capsys):
 
 
 def test_dir_classification_runs_under_the_fold_budget(capsys):
-    # Pre-budget seam (coordinator review): the dir-classification loop and its
-    # per-dir verdicts listings must run UNDER the fold's own deadline — 15
-    # tombstones on a degraded transport must never buy N x timeout of unbudgeted
-    # listings AHEAD of the budget. Classification is capped at a RESERVED half of
-    # the fold budget (visibility-only work must never starve the load-bearing doc
-    # scan — the reconcile reserved-budget pattern). On breach the remaining
+    # The dir-classification loop and its per-dir verdicts listings must run under
+    # the fold's own deadline — an accumulated set of tombstone dirs on a degraded
+    # transport must never buy N x timeout of unbudgeted listings ahead of the
+    # budget. Classification is capped at a reserved half of the fold budget
+    # (visibility-only work must never starve the load-bearing doc scan — the same
+    # reserved-budget pattern reconcile uses). On breach the remaining
     # unclassified dirs roll into one aggregate degraded row ({unclassified: k})
     # and the fold proceeds to the doc scan with the reserved remainder — a real
     # pending review is still served.
@@ -940,13 +940,13 @@ def test_dir_classification_runs_under_the_fold_budget(capsys):
         t.put(f"team/r/review/ghost-{i}/", "")  # six soft-delete ghosts
     capsys.readouterr()
     # the deadline is real wall-clock: keep sleep >> reserved-half >> in-memory
-    # scan cost, or a slow CI VM blows the whole budget before the doc scan and
-    # the final assert flakes (observed on the macOS runner at 0.05s)
+    # scan cost, or a slow machine blows the whole budget before the doc scan and
+    # the final assert flakes
     out = cli._pending_reviews_for(t, "r", "alice", deadline_seconds=0.5)
     agg = [r for r in out if r.get("type") == "review-orphan-degraded"
            and r.get("unclassified")]
     assert len(agg) == 1 and agg[0]["unclassified"] >= 1, \
-        f"breach must emit ONE aggregate unclassified row, got {out}"
+        f"breach must emit one aggregate unclassified row, got {out}"
     ghost_lists = [p for p in t.lists if "/verdicts/" in p and "ghost-" in p]
     assert len(ghost_lists) < 6, "classification must stop at the deadline, not run out"
     assert any(r.get("type") == "review-pending" and r.get("name") == "pr-live"

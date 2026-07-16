@@ -19,7 +19,7 @@ from coord_engine import transport as tr
 
 
 # A command that ignores whatever ``_run`` appends (``file <op> <path>...``) and
-# just sleeps well past the timeout. Positional args after -c's SCRIPT become
+# just sleeps well past the timeout. Positional args after -c's script become
 # $0, $1, ... which the script never reads, so the extra argv is inert.
 SLOW = ["sh", "-c", "sleep 5", "shim"]
 MISSING = ["/nonexistent/definitely-not-a-real-binary"]
@@ -123,17 +123,17 @@ def test_degraded_fold_over_timing_out_transport_yields_result_not_traceback():
 # Every fold budget in the engine (briefing/needs-me/overlay/…) assumes each
 # transport op is bounded. Bare ``subprocess.run(timeout=)`` breaks that promise
 # against a child that spawned helpers: on ``TimeoutExpired`` it kills only the
-# DIRECT child (and on POSIX ``wait()``s on it alone), so a grandchild that
+# direct child (and on POSIX ``wait()``s on it alone), so a grandchild that
 # inherited the stdout/stderr pipes is left running — a leaked process tree that
 # keeps holding the fds, and on non-POSIX the post-kill drain can block on it
 # indefinitely. The hardened path runs the child in its own session and, on
 # timeout, SIGKILLs the whole group, then drains under a short grace, abandoning
 # the pipes rather than blocking if even that won't complete. Invariant: a
-# transport op RETURNS OR RAISES within ``timeout`` + a small constant, no
+# transport op returns or raises within ``timeout`` + a small constant, no
 # matter what the child tree does.
 
 # direct child holds the pipes past the timeout (`exec sleep`), and a
-# backgrounded grandchild (same script) touches SENTINEL ~1.5s later — long
+# backgrounded grandchild (same script) touches sentinel ~1.5s later — long
 # after the 0.2s op timeout. If the whole group was killed the sentinel never
 # appears; if only the direct child died, the grandchild survives and writes it.
 def _grandchild_shim(sentinel: str) -> list[str]:
@@ -154,7 +154,7 @@ def test_timeout_kills_grandchild_group_not_just_direct_child(tmp_path):
 
 def test_read_hard_bounded_within_timeout_plus_grace_with_pipe_holding_descendant():
     # a grandchild holding the stdout/stderr pipe must not stretch the call:
-    # RETURN within timeout + grace regardless.
+    # return within timeout + grace regardless.
     t = tr.FulcraFileTransport(
         command=["sh", "-c", "sleep 30 & exec sleep 30"], timeout=0.3
     )
@@ -264,7 +264,7 @@ def test_recent_changes_honors_api_base_override(monkeypatch):
 
 
 def test_recent_changes_returns_none_on_http_error(monkeypatch):
-    """The endpoint fails LOUD (500 on an over-wide window) rather than
+    """The endpoint fails loud (500 on an over-wide window) rather than
     truncating — that must surface as UNKNOWN, not as an empty change set."""
     def boom():
         raise urllib.error.HTTPError("u", 500, "server error", {}, None)
