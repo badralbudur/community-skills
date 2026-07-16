@@ -1,0 +1,87 @@
+---
+name: fulcra-agent-coordination
+description: "Coordination layer over fulcra-agent-teams: presence and liveness, durable roles with leases, resumable continuity, a review handshake, directed work with acks, and fleet health — folded deterministically by a vendored, stdlib-only engine."
+homepage: "https://github.com/fulcradynamics/community-skills"
+license: "MIT"
+user-invocable: true
+metadata: { "openclaw": { "emoji": "🧭" } }
+---
+
+# Fulcra Agent Coordination
+
+The coordination layer over [`fulcra-agent-teams`](https://github.com/fulcradynamics/agent-skills). Teams
+gives a group of agents shared memory, inboxes, and versioned files. This skill adds what teams
+deliberately leaves out: **presence** (who is alive right now), **roles** (durable functions held by lease,
+not by session), **continuity** (structured snapshots and a deterministic resume brief), **review** (an
+N-reviewer verdict tally), **directives** (directed work with priorities and acks), and **health** (is
+anything actually running, and which host went dark).
+
+The through-line: anything two agents must AGREE on is a **fold over derived state**, computed by the
+engine — never a prose instruction to eyeball timestamps and guess. Agents drift; folds don't.
+
+## Invoking the engine
+
+The engine ships with this skill at `scripts/coord-engine` — stdlib-only Python 3, no install step and no
+dependencies to resolve. Every command in this skill is spelled `<skill-dir>/scripts/coord-engine …`, where
+`<skill-dir>` is this skill's directory.
+
+```bash
+<skill-dir>/scripts/coord-engine --help     # the verb list
+<skill-dir>/scripts/coord-engine doctor <team>   # preflight: tooling + store reachability
+```
+
+Writes go to the Fulcra File Store, so the storage CLI must be authenticated (`fulcra-api auth login`).
+`doctor` checks exactly that.
+
+## These are layers, not alternatives
+
+Teams is the base. The six below are **optional layers on top of it**, not competing options to choose
+between — they share one engine and one team namespace, and they compose: broadcasts use the presence
+roster; role vacancy escalates through directives; handoff writes a continuity checkpoint; health reports
+on whatever reconcile schedule you run. Adopt the whole thing and use what your situation calls for.
+
+Each layer degrades cleanly when a layer it likes is absent, and says so where it matters: `briefing` on a
+cold team prints empty sections rather than failing; a broadcast without presence still hides acked items
+per-agent, it just can't tell you when everyone has seen it. Nothing here requires you to decide up front
+which layers you are "installing".
+
+Don't read all six. Run a probe, land in the reference it points at.
+
+## Router
+
+`<you>` is your agent id (see [presence](references/presence.md) on picking one). Probes are read-only.
+
+| Probe | Command | Passes when | If it fails, read |
+| --- | --- | --- | --- |
+| Is the engine reaching the store? | `<skill-dir>/scripts/coord-engine doctor <team>` | exit 0 | [health.md](references/health.md) |
+| Cold start — what is this team's state? | `<skill-dir>/scripts/coord-engine briefing <team> --agent <you>` | exit 0; prints the presence/board/inbox/needs-me sections (empty sections are a pass) | [continuity.md](references/continuity.md) |
+| Who is alive right now? | `<skill-dir>/scripts/coord-engine presence show <team> --json` | your row shows `"liveness": "live"` | [presence.md](references/presence.md) |
+| Does anyone hold this role? | `<skill-dir>/scripts/coord-engine roles status <team> <role> --json` | exit 0 and `"status": "HELD"` (exit 1 = degraded transport, retry — never read it as VACANT) | [roles.md](references/roles.md) |
+| Can I resume what I left? | `<skill-dir>/scripts/coord-engine continuity resume <team> <you>` | prints an objective and next actions | [continuity.md](references/continuity.md) |
+| Do I have directed work waiting? | `<skill-dir>/scripts/coord-engine inbox <team> --agent <you> --json` | exit 0 and a JSON array with no leading `inbox-degraded` row (that row means transport, not an empty inbox) | [directives.md](references/directives.md) |
+| Is this artifact cleared to land? | `<skill-dir>/scripts/coord-engine review status <team> <slug> --json` | `"state": "APPROVED"` with empty `pending_required` (exit 1 = tally unknown, retry) | [review.md](references/review.md) |
+| Is anything actually reconciling this team? | `<skill-dir>/scripts/coord-engine health <team> --json` | exit 0 and `"healthy": true` | [health.md](references/health.md) |
+
+## What's yours to decide
+
+Where a decision belongs to you rather than to the skill, the references mark it **User's call:** and stop
+there. The engine computes state; it does not hold opinions about how you run a team. The recurring ones:
+
+- **Heartbeat cadence** — how often agents beat presence and how often reconcile runs. Everything downstream
+  (roster freshness, inbox lag, health's STALE flag) is bounded by what you pick.
+- **Which roles exist**, their `policy` (`shared`/`exclusive`), `sla_hours`, and maintainer. There is no
+  built-in vocabulary and no default org chart.
+- **Whether an unattended operator loop runs** at all — draining inboxes, storing digests, sweeping
+  vacancies — or whether a human drives it.
+- **What review gates** in your process, and whether required reviewers are roles or named agents.
+- **Snapshot cadence**, and whether sessions end with `continuity park` or a bare snapshot.
+
+## References
+
+- [presence.md](references/presence.md) — heartbeat shard, liveness folds, picking an agent id by role.
+- [roles.md](references/roles.md) — role docs, leases, HELD/VACANT/CONTESTED/DORMANT, vacancy escalation.
+- [continuity.md](references/continuity.md) — snapshot schema, resume brief, role checkpoints, `park`,
+  `briefing`.
+- [review.md](references/review.md) — request, verdicts, the APPROVED/CHANGES/PENDING tally.
+- [directives.md](references/directives.md) — tell/broadcast/remind/later/handoff/inbox/respond, acks.
+- [health.md](references/health.md) — doctor, fleet health fold, operator digest, escalation sweep.
