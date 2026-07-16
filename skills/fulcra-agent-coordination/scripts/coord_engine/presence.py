@@ -59,7 +59,7 @@ def roster(
 
 def broadcast_roster(shards: list[dict[str, Any]], *, now: str,
                      stale_hours: float = STALE_HOURS) -> list[str]:
-    """Agents a ``*`` directive must reach: everyone not stale. The A2 inbox
+    """Agents a ``*`` directive must reach: everyone not stale. The inbox
     fold uses this to decide when a broadcast is fully acked."""
     return [r["agent"] for r in roster(shards, now=now, stale_hours=stale_hours)
             if r["liveness"] != "stale"]

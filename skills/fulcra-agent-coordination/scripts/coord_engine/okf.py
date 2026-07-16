@@ -1,4 +1,4 @@
-"""OKF v0.1 read/render for L1 — stdlib-only, never-raises.
+"""OKF v0.1 read/render — stdlib-only, never-raises.
 
 - ``parse_frontmatter`` reads a concept doc's YAML-subset frontmatter.
 - ``render_index`` produces an engine-owned ``index.md`` (OKF §6, no frontmatter).

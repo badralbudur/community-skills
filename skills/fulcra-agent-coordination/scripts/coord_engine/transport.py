@@ -1,4 +1,4 @@
-"""Fulcra File Store transport for L1 — a thin wrapper over ``fulcra-api file``.
+"""Fulcra File Store transport — a thin wrapper over ``fulcra-api file``.
 
 ``file`` output is human text (not JSON), so this module owns the parsers. The
 subprocess methods (``list_dir``/``read``/``write``/``stat``/``delete``) form the

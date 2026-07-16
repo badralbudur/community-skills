@@ -284,9 +284,9 @@ def test_owner_unresolved_does_not_cache_or_advance(capsys):
 
 
 def test_inbox_index_unreadable_is_degraded_not_silent(capsys):
-    """M1: an unreadable summaries index must surface as degraded, not fold to a
-    silent empty inbox indistinguishable from 'no directives'. Without the guard: a
-    corrupt index was swallowed to [] with no listen degraded line."""
+    """An unreadable summaries index must surface as degraded, not fold to a silent
+    empty inbox indistinguishable from 'no directives'. Without the guard a corrupt
+    index is swallowed to [] with no listen degraded line."""
     t = FakeTransport()
     # index present but corrupt -> json parse fails (was silently folded to [])
     t.put(reconcile.summaries_path(TEAM), "{ not json")
@@ -327,10 +327,10 @@ def test_absent_index_is_readable_empty_not_degraded(capsys):
 
 
 def test_pinned_orphan_does_not_silence_a_new_distinct_failure(capsys):
-    """M2: per-source streaks. A permanent orphan (owner unresolved every tick)
-    pins the `orphans` streak, but must not silence a new, distinct outage. Red at
-    HEAD: one shared `degraded` bool stayed True from the orphan and swallowed the
-    later transport failure — no second listen degraded ever fired."""
+    """Per-source streaks. A permanent orphan (owner unresolved every tick) pins the
+    `orphans` streak, but must not silence a new, distinct outage. With one shared
+    `degraded` bool the orphan holds it True and swallows the later transport
+    failure, so no second listen degraded line ever fires."""
     t = FakeTransport()
     # a response whose directive doc never resolves -> owner unresolved every tick
     _put_response(t, "ghost-x", "20260710T0000-carol", agent="carol", outcome="ACK")

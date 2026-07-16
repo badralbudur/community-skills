@@ -1,8 +1,7 @@
-"""Task row model + status/priority constants for L1 coord-reconcile.
+"""Task row model + status/priority constants for coord-reconcile.
 
 A "row" is the structured projection of an OKF ``type: Task`` concept doc, used to
-build indexes, the aggregate, and query results. See
-``docs/proposals/teams-convergence/02-L1-coord-reconcile.md`` §1–§4.
+build indexes, the aggregate, and query results.
 """
 
 from __future__ import annotations

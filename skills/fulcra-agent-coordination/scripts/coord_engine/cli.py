@@ -2486,7 +2486,7 @@ def cmd_listen(args: argparse.Namespace, transport: Any) -> int:
         return 0
 
 
-# --- continuity completion (A6): role checkpoints, park, briefing ---
+# --- continuity: role checkpoints, park, briefing ---
 
 def _set_role_field(transport: Any, team: str, role: str, key: str, value: str) -> bool:
     """Read-modify-write one frontmatter field on a role doc, preserving the rest."""
