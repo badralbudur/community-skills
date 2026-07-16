@@ -14,7 +14,7 @@ bare ``>``), the degraded row was rebuilt inline at ~11 sites, and three
 ``_*_degraded_line`` renderers were byte-for-byte the same template. Duplication
 that shape invites semantic drift (a NaN/inf wording or a ``>`` vs ``>=`` boundary
 that differs by helper). One helper, used everywhere, makes the family move as a
-unit — and is the ship-gate shape for any NEW bounded fan-out (see AGENTS.md).
+unit — and is the shape any NEW bounded fan-out is expected to adopt.
 
 **Deadline discipline** (the invariant every fold upholds): a deadline is an
 absolute ``time.monotonic()`` instant, or ``None`` for "no bound". It is checked
@@ -79,8 +79,8 @@ def degraded_row(
     bounded fan-out fold appends when a budget breach / transport failure truncates
     it. ``skipped`` is omitted when zero (a fully-scanned-but-late fold has no
     unreadable slugs to report). ``marker_type`` is the fold's own type string
-    (``review-fold-degraded`` / ``forge-degraded`` / ``presence-degraded`` — they
-    are deliberately irregular and each caller passes its own)."""
+    (``review-fold-degraded`` / ``presence-degraded`` — they are deliberately
+    irregular and each caller passes its own)."""
     row: dict[str, Any] = {"type": marker_type, "scanned": scanned, "total": total}
     if skipped:
         row["skipped"] = skipped

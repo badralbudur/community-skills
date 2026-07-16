@@ -1,4 +1,4 @@
-"""Read-side query verbs over the aggregate rows (spec §5).
+"""Read-side query verbs over the aggregate rows.
 
 All pure functions of a row list — the CLI loads ``_coord/summaries.json`` once
 and calls these. No network, no per-file reads.

@@ -7,11 +7,9 @@ resolved ``override > env[name] > env[alias…] > default``; anything unparseabl
 non-finite, or not greater than ``minimum`` falls back to ``default`` — a bad env value
 must NEVER disable a bound or make an op hang.
 
-The canonical catalogue of every ``COORD_*`` knob (name, default, unit, what it bounds)
-and the ``FULCRA_COORD_*`` legacy-prefix rule lives in
-[`coord-engine/README.md`](../README.md) → *Environment / tuning*. Keep that table and
-this module in lockstep (there is a docs-vs-code test that fails if a documented name is
-not read by the code).
+Every knob is read here and nowhere else, so this module is the catalogue: each
+``_knob`` call below names the variable, its default, and what it bounds. The
+``FULCRA_COORD_*`` spelling of any ``COORD_*`` name is accepted as a legacy alias.
 
 stdlib-only; these functions never raise.
 """

@@ -31,8 +31,8 @@ MAX_SLUG_LEN = 80
 
 
 def slugify(title: str) -> str:
-    """Filename-safe slug, capped at ``MAX_SLUG_LEN`` — an unbounded slug from a
-    long title produced a ~600-char filename in the migration dry-run."""
+    """Filename-safe slug, capped at ``MAX_SLUG_LEN`` — a long title otherwise
+    yields a filename the store (or a filesystem below it) may reject."""
     s = _SLUG_RE.sub("-", (title or "").lower()).strip("-") or "task"
     if len(s) > MAX_SLUG_LEN:
         s = s[:MAX_SLUG_LEN].rstrip("-")
@@ -158,7 +158,7 @@ def apply_update(
 
 def apply_answer(existing: Optional[str], *, now: str, answer: str,
                  relayer: Optional[str] = None, human: str = "human") -> tuple[str, str]:
-    """The operator return-leg (fulcra-agent-operator): validate the task is a
+    """The operator return-leg: validate the task is a
     waiting-for-operator ask, then in ONE write: record the answer, unblock
     (blocked -> active), hand the task back to its OWNER (so it lands in their
     inbox and their listener fires), and strip the needs:human marker.

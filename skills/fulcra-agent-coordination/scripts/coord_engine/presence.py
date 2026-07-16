@@ -5,7 +5,7 @@ what workstreams I'm on, one-line summary, timestamp). Folding shards into a
 roster with liveness — and supplying the broadcast roster for directives — is
 deterministic code. Writing your own shard is a single-file action the CLI wraps.
 
-Liveness (mirrors the incumbent's presence fold):
+Liveness:
 - ``live``  — beat within ``live_hours``  (default 1h)
 - ``idle``  — beat within ``stale_hours`` (default 24h)
 - ``stale`` — older than ``stale_hours`` (kept in roster, excluded from the

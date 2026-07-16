@@ -1,14 +1,8 @@
-"""Operator digest — the situational-awareness fold (fulcra-agent-health, A5b).
+"""Operator digest — the situational-awareness fold (fulcra-agent-health).
 
-Answers the incumbent digest's four questions from the aggregate + presence:
-what's blocked on YOU, what's upcoming, what each agent is doing, what's stale.
-Pure fold; the CLI renders it and (optionally) persists it to the team store.
-
-Timeline annotation note: the incumbent wrote digests to the Fulcra timeline and
-grew DUPLICATE data types from racy check-then-create (operator bug report).
-coord defers the timeline write until the record-write CLI surface is verified
-(research-before-building); `--store` persists the digest durably on the team
-store instead, deduped per day+window.
+Answers four questions from the aggregate + presence: what's blocked on YOU,
+what's upcoming, what each agent is doing, what's stale. Pure fold; the CLI
+renders it and (optionally) persists it to the team store.
 """
 
 from __future__ import annotations

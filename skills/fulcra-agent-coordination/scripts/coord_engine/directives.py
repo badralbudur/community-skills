@@ -1,6 +1,6 @@
 """Directives — inbox/ack folds for the fulcra-agent-directives skill.
 
-A directive IS a task with an ``assignee`` (the incumbent's model): ``tell`` /
+A directive IS a task with an ``assignee``: ``tell`` /
 ``broadcast`` / ``remind`` / ``later`` are sugar over task creation. What needs
 deterministic code is the read side: *which open directives does agent X still
 owe attention to* — a fold over the aggregate rows plus per-agent **ack shards**

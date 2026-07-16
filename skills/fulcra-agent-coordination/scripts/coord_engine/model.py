@@ -58,8 +58,8 @@ _TRUNCATION_MARK = "…"
 
 #: Version of the summaries-row projection produced by :func:`row_from_frontmatter`.
 #: BUMP this whenever the row projection changes in a way that must self-heal an
-#: already-serialized index — e.g. the #388 text cap, which older uncapped rows
-#: predate. Reconcile stamps every fresh row with the current value ("sv") and
+#: already-serialized index — e.g. a text cap that older uncapped rows predate.
+#: Reconcile stamps every fresh row with the current value ("sv") and
 #: force-reparses any prior row whose stamp != this, so a projection change heals
 #: the whole index within one full pass instead of only rows that happen to be
 #: rebuilt. Kept a tiny key + small int: it is stored per-row in the index.
@@ -90,7 +90,7 @@ def row_from_frontmatter(
 
     Bare-``fulcra-agent-teams`` tasks may lack coord's extension keys; missing
     ``status``/``priority``/``id``/``title`` are backfilled so such tasks are
-    first-class (mixed-fleet tolerance, spec §2 step 3). ``title`` and
+    first-class (mixed-fleet tolerance). ``title`` and
     ``description`` are capped via :func:`cap_summary_text` — the row is an
     index entry, not the payload's home.
     """

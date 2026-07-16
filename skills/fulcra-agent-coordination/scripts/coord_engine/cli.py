@@ -22,11 +22,14 @@ import secrets
 import socket
 import sys
 import time
-import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from . import aggregate, atc, atc_dash, budget as budget_mod, config, continuity, continuity_audit, digest as digest_mod, directives, forge as forge_mod, health as health_mod, migrate as migrate_mod, okf, presence, query, review, roles, tasks
+from . import (
+    aggregate, budget as budget_mod, config, continuity, continuity_audit,
+    digest as digest_mod, directives, health as health_mod, okf, presence,
+    query, review, roles, tasks,
+)
 from .budget import Deadline
 from . import reconcile as rec
 from .log import get_logger
@@ -35,13 +38,6 @@ from .transport import FulcraFileTransport, TransportError
 __all__ = ["main"]
 
 _log = get_logger("cli")
-
-# Cohesive command groups extracted into focused modules (behavior-preserving
-# split). Each imports ``cli`` and reaches shared helpers through it, so there is
-# no module-load cycle and ``monkeypatch.setattr(cli, …)`` still steers. Their
-# public names are re-exported at the BOTTOM of this module (after every helper is
-# defined) so ``build_parser``'s dispatch table and existing ``cli.<name>`` call
-# sites (and tests) resolve unchanged.
 
 
 def _now() -> datetime:
@@ -109,13 +105,14 @@ def _overlay_budget() -> float:
 def _fresh_overlay_rows(
     transport: Any, team: str, index_rows: list[dict[str, Any]]
 ) -> tuple[list[dict[str, Any]], bool, str]:
-    """Freshness overlay (Task 2.5, the PR348 false-clear).
+    """Freshness overlay — closes the false-clear between reconciles.
 
-    ``inbox``/``listen``/every canonical surface read the reconcile-built summaries
+    ``inbox``/``listen``/every canonical surface reads the reconcile-built summaries
     index, so a task/directive doc written BETWEEN reconciles is invisible to all of
-    them until the next heartbeat rebuild (live-repro'd: delivered 14:05:29Z, raw-
-    file-visible 14:07Z, inbox-visible 14:11Z — a watcher polling the canonical
-    surface misses fresh work for up to a reconcile period). When the index is
+    them until the next heartbeat rebuild. The invariant that breaks without this:
+    a surface read must never report "nothing waiting" for work that is already
+    durably written — otherwise a poller misses fresh work for up to a whole
+    reconcile period, and the newer the work, the longer it hides. When the index is
     present+readable we ALSO list the task dir once and parse ONLY docs whose slug is
     ABSENT from the index (bounded by new-since-reconcile items — typically zero or a
     handful — and hard-capped at ``COORD_OVERLAY_CAP``), unioning them into the fold.
@@ -215,10 +212,10 @@ def _load_rows_status(transport: Any, team: str) -> tuple[list[dict[str, Any]], 
     A genuinely-absent index (a fresh team, no reconcile yet) is empty-and-readable
     (``ok`` True): absence is a normal empty state, never conflated with failure.
 
-    ``read`` returning None is ambiguous (absent vs transport-down — the T1 lesson),
-    so a None is disambiguated with one parent listing: ``list_dir`` RAISES on a
-    transport failure and its entry names distinguish missing from present-but-
-    unreadable (the #343 discipline). This is what lets `listen` surface a summaries
+    ``read`` returning None is ambiguous: absent and transport-down map to the same
+    value. So a None is disambiguated with one parent listing: ``list_dir`` RAISES on
+    a transport failure and its entry names distinguish missing from present-but-
+    unreadable. This is what lets `listen` surface a summaries
     failure instead of folding it to a silent [] indistinguishable from empty."""
     path = rec.summaries_path(team)
     try:
@@ -255,7 +252,7 @@ def _load_rows(transport: Any, team: str) -> list[dict[str, Any]]:
 # --- The public-read failure contract (defined ONCE) -----------------------
 #
 # Every aggregate-backed PUBLIC READ — `status`, `board`, `needs-me`, `search`,
-# `inbox` (and the `briefing`/`threads` bundles) — folds the summaries index via
+# `inbox` (and the `briefing` bundle) — folds the summaries index via
 # `_load_rows_status`, whose ``ok`` bit is False when the index/listing is
 # UNKNOWN: an unreadable/corrupt index, a read that failed under a degraded
 # transport, or a degraded freshness overlay. UNKNOWN is NOT the same as a
@@ -263,13 +260,11 @@ def _load_rows(transport: Any, team: str) -> list[dict[str, Any]]:
 # readable EMPTY (``ok`` True). THE CONTRACT: a read whose ``ok`` is False must
 # NEVER return a clean-empty result. It emits the shared machine-parseable
 # degraded row below (family-consistent with ``review-fold-degraded`` /
-# ``forge-degraded`` / ``presence-degraded`` / ``threads-degraded``) and, in text
-# mode, a stderr notice — so "unknown" is LOUD, never silently indistinguishable
-# from "nothing to do". This is the README's "fails loud, never silent" property;
-# `cmd_threads` is the reference implementation this generalizes. The one hazard
-# this closes: a silently-empty task fold that reads as "all clear" while a real
-# unacked directive (a live P1) is merely unreadable — reproduced on
-# `inbox --json` under a clamped transport timeout.
+# ``presence-degraded``) and, in text mode, a stderr notice — so "unknown" is
+# LOUD, never silently indistinguishable from "nothing to do". The hazard this
+# closes: a silently-empty task fold reads as "all clear" while a real unacked
+# P1 directive is merely unreadable, and an agent that cannot tell the two apart
+# will confidently do nothing.
 _READ_DEGRADED = "read-degraded"
 
 
@@ -373,16 +368,11 @@ def cmd_needs_me(args: argparse.Namespace, transport: Any) -> int:
     rows, rows_ok, rows_reason = _load_rows_status(transport, args.team)
     got = query.needs_me(rows, args.agent, now=_iso(_now()))
     # Public-read failure contract: an UNKNOWN task fold must announce itself with
-    # the shared marker BEFORE the review/forge add-ons pile their own markers onto
-    # what would otherwise read as a silently-empty (but "complete") needs-me.
+    # the shared marker BEFORE the review add-on piles its own markers onto what
+    # would otherwise read as a silently-empty (but "complete") needs-me.
     if not rows_ok:
         got = [_read_degraded_row(rows_reason)] + got
-    # Shared add-on deadline (see _briefing_budget): opened here so the forge
-    # fan-out is bounded cumulatively, not per-section. pending-reviews keeps its
-    # own independent, already-shipped budget.
-    add_on = Deadline.open(_briefing_budget())
     got += _pending_reviews_for(transport, args.team, args.agent)
-    got += _forge_feedback_for(transport, args.team, args.agent, deadline=add_on.instant)
     if args.json:
         print(json.dumps(got, indent=2))
     else:
@@ -409,10 +399,6 @@ def cmd_needs_me(args: argparse.Namespace, transport: Any) -> int:
             elif r.get("type") == "review-role-degraded":
                 print(f"  review role resolution degraded: "
                       f"{', '.join(r.get('roles') or [])} — holders unknown, retry")
-            elif r.get("type") == "forge-feedback":
-                print(_forge_feedback_line(r))
-            elif r.get("type") == "forge-degraded":
-                print(_forge_degraded_line(r))
             else:
                 print(_line(r))
     return 0
@@ -711,11 +697,11 @@ SETTLED_MARKER = ".settled"
 #: Aggregate deadline (seconds) for ``_pending_reviews_for`` — never let a degraded
 #: pending-review scan hang or (via a bad env value) run unbounded.
 DEFAULT_REVIEW_FOLD_BUDGET = 45.0
-#: Aggregate deadline (seconds) for the transport-heavy briefing/needs-me add-on
-#: sections (chiefly the team-global forge-feedback fan-out, which did unbounded
-#: per-PR reads and hung the whole bundle under a degraded transport). ONE budget
-#: opens when the add-on stack begins and is spent cumulatively across sections;
-#: pending-reviews keeps its own independent COORD_REVIEW_FOLD_BUDGET (sooner wins).
+#: Aggregate deadline (seconds) for the transport-heavy briefing add-on sections.
+#: ONE budget opens when the add-on stack begins and is spent cumulatively across
+#: sections, so a bundle's bound is the bundle's — not per-section, which would let
+#: N sections each spend the full budget. pending-reviews keeps its own independent
+#: COORD_REVIEW_FOLD_BUDGET (sooner wins).
 DEFAULT_BRIEFING_BUDGET = 60.0
 #: Per-tick bound (seconds) for the listener's dir-only review-slug classification
 #: pass. That set is PERMANENT and growing (soft deletes leave every review dir
@@ -723,9 +709,6 @@ DEFAULT_BRIEFING_BUDGET = 60.0
 #: tick, on the watcher whose tick latency is load-bearing. 10s is a bounded
 #: fraction of the default 60s poll interval.
 DEFAULT_LISTEN_CLASSIFY_BUDGET = 10.0
-
-# The `threads` fold/window defaults (DEFAULT_THREADS_*) live with the threads
-# command in `commands_threads.py`; they are re-exported onto `cli` at module end.
 
 
 def _settled_marker_path(team: str, slug: str) -> str:
@@ -777,7 +760,7 @@ def _is_settleable(tally: dict[str, Any]) -> bool:
     one readable approval verdict — cache that and a genuinely-pending review is
     hidden from every fold, durably. ``review request`` refuses to open a review
     without --reviewer, so an absent/empty required list can only mean doc-read
-    failure, doc corruption, or a legacy/forge-style doc — never a legitimate
+    failure, doc corruption, or a legacy doc — never a legitimate
     settle state. Such tallies stay UNCACHED (re-tallied each fold); only the
     marker write is gated here, never the reported state."""
     return (tally.get("state") == review.APPROVED
@@ -1185,183 +1168,6 @@ def _review_degraded_line(r: dict[str, Any]) -> str:
         noun="slug")
 
 
-def _forge_responsible(
-    transport: Any, team: str, *, deadline: Optional[float] = None
-) -> tuple[dict[str, set], bool]:
-    """``({pr_slug: {responsible agents}}, ok)``. Responsibility comes from two
-    sources, unioned: the watch registry (its ``agent``) and, for review-artifact
-    PRs, the review's ``requested_by``. Best-effort — any listing failure is
-    skipped so needs-me/briefing never fail because the forge add-on is absent.
-
-    BOUNDED. Both sources are team-global fan-outs (list + one read per entry);
-    ``deadline`` (an absolute ``time.monotonic()`` instant, or None for no bound)
-    is checked BEFORE and AFTER each blocking op, mirroring the review fold — so a
-    degraded transport can no longer turn discovery into an unbounded hang. ``ok``
-    is False when a source listing raised OR the budget expired mid-scan: the map
-    is then a FLOOR (partial), and the caller must surface a degraded row rather
-    than treat the partial responsibility set as complete. A cheap zero-read skip
-    for "this agent has no forge responsibility" is NOT possible from one listing:
-    responsibility lives in per-file frontmatter across TWO sources, so the budget
-    is the guard (the empty-store case already costs only the two empty listings).
-    """
-    resp: dict[str, set] = {}
-    ok = True
-    dl = Deadline(deadline)
-    watch_prefix = f"team/{team}/_coord/forge/watch/"
-    try:
-        watch_entries = transport.list_dir(watch_prefix)
-    except TransportError:
-        watch_entries = []
-        ok = False
-    for e in watch_entries:
-        if dl.expired():
-            ok = False
-            break
-        n = e.get("name") or ""
-        if e.get("is_dir") or not n.endswith(".md"):
-            continue
-        raw = transport.read(watch_prefix + n)
-        if dl.expired():  # the read pushed us over budget — detect it immediately
-            ok = False
-            break
-        fm = okf.parse_frontmatter(raw) or {}
-        slug = forge_mod.pr_slug(fm.get("url")) or n[:-3]
-        a = fm.get("agent")
-        if a:
-            resp.setdefault(slug, set()).add(str(a))
-    review_prefix = f"team/{team}/review/"
-    try:
-        review_entries = transport.list_dir(review_prefix)
-    except TransportError:
-        review_entries = []
-        ok = False
-    for e in review_entries:
-        if dl.expired():
-            ok = False
-            break
-        n = e.get("name") or ""
-        if e.get("is_dir") or not n.endswith(".md") or n == "index.md":
-            continue
-        raw = transport.read(review_prefix + n)
-        if dl.expired():
-            ok = False
-            break
-        fm = okf.parse_frontmatter(raw) or {}
-        slug = forge_mod.pr_slug(forge_mod.review_artifact(fm))
-        who = fm.get("requested_by")
-        if slug and who:
-            resp.setdefault(slug, set()).add(str(who))
-    return resp, ok
-
-
-def _forge_slug_feedback(
-    transport: Any, team: str, agent: str, slug: str,
-    entries: list[dict[str, Any]], prefix: str, deadline: Optional[float],
-) -> tuple[Optional[dict[str, Any]], bool]:
-    """Feedback row for ONE PR from its already-listed feedback dir, ->
-    ``(row_or_None, fully_scanned)``. ``fully_scanned`` is False when the budget
-    expired mid-scan (checked before AND after each blocking read): a single PR
-    with many shards would otherwise read them all unbounded. A truncated scan is
-    UNTRUSTED — the caller discards the partial row and counts the slug skipped,
-    exactly as the review fold discards a mid-slug tally."""
-    items: list[str] = []
-    authors: list[str] = []
-    dl = Deadline(deadline)
-    for e in entries:
-        n = e.get("name") or ""
-        if e.get("is_dir") or not n.endswith(".md"):
-            continue
-        if dl.expired():
-            return None, False
-        stem = n[:-3]
-        acked = transport.read(_ack_path(team, stem, agent))
-        if dl.expired():
-            return None, False
-        if acked is not None:
-            continue  # acked by this agent — hidden
-        raw = transport.read(prefix + n)
-        if dl.expired():
-            return None, False
-        items.append(stem)
-        fm = okf.parse_frontmatter(raw) or {}
-        a = fm.get("author")
-        if a and str(a) not in authors:
-            authors.append(str(a))
-    if items:
-        return ({"type": "forge-feedback", "pr_slug": slug, "count": len(items),
-                 "authors": sorted(authors), "items": sorted(items)}, True)
-    return None, True
-
-
-def _forge_feedback_for(
-    transport: Any, team: str, agent: str, *, deadline: Optional[float] = None
-) -> list[dict[str, Any]]:
-    """Unacked forge-feedback shards on PRs the agent is responsible for, one
-    row per PR: ``{type, pr_slug, count, authors, items}``. Ack state reuses the
-    directive ack namespace (``_coord/acks/<item-id>/<agent>.md``) — acked items
-    drop; a new node id (new shard) re-surfaces. Best-effort; never raises.
-
-    BOUNDED by the shared briefing ``deadline`` (absolute ``time.monotonic()``,
-    None = unbounded/legacy). On any breach — the responsibility scan truncating,
-    a per-PR feedback listing raising, or the per-PR shard scan overrunning — a
-    single ``forge-degraded`` row ``{scanned, total, skipped}`` is appended (same
-    shape/discipline as ``review-fold-degraded``): partial forge knowledge stays
-    VISIBLE, the section never hangs the entry fold and never dies silently.
-    ``total`` is the count of PRs the agent is responsible for (a floor if the
-    responsibility scan itself was truncated); ``scanned`` counts those reached;
-    ``skipped`` counts those reached-but-unreadable/cut."""
-    out: list[dict[str, Any]] = []
-    dl = Deadline(deadline)
-    resp, resp_ok = _forge_responsible(transport, team, deadline=deadline)
-    mine = sorted(slug for slug, agents in resp.items() if agent in agents)
-    total = len(mine)
-    scanned = 0
-    skipped = 0
-    degraded = not resp_ok  # a truncated/failed responsibility scan is already degraded
-    for slug in mine:
-        if dl.expired():
-            degraded = True
-            break
-        scanned += 1
-        prefix = f"team/{team}/_coord/forge/feedback/{slug}/"
-        try:
-            entries = transport.list_dir(prefix)
-        except TransportError:
-            # This PR's feedback is UNKNOWN (listing raised): count it skipped and
-            # keep scanning the rest — never let one PR sink the whole section.
-            skipped += 1
-            degraded = True
-            continue
-        if dl.expired():
-            # The listing itself pushed us over budget: this PR is unscanned.
-            skipped += 1
-            degraded = True
-            break
-        row, fully = _forge_slug_feedback(transport, team, agent, slug, entries, prefix, deadline)
-        if not fully:
-            # Budget expired mid-shard: the partial row is untrusted, discard it,
-            # count the PR skipped, and stop — the budget is spent.
-            skipped += 1
-            degraded = True
-            break
-        if row:
-            out.append(row)
-    if degraded:
-        out.append(budget_mod.degraded_row("forge-degraded", scanned, total, skipped))
-    return out
-
-
-def _forge_feedback_line(r: dict[str, Any]) -> str:
-    who = ", ".join(r.get("authors") or []) or "?"
-    return (f"  [FORGE] feedback on {r.get('pr_slug')}: "
-            f"{r.get('count')} item(s) from {who}")
-
-
-def _forge_degraded_line(r: dict[str, Any]) -> str:
-    return budget_mod.fold_degraded_line(
-        r, label="forge", remedy="run forge feedback for the rest", noun="PR")
-
-
 def _normalize_required(required: Any) -> list[str]:
     """Coerce a doc's ``required:`` field (list or legacy comma-string) into a
     clean list of stripped, non-empty reviewer names — the shape `review.tally`
@@ -1508,9 +1314,9 @@ def cmd_review_request(args: argparse.Namespace, transport: Any) -> int:
             return 1
         _print_review_success(args, team, slug, required, recovered=True)
         return 0
-    # existing is None is AMBIGUOUS (T1: a read timeout and a genuinely-absent doc
-    # both map to None). Treating it as an empty slot would let a degraded transport
-    # clobber a live review (I1 / post-#342). Confirm absence via a directory
+    # existing is None is AMBIGUOUS: a read timeout and a genuinely-absent doc both
+    # map to None. Treating it as an empty slot would let a degraded transport
+    # clobber a live review. Confirm absence via a directory
     # listing before writing: list_dir RAISES TransportError on failure (loud
     # through main's catch-all), and its entry names distinguish missing from
     # present-but-unreadable. One list_dir per request is cheap.
@@ -1533,10 +1339,9 @@ def cmd_review_request(args: argparse.Namespace, transport: Any) -> int:
     }
     body = f"\nReview requested: {args.of}\n"
     if not transport.write(path, okf.render_frontmatter(fm) + body):
-        # T1: a timed-out write returns False, not a raise. An rc-0 "review
-        # requested" that never landed is the requester-side incident (mirror of
-        # C1). Fail loud so the requester retries rather than believing the
-        # obligation is durable.
+        # A timed-out write returns False, not a raise. An rc-0 "review requested"
+        # that never landed leaves the requester believing a durable obligation
+        # exists when none does. Fail loud so they retry.
         print("review request write failed (transport)", file=sys.stderr)
         return 1
     # A fresh doc can carry no stale `.settled` marker, but a since-deleted-and-
@@ -1547,7 +1352,7 @@ def cmd_review_request(args: argparse.Namespace, transport: Any) -> int:
     # required reviewer through the canonical hash-slug directive path, so a
     # verb-opened review FIRES the reviewer's inbox/listen — this is what removes
     # the reason agents hand-send review tells (the PR-344 orphan class) and makes
-    # the listener's `await verdicts` breadcrumb genuine. Same C1 write discipline
+    # the listener's `await verdicts` breadcrumb genuine. Same write discipline
     # as the doc: any reviewer-directive fail is reported LOUD naming exactly what
     # landed and what did not (partial is never silent), and the requester's retry
     # re-enters the idempotent-recovery path above to fill the gaps.
@@ -1795,9 +1600,9 @@ def _write_directive(transport: Any, args: argparse.Namespace, *, slug: str,
         print(f"directive {slug}: slot holds unverifiable content, "
               f"cannot verify delivery, retry", file=sys.stderr)
         return 1
-    # existing is None is AMBIGUOUS (T1: timeout and genuinely-absent both map to
-    # None). Treating it as "empty slot" would let a degraded transport clobber an
-    # occupied slot (I1). Confirm absence via a directory listing: list_dir RAISES
+    # existing is None is AMBIGUOUS: timeout and genuinely-absent both map to None.
+    # Treating it as "empty slot" would let a degraded transport clobber an occupied
+    # one. Confirm absence via a directory listing: list_dir RAISES
     # TransportError on failure (loud through main's catch-all), and its entry
     # names distinguish missing from unreadable. One list_dir per tell is fine.
     parent, entry = path.rsplit("/", 1)
@@ -1808,15 +1613,15 @@ def _write_directive(transport: Any, args: argparse.Namespace, *, slug: str,
         print(f"directive {slug}: slot present but unreadable "
               f"(transport degraded), cannot verify delivery, retry", file=sys.stderr)
         return 1
-    # Genuinely absent -> write. A write that fails (T1: False, not a raise) must
-    # NOT be reported as delivered (C1): a failed write leaves the slot empty, so
+    # Genuinely absent -> write. A write that fails (returns False, never raises)
+    # must NOT be reported as delivered: a failed write leaves the slot empty, so
     # a retry re-enters this dedup logic cleanly.
     if not transport.write(path, content):
         print("directive write failed (transport)", file=sys.stderr)
         return 1
     # Post-write read-back as WRITE-VERIFICATION only: None (read-back failed) or a
     # mismatch (corruption) both mean we cannot confirm our bytes landed -> fail
-    # loud (C1) rather than claim an unverifiable delivery. A mismatch can no
+    # loud rather than claim an unverifiable delivery. A mismatch can no
     # longer mean a lost race (distinct payloads never share this path).
     readback = transport.read(path)
     if readback is None:
@@ -1865,7 +1670,7 @@ def _deliver_review_directive(transport: Any, team: str, slug: str, reviewer: st
                               *, sender: str, of: str) -> int:
     """Deliver ONE review-request directive to ``reviewer`` via the canonical
     hash-slug directive path — the SAME ``_write_directive`` delivery (payload-hash
-    dedup + C1 write-verification) every ``tell`` gets, so a verb-opened review
+    dedup + write-verification) every ``tell`` gets, so a verb-opened review
     NOTIFIES its reviewers instead of relying on a hand-sent tell (the PR-344
     orphan class: a review directive sent by hand, with no verdict target). The
     text carries the exact slug AND the verdict-file path (the fail-closed watcher
@@ -2010,7 +1815,7 @@ def cmd_intent(args: argparse.Namespace, transport: Any) -> int:
         return _update_intent_window(transport, path, existing, slug=slug,
                                      intent_by=intent_by)
 
-    # existing is None -> absent OR present-but-unreadable (I1). Reuse
+    # existing is None -> absent OR present-but-unreadable. Reuse
     # _write_directive's guards: it re-confirms absence via a directory listing
     # (present-but-unreadable -> rc 1 cannot-verify, no overwrite) then writes +
     # verifies. Build the doc with the capture doctrine: intent:<principal> tag +
@@ -2114,7 +1919,7 @@ def cmd_inbox(args: argparse.Namespace, transport: Any) -> int:
     # bit. Under a degraded transport the summaries index is UNKNOWN, not empty —
     # emit the `inbox-degraded` marker (json row / stderr notice) and RETAIN any
     # partial rows, NEVER a clean-``[]`` exit 0 that would suppress a live unacked
-    # directive (live-reproduced).
+    # directive.
     got, ok, reason = _inbox_rows_status(transport, args.team, agent,
                                          include_backlog=args.all)
     if args.json:
@@ -2633,9 +2438,9 @@ def cmd_listen(args: argparse.Namespace, transport: Any) -> int:
     agent = args.agent or _host()
     state_path = _listen_state_path(args.team, agent)
     if getattr(args, "state_path", False):
-        # Resolver for listener-tick.sh's one-time `.items` -> listen-state
-        # migration: the slugify/agent_key naming lives here, so the shell asks the
-        # engine rather than reimplementing it. Print and exit; no tick, no writes.
+        # Resolver for out-of-process callers that need this agent's listen-state
+        # path: the slugify/agent_key naming lives here, so a caller asks the engine
+        # rather than reimplementing it. Print and exit; no tick, no writes.
         print(str(state_path))
         return 0
     state = _load_listen_state(state_path)
@@ -2743,7 +2548,7 @@ def _held_roles(transport: Any, team: str, agent: str) -> list[str]:
 
 def cmd_continuity_park(args: argparse.Namespace, transport: Any) -> int:
     """Session-exit checkpoint: snapshot every role the agent holds and point
-    each role's checkpoint_ref at it. The incumbent's `park`."""
+    each role's checkpoint_ref at it."""
     agent = args.agent or _host()
     now = _iso(_now())
     held = _held_roles(transport, args.team, agent)
@@ -2783,22 +2588,21 @@ def cmd_briefing(args: argparse.Namespace, transport: Any) -> int:
     rows, rows_ok, rows_reason = _load_rows_status(transport, args.team)
     if not rows_ok:
         out["read_degraded"] = _read_degraded_row(rows_reason)
-    # One shared add-on deadline (see _briefing_budget), opened HERE — before the
-    # first UNBUDGETED transport-heavy section (presence) — and spent cumulatively
-    # across presence + forge + resume, so the WHOLE add-on stack is bounded, not
-    # just the forge fan-out. Presence shard reads were
-    # unbudgeted AND ran before the deadline even opened, so a degraded transport
-    # hung `briefing` in `presence.roster(_presence_shards(...))` before any bound
-    # applied. (`_load_rows` above carries its OWN COORD_OVERLAY_BUDGET; pending-
-    # reviews keeps its own independent, already-shipped COORD_REVIEW_FOLD_BUDGET.)
+    # One shared add-on deadline (see _briefing_budget), opened HERE — BEFORE the
+    # first transport-heavy section — and spent cumulatively across presence and
+    # resume, so the WHOLE add-on stack is bounded. Opening it later would leave
+    # every section that runs first unbounded, which is the same as having no bound
+    # at all: a degraded transport hangs the bundle before the deadline exists.
+    # (`_load_rows` above carries its OWN COORD_OVERLAY_BUDGET; pending-reviews
+    # keeps its own independent COORD_REVIEW_FOLD_BUDGET.)
     add_on = Deadline.open(_briefing_budget())
     try:
         shards, pres_degraded = _presence_shards_bounded(
             transport, args.team, deadline=add_on.instant)
         out["presence"] = presence.roster(shards, now=now)
         if pres_degraded is not None:
-            # Same discipline as forge: append the degraded marker to the section
-            # list so partial presence knowledge stays VISIBLE (json + text).
+            # Same discipline as every bounded fold: append the degraded marker
+            # to the section list so partial knowledge stays VISIBLE (json + text).
             out["presence"].append(pres_degraded)
     except Exception as e:
         print(f"briefing: presence section unavailable ({type(e).__name__})", file=sys.stderr)
@@ -2830,20 +2634,14 @@ def cmd_briefing(args: argparse.Namespace, transport: Any) -> int:
         out["needs_me"] = []
     # The shared add-on deadline (add_on) was opened at the top of this
     # function, before the presence section — time already burned by presence and
-    # pending-reviews shrinks the window the forge fan-out and resume read get, so
-    # the whole add-on stack is bounded cumulatively. pending-reviews keeps its own
-    # tighter, already-shipped budget (whichever bound is sooner).
+    # pending-reviews shrinks the window the resume read gets, so the whole add-on
+    # stack is bounded cumulatively. pending-reviews keeps its own tighter,
+    # already-shipped budget (whichever bound is sooner).
     try:
         out["pending_reviews"] = _pending_reviews_for(transport, args.team, agent)
     except Exception as e:
         print(f"briefing: pending_reviews section unavailable ({type(e).__name__})", file=sys.stderr)
         out["pending_reviews"] = []
-    try:
-        out["forge_feedback"] = _forge_feedback_for(
-            transport, args.team, agent, deadline=add_on.instant)
-    except Exception as e:
-        print(f"briefing: forge_feedback section unavailable ({type(e).__name__})", file=sys.stderr)
-        out["forge_feedback"] = []
     try:
         snaps = []
         resume_cut = False
@@ -2896,14 +2694,6 @@ def cmd_briefing(args: argparse.Namespace, transport: Any) -> int:
         print(_line(r))
     for r in degraded_rows:  # always shown — a degraded fold must never hide
         print(_review_degraded_line(r))
-    forge_rows = out.get("forge_feedback") or []
-    forge_fb = [r for r in forge_rows if r.get("type") != "forge-degraded"]
-    forge_deg = [r for r in forge_rows if r.get("type") == "forge-degraded"]
-    print(f"  forge feedback: {len(forge_fb)} PR(s)")
-    for r in forge_fb[:5]:
-        print(_forge_feedback_line(r))
-    for r in forge_deg:  # always shown — a degraded fold must never hide
-        print(_forge_degraded_line(r))
     print(continuity.render_resume(out["resume"]))
     return 0
 
@@ -2937,11 +2727,9 @@ def _presence_shards_bounded(
     ``(shards, degraded_marker_or_None)``.
 
     The presence section is a team-global fan-out — one shard per agent, a
-    ``list_dir`` plus one read each. Before the P1 fix it ran via
-    the unbudgeted ``_presence_shards`` AND before the shared briefing deadline even
-    opened, so a degraded transport hung the whole ``briefing`` in
-    ``presence.roster(_presence_shards(...))`` (needed a SIGINT). This mirrors the
-    forge/review fold discipline: the deadline is checked BOTH before and after
+    ``list_dir`` plus one read each — a fan-out, so it must be bounded or a single
+    degraded transport hangs the whole ``briefing`` with no way out but a signal.
+    This mirrors the review fold discipline: the deadline is checked BOTH before and after
     each blocking read (a single stalled read can't return a clean row — overshoot
     is bounded by ONE read), a listed-but-unreadable shard (read -> None) counts as
     ``skipped``, and a top-level listing failure yields ``scanned=0``. The LISTING
@@ -2951,11 +2739,10 @@ def _presence_shards_bounded(
     and an overrun detected AFTER the listing surfaces the marker even when the
     listing returned [] (otherwise a slow empty listing fell through the per-shard
     loop to ``([], None)`` — a falsely-clean empty roster). On any breach/failure a
-    single ``presence-degraded`` row ``{type, scanned, total[, skipped]}`` (same
-    shape family as ``forge-degraded``) is returned alongside the PARTIAL roster —
-    the section never hangs, never crashes, never silently truncates.
-    Dashboards/digests keep the unbounded ``_presence_shards`` (they are not on the
-    briefing hang path)."""
+    single ``presence-degraded`` row ``{type, scanned, total[, skipped]}`` (the
+    shared degraded-marker shape) is returned alongside the PARTIAL roster — the
+    section never hangs, never crashes, never silently truncates. Digests keep the
+    unbounded ``_presence_shards``: they are not on the briefing hang path."""
     dl = Deadline(deadline)
     if dl.expired():
         # Budget already spent before the section started: skip the listing — don't
@@ -3019,26 +2806,6 @@ def _presence_degraded_line(r: dict[str, Any]) -> str:
         r, label="presence",
         remedy="roster may be partial, run `presence show` for the rest",
         noun="shard")
-
-
-def cmd_dash(args: argparse.Namespace, transport: Any) -> int:
-    """Serve the localhost ATC dashboard in the foreground (127.0.0.1 only).
-
-    ``data_fn`` recomputes ``dash_data`` from the live ledger on every
-    ``/data.json`` request, so the page's 30s poll reflects fresh headroom
-    without restarting the server. Bind host is never operator-controllable —
-    there is deliberately no ``--host`` flag."""
-    def data_fn() -> dict[str, Any]:
-        text = transport.read(_atc_accounts_path(args.team))
-        parsed = atc.parse_accounts(text)
-        shards = _atc_usage_shards(transport, args.team)
-        merged, _ = atc.merge_models(atc.load_default_models(),
-                                     _atc_models_overlay(text))
-        return atc_dash.dash_data(parsed, shards, team=args.team,
-                                  models=merged, now=_now())
-
-    atc_dash.serve(args.team, port=args.port, data_fn=data_fn)
-    return 0
 
 
 def cmd_presence_beat(args: argparse.Namespace, transport: Any) -> int:
@@ -3203,7 +2970,7 @@ def cmd_health(args: argparse.Namespace, transport: Any) -> int:
               f" presence-fresh ({flagged['presence_age_h']}h)"
               f" but snapshot {snap_desc} — see fulcra-agent-continuity contract")
     # empty fleet reads UNHEALTHY: "nobody ever reconciled" is the primary
-    # cold-start failure a monitor probe exists to catch (review finding).
+    # cold-start failure a monitor probe exists to catch.
     return code
 
 
@@ -3232,42 +2999,7 @@ def cmd_doctor(args: argparse.Namespace, transport: Any) -> int:
     return 0 if ok else 1
 
 
-# --- digest + escalate (fulcra-agent-health, A5b) ---
-
-def _digest_record_id(team: str, day: str, window: str) -> str:
-    """Deterministic record id for the (team, day, window) digest moment.
-
-    The typed ingest endpoint UPSERTS on an explicit id (live-verified
-    2026-07-14), so every host that emits this window's digest converges on ONE
-    timeline record — idempotency lives at the ingestion layer, not in any
-    read-then-write marker race."""
-    return str(uuid.uuid5(uuid.NAMESPACE_URL,
-                          f"fulcra-coord-digest:{team}:{day}:{window}"))
-
-
-def _emit_digest_timeline(*, name: str, note: str, window: str, agent: str,
-                          record_id: str) -> bool:
-    """Hand ONE rendered digest to the hardened fulcra_common digest writer.
-
-    Best-effort, mirrors ``_emit_projection_spec``: coord-engine is stdlib-only,
-    so the writer package (and the fulcra-api CLI / token it needs) may be
-    entirely absent — that degrades to False, never an exception. Lands on the
-    'Agent Tasks — Digest' track via the writer's own definition resolution."""
-    try:
-        from fulcra_common import annotations as _ann
-    except Exception:
-        return False
-    try:
-        # gated=False: this seam's opt-in is the heartbeat's explicit
-        # --emit-timeline flag, not the machine-local writer mode (same
-        # contract as projection emits). The deterministic record_id makes
-        # concurrent same-window emits upsert into one record.
-        return bool(_ann.emit_digest_annotation(
-            name=name, note=note, window=window, agent=agent, gated=False,
-            id=record_id))
-    except Exception:
-        return False
-
+# --- digest + escalate (fulcra-agent-health) ---
 
 def cmd_digest(args: argparse.Namespace, transport: Any) -> int:
     now = _iso(_now())
@@ -3284,60 +3016,18 @@ def cmd_digest(args: argparse.Namespace, transport: Any) -> int:
         if not ok:
             _surface_read_degraded(reason, json_mode=False)
         print(digest_mod.render(d), end="")
-        try:
-            text = transport.read(_atc_accounts_path(args.team))
-            parsed = atc.parse_accounts(text)
-            if parsed["accounts"]:
-                rows = atc.headroom(parsed["accounts"],
-                                    _atc_usage_shards(transport, args.team), _now())
-                low = [r for r in rows if r["pct"] < 15.0]
-                for r in low:
-                    print(f"  headroom LOW: {r['account']} {r['window_hours']}h "
-                          f"at {r['pct']}%" + (" THROTTLED" if r["throttled"] else ""))
-        except Exception:
-            pass
-    emit_timeline = getattr(args, "emit_timeline", False)
-    if args.store or emit_timeline:
+    if args.store:
         day = now[:10]
         window = digest_mod.window_for(now)
         marker = f"team/{args.team}/_coord/digests/{day}-{window}.md"
-        # The store marker dedups the BUS COPY (a lost race just re-writes an
-        # equivalent copy as a new version — harmless). It is NOT the timeline
-        # correctness guard: that lives in the deterministic record id below.
-        stored_body = transport.read(marker)
-        if stored_body is not None:
+        # The store marker dedups the stored copy per day+window. A lost race just
+        # re-writes an equivalent copy as a new version — harmless, because the
+        # digest is a pure fold over state both racers read.
+        if transport.read(marker) is not None:
             print(f"(digest for {day} {window} already stored — skipped)", file=sys.stderr)
         else:
-            stored_body = digest_mod.render(d)
-            transport.write(marker, stored_body)
+            transport.write(marker, digest_mod.render(d))
             print(f"stored digest -> _coord/digests/{day}-{window}.md", file=sys.stderr)
-        if emit_timeline:
-            # Timeline emit state is SEPARATE from the store marker and written
-            # only after a confirmed emit, so a transient failure (missing
-            # writer, token flake, HTTP error) RETRIES on the next heartbeat
-            # tick instead of consuming the window. The deterministic
-            # record id makes any concurrent or ambiguously-acked re-emit an
-            # ingestion-layer upsert of the same record, so retries and races
-            # can never duplicate the digest.
-            emitted_marker = f"team/{args.team}/_coord/digests/{day}-{window}.emitted"
-            if transport.read(emitted_marker) is not None:
-                pass  # this window's digest is confirmed on the timeline
-            else:
-                rid = _digest_record_id(args.team, day, window)
-                if _emit_digest_timeline(
-                        name=f"Agent digest — {day} {window}",
-                        note=stored_body, window=window, agent=_host(),
-                        record_id=rid):
-                    transport.write(emitted_marker,
-                                    f"emitted {now} by {_host()} record {rid}\n")
-                    print(f"emitted digest timeline moment ({day} {window})",
-                          file=sys.stderr)
-                else:
-                    # LOUD but rc 0: the bus copy exists; the next heartbeat
-                    # tick retries this window's emit (no marker written).
-                    print("digest timeline emit FAILED (fulcra_common writer "
-                          "missing or degraded) — bus copy stored; will retry "
-                          "on the next heartbeat tick", file=sys.stderr)
     return 0
 
 
@@ -3436,116 +3126,7 @@ def cmd_escalate(args: argparse.Namespace, transport: Any) -> int:
     return 0
 
 
-# --- forge (fulcra-agent-forge) ---
-
-def cmd_forge_mirror(args: argparse.Namespace, transport: Any) -> int:
-    import shutil as _sh
-    if not _sh.which("gh") and args.runner is None:
-        print("forge mirror: gh CLI not found — nothing mirrored (install GitHub CLI to enable)",
-              file=sys.stderr)
-        return 0  # degradation, not an error
-    res = forge_mod.mirror(transport, args.team, now=_iso(_now()),
-                           runner=args.runner or forge_mod.default_runner,
-                           repo=args.repo)
-    if res.get("error"):
-        print(f"forge mirror: {res['error']}", file=sys.stderr)
-        return 1
-    print(f"forge mirror: {res['checked']} PR review(s) checked, "
-          f"{res['mirrored']} evidence shard(s) written, {res['verdicts']} auto-verdict(s)")
-    # Extended: mirror also sweeps the three feedback surfaces so a formal review
-    # (or inline / conversation comment) can never go unseen.
-    fb = forge_mod.feedback_sweep(transport, args.team,
-                                  runner=args.runner or forge_mod.default_runner,
-                                  repo=args.repo)
-    print(f"forge feedback: {fb['prs']} PR(s) swept, {fb['items']} feedback shard(s) written"
-          + (f", {len(fb['skipped'])} skipped" if fb["skipped"] else ""))
-    for line in fb["skipped"]:
-        print(f"  skipped {line}", file=sys.stderr)
-    for line in fb.get("notes", []):
-        print(f"  note {line}", file=sys.stderr)
-    return 0
-
-
-def cmd_forge_feedback(args: argparse.Namespace, transport: Any) -> int:
-    """Sweep-only verb: the three-surface feedback sweep, no state mirroring."""
-    import shutil as _sh
-    if not _sh.which("gh") and args.runner is None:
-        print("forge feedback: gh CLI not found — nothing swept (install GitHub CLI to enable)",
-              file=sys.stderr)
-        return 0  # degradation, not an error
-    fb = forge_mod.feedback_sweep(transport, args.team,
-                                  runner=args.runner or forge_mod.default_runner,
-                                  repo=args.repo)
-    print(f"forge feedback: {fb['prs']} PR(s) swept, {fb['items']} feedback shard(s) written"
-          + (f", {len(fb['skipped'])} skipped" if fb["skipped"] else ""))
-    for line in fb["skipped"]:
-        print(f"  skipped {line}", file=sys.stderr)
-    for line in fb.get("notes", []):
-        print(f"  note {line}", file=sys.stderr)
-    return 0
-
-
-def _watch_path(team: str, slug: str) -> str:
-    return f"team/{team}/_coord/forge/watch/{slug}.md"
-
-
-def cmd_forge_watch(args: argparse.Namespace, transport: Any) -> int:
-    """Register a PR to sweep for feedback even when it is not a review artifact.
-    Duplicate watch = idempotent update (overwrite), not an error."""
-    slug = forge_mod.pr_slug(args.pr_url)
-    if not slug:
-        print(f"forge watch: not a GitHub PR url: {args.pr_url}", file=sys.stderr)
-        return 1
-    url = forge_mod.parse_pr_url(args.pr_url)
-    agent = args.agent or _host()
-    fm = {"type": "Watch", "schema": "forge-watch/v1", "url": url,
-          "agent": agent, "ts": _iso(_now())}
-    transport.write(_watch_path(args.team, slug),
-                    okf.render_frontmatter(fm) + f"\nWatching {url} for {agent}.\n")
-    print(f"forge watch: {slug} -> {agent}")
-    return 0
-
-
-def cmd_forge_unwatch(args: argparse.Namespace, transport: Any) -> int:
-    """Remove a watch registration. Absent watch = clean no-op."""
-    slug = forge_mod.pr_slug(args.pr_url)
-    if not slug:
-        print(f"forge unwatch: not a GitHub PR url: {args.pr_url}", file=sys.stderr)
-        return 1
-    path = _watch_path(args.team, slug)
-    if transport.read(path) is None:
-        print(f"forge unwatch: {slug} was not watched")
-        return 0
-    transport.delete(path)
-    print(f"forge unwatch: {slug} removed")
-    return 0
-
-
-# --- migrate (legacy fulcra-coord -> coord) ---
-
-def cmd_migrate(args: argparse.Namespace, transport: Any) -> int:
-    res = migrate_mod.migrate(
-        transport, args.team, now=_iso(_now()), source=args.source,
-        dry_run=args.dry_run, mark=not args.no_mark,
-        include_terminal=args.include_terminal, limit=args.limit,
-    )
-    if args.dry_run:
-        print(f"DRY RUN — {len(res['planned'])} task(s) would migrate "
-              f"({res['skipped']} already migrated/skipped):")
-        for line in res["planned"]:
-            print(f"  {line}")
-    else:
-        print(f"migrated {res['migrated']} task(s) to team/{args.team} "
-              f"({res['skipped']} skipped as already-migrated, {res['marked']} marked on the incumbent)")
-    for err in res["errors"]:
-        print(f"  ERROR: {err}", file=sys.stderr)
-    if res["errors"]:
-        return 1
-    print("(run `coord-engine reconcile` on the team to index the migrated tasks)")
-    return 0
-
-
-# --- operator loop (fulcra-agent-operator): asks + answer ---
+# --- operator loop: asks + answer ---
 
 def cmd_asks(args: argparse.Namespace, transport: Any) -> int:
     # Public-read failure contract (see _read_degraded_row): an UNKNOWN index must
@@ -3684,83 +3265,6 @@ def build_parser() -> argparse.ArgumentParser:
     hl.add_argument("team"); add_json(hl)
     hl.set_defaults(func=cmd_health)
 
-    th = sub.add_parser("threads", help="dropped work-in-progress for a principal (started-then-silent / blocked-on / intent-never-started)")
-    th.add_argument("team")
-    th.add_argument("--for", dest="principal", required=True, help="the principal (e.g. the operator's handle)")
-    th.add_argument("--silence-days", dest="silence_days", type=float,
-                    help="mode-1 silence window in days (default 3; env COORD_THREADS_SILENCE_DAYS)")
-    th.add_argument("--intent-grace-hours", dest="intent_grace_hours", type=float,
-                    help="mode-3 grace when an intent declares no window, hours (default 48; env COORD_THREADS_INTENT_GRACE_HOURS)")
-    add_json(th)
-    th.set_defaults(func=cmd_threads)
-
-    us = sub.add_parser("usage", help="ATC cap ledger (fulcra-agent-atc)")
-    ussub = us.add_subparsers(dest="usage_command", required=True)
-    ul = ussub.add_parser("log", help="record spend against an account after a dispatch")
-    ul.add_argument("team"); ul.add_argument("--account", required=True)
-    ul.add_argument("--tier", required=True); ul.add_argument("--units", type=int, default=0)
-    ul.add_argument("--throttled", action="store_true"); ul.add_argument("--agent")
-    ul.add_argument("--model", help="model id this spend attributes to (for outcome routing)")
-    ul.add_argument("--task-class", dest="task_class",
-                    help="capability tag the work exercised (taxonomy-validated)")
-    ul.add_argument("--outcome", choices=["clean", "rework", "escalated"],
-                    help="how the dispatched work turned out (feeds the demotion fold)")
-    ul.set_defaults(func=cmd_usage_log)
-
-    hr = sub.add_parser("headroom", help="per-account cap headroom fold (fulcra-agent-atc)")
-    hr.add_argument("team"); hr.add_argument("--json", action="store_true")
-    hr.set_defaults(func=cmd_headroom)
-
-    rt = sub.add_parser("route", help="rank models covering needs by cost + headroom (fulcra-agent-atc)")
-    rt.add_argument("team")
-    rt.add_argument("--needs", required=True,
-                    help="comma-separated capability tags (e.g. code,long-context)")
-    rt.add_argument("--json", action="store_true")
-    rt.add_argument("--for-role", dest="for_role", metavar="ROLE",
-                    help="filter to ROLE's bound account (atc/bindings.json) and "
-                         "report the role's lease liveness alongside the ranking")
-    rt.set_defaults(func=cmd_route)
-
-    at = sub.add_parser("atc", help="ATC reports (fulcra-agent-atc)")
-    atsub = at.add_subparsers(dest="atc_command", required=True)
-    atr = atsub.add_parser("report",
-                           help="team dispatch/tier/calibration report over the last N days")
-    atr.add_argument("team")
-    atr.add_argument("--days", type=int, default=7,
-                     help="trailing window in days (default 7)")
-    atr.add_argument("--json", action="store_true")
-    atr.set_defaults(func=cmd_atc_report)
-    ati = atsub.add_parser(
-        "init", help="standalone onboarding: seed team/<team>/atc/accounts.json")
-    ati.add_argument("team", nargs="?", default="solo",
-                     help="team to onboard (default: solo)")
-    ati.add_argument("--yes", action="store_true",
-                     help="non-interactive; requires >=1 --account id=provider:plan")
-    ati.add_argument("--account", action="append", metavar="id=provider:plan",
-                     help="declare an account (repeatable); :plan is optional")
-    ati.add_argument("--harness", action="append",
-                     help="override the seeded harnesses for declared accounts "
-                          "(repeatable; default is the map's per-provider union)")
-    ati.set_defaults(func=cmd_atc_init)
-    ath = atsub.add_parser(
-        "harvest", help="derive outcome shards from settled review families "
-                        "(attribution via atc/bindings.json; idempotent)")
-    ath.add_argument("team")
-    ath.set_defaults(func=cmd_atc_harvest)
-
-    def _add_dash_parser(parent: Any) -> None:
-        d = parent.add_parser(
-            "dash", help="serve the localhost ATC gauge dashboard (127.0.0.1 only)")
-        d.add_argument("team")
-        d.add_argument("--port", type=int, default=8787,
-                       help="loopback port to bind (default 8787)")
-        d.set_defaults(func=cmd_dash)
-
-    # `dash` lives both top-level (legacy) and under the `atc` group (spec says
-    # `atc dash`) — same handler, so either invocation serves the dashboard.
-    _add_dash_parser(sub)
-    _add_dash_parser(atsub)
-
     dr = sub.add_parser("doctor", help="local preflight: tooling + store reachability")
     dr.add_argument("team", nargs="?")
     dr.set_defaults(func=cmd_doctor)
@@ -3782,46 +3286,10 @@ def build_parser() -> argparse.ArgumentParser:
     dg.add_argument("team"); dg.add_argument("--human"); add_json(dg)
     dg.add_argument("--store", action="store_true",
                     help="persist to _coord/digests/<date>-<window>.md (deduped per day+window)")
-    dg.add_argument("--emit-timeline", action="store_true",
-                    help="also emit the digest as a moment on the 'Agent Tasks — Digest' "
-                         "timeline track (deterministic per-window record id upserts at "
-                         "ingestion, so fleets and retries converge on one record; failed "
-                         "emits retry on the next tick; best-effort via fulcra-common)")
     dg.set_defaults(func=cmd_digest)
     es = sub.add_parser("escalate", help="role-vacancy sweep -> daily marker + P1 directive to maintainer")
     es.add_argument("team")
     es.set_defaults(func=cmd_escalate)
-
-    fg = sub.add_parser("forge", help="mirror GitHub PR signals into review evidence (fulcra-agent-forge)")
-    fgsub = fg.add_subparsers(dest="forge_command", required=True)
-    fgm = fgsub.add_parser("mirror", help="one pass: PR state -> evidence shards + auto-verdict on merge (also sweeps feedback)")
-    fgm.add_argument("team")
-    fgm.add_argument("--repo", help="owner/name allowlist: mirror ONLY PR urls of this repo")
-    fgm.set_defaults(func=cmd_forge_mirror, runner=None)
-
-    fgf = fgsub.add_parser("feedback", help="sweep-only: mirror PR reviews/inline/comments to feedback shards")
-    fgf.add_argument("team")
-    fgf.add_argument("--repo", help="owner/name allowlist: sweep ONLY PR urls of this repo")
-    fgf.set_defaults(func=cmd_forge_feedback, runner=None)
-
-    fgw = fgsub.add_parser("watch", help="register a PR to sweep for feedback (owner-repo-number slug)")
-    fgw.add_argument("team"); fgw.add_argument("pr_url")
-    fgw.add_argument("--agent", help="responsible agent (default: caller)")
-    fgw.set_defaults(func=cmd_forge_watch)
-
-    fgu = fgsub.add_parser("unwatch", help="remove a PR watch registration")
-    fgu.add_argument("team"); fgu.add_argument("pr_url")
-    fgu.set_defaults(func=cmd_forge_unwatch)
-
-    mg = sub.add_parser("migrate", help="one-shot exporter: legacy fulcra-coord tasks -> this team")
-    mg.add_argument("team")
-    mg.add_argument("--source", default="/coordination")
-    mg.add_argument("--dry-run", action="store_true")
-    mg.add_argument("--no-mark", dest="no_mark", action="store_true",
-                    help="rehearsal: don't tag incumbent tasks migrated:coord")
-    mg.add_argument("--include-terminal", action="store_true")
-    mg.add_argument("--limit", type=int)
-    mg.set_defaults(func=cmd_migrate)
 
     rp = sub.add_parser("respond", help="answer + close a directive with an outcome")
     rp.add_argument("team"); rp.add_argument("name"); rp.add_argument("--outcome", "-o", required=True)
@@ -3902,20 +3370,6 @@ def build_parser() -> argparse.ArgumentParser:
     ctr.add_argument("--json", action="store_true")
     ctr.set_defaults(func=cmd_continuity_resume)
 
-    an = sub.add_parser("annotate",
-                        help="project task transitions onto the Fulcra timeline (heartbeat concern)")
-    ansub = an.add_subparsers(dest="annotate_command", required=True)
-    anr = ansub.add_parser("resolution",
-                           help="set the projection resolution level on the bus (off|transitions)")
-    anr.add_argument("team"); anr.add_argument("level")
-    anr.set_defaults(func=cmd_annotate_resolution)
-    ans = ansub.add_parser("status", help="show resolution level + cursor position")
-    ans.add_argument("team"); add_json(ans)
-    ans.set_defaults(func=cmd_annotate_status)
-    anp = ansub.add_parser("project",
-                           help="fold reconcile's fresh transitions onto the timeline (model-free)")
-    anp.add_argument("team")
-    anp.set_defaults(func=cmd_annotate_project)
     return p
 
 
@@ -3930,60 +3384,12 @@ def main(argv: Optional[list[str]] = None, transport: Any = None) -> int:
         # tombstone voice of the degraded single-slug paths) makes it
         # machine-distinguishable to a watcher grepping stderr, carrying the
         # command + exception type as structured fields rather than an off-register
-        # `coord-engine: {type}: {e}` prose line. rc 1 is preserved (behavior
-        # unchanged); only the surface is now parseable. See AGENTS.md, "the
-        # public-read + error register".
+        # `coord-engine: {type}: {e}` prose line. rc 1 is preserved; the surface
+        # is parseable.
         cmd = getattr(args, "command", None) or "?"
         print(f"coord-engine: error: command={cmd} type={type(e).__name__}: {e}",
               file=sys.stderr)
         return 1
-
-
-# --- extracted command groups: import + re-export ---------------------------
-# Imported here, at module end, so ``cli`` is fully defined when each group binds
-# (no load-time cycle); the re-exports republish every moved public name into this
-# module's namespace so ``build_parser``, the staying commands that call ATC
-# helpers (``cmd_dash``/``cmd_digest``), and ``cli.<name>`` in tests all resolve.
-from . import commands_atc  # noqa: E402
-
-_atc_accounts_path = commands_atc._atc_accounts_path
-_atc_bindings_path = commands_atc._atc_bindings_path
-_atc_usage_prefix = commands_atc._atc_usage_prefix
-_atc_usage_shards = commands_atc._atc_usage_shards
-_atc_models_overlay = commands_atc._atc_models_overlay
-_atc_seed_windows = commands_atc._atc_seed_windows
-_atc_provider_harnesses = commands_atc._atc_provider_harnesses
-_atc_parse_account_spec = commands_atc._atc_parse_account_spec
-_atc_build_account = commands_atc._atc_build_account
-_atc_init_interactive = commands_atc._atc_init_interactive
-cmd_usage_log = commands_atc.cmd_usage_log
-cmd_headroom = commands_atc.cmd_headroom
-cmd_route = commands_atc.cmd_route
-cmd_atc_harvest = commands_atc.cmd_atc_harvest
-cmd_atc_report = commands_atc.cmd_atc_report
-cmd_atc_init = commands_atc.cmd_atc_init
-
-from . import commands_annotate  # noqa: E402
-
-# ``_emit_projection_spec`` is re-exported so tests can steer it via
-# ``setattr(cli, …)`` (``cmd_annotate_project`` reaches through ``cli`` to read it).
-_emit_projection_spec = commands_annotate._emit_projection_spec
-cmd_annotate_resolution = commands_annotate.cmd_annotate_resolution
-cmd_annotate_status = commands_annotate.cmd_annotate_status
-cmd_annotate_project = commands_annotate.cmd_annotate_project
-
-from . import commands_threads  # noqa: E402
-
-DEFAULT_THREADS_FOLD_BUDGET = commands_threads.DEFAULT_THREADS_FOLD_BUDGET
-DEFAULT_THREADS_SILENCE_DAYS = commands_threads.DEFAULT_THREADS_SILENCE_DAYS
-DEFAULT_THREADS_INTENT_GRACE_HOURS = commands_threads.DEFAULT_THREADS_INTENT_GRACE_HOURS
-_threads_fold_budget = commands_threads._threads_fold_budget
-_threads_window = commands_threads._threads_window
-_threads_is_principal = commands_threads._threads_is_principal
-_threads_blocked_signal = commands_threads._threads_blocked_signal
-_threads_principal_activity = commands_threads._threads_principal_activity
-_threads_candidate_rows = commands_threads._threads_candidate_rows
-cmd_threads = commands_threads.cmd_threads
 
 
 if __name__ == "__main__":  # pragma: no cover

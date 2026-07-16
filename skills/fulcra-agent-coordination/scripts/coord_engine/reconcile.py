@@ -1,4 +1,4 @@
-"""L1 reconcile orchestration (spec §3, §8).
+"""Reconcile orchestration — scan, parse, heal.
 
 Scan a team's ``task/`` namespace, parse changed OKF Task docs, and heal the
 engine-owned derived artifacts (``index.md``, ``log.md``, ``_coord/summaries.json``).
@@ -108,14 +108,13 @@ def _fast_path_no_changes(transport: Any, team: str, prior_agg: dict, *, now: st
     gen = (prior_agg or {}).get("generated_at")
     if not gen:
         return False
-    # NOT gated on the rows' schema stamp (`sv`), deliberately — v1.6.7 gated it
-    # here and v1.6.9 removed it. The gate assumed the fleet CONVERGES: decline
-    # until one full pass stamps every row, then resume. A mixed fleet never
-    # converges. All hosts reconcile ONE shared index, and every pass by a
-    # pre-stamp host (v1.6.6 predates both #388's text cap and `sv`) writes
-    # unstamped rows straight back in. The gate then declines on every beat,
-    # forever — strictly worse than no gate at all, since it costs a mixed fleet
-    # MORE full passes than it did before the gate existed.
+    # NOT gated on the rows' schema stamp (`sv`), deliberately. Such a gate would
+    # assume the fleet CONVERGES: decline the fast path until one full pass stamps
+    # every row, then resume. A mixed-version fleet never converges. All hosts
+    # reconcile ONE shared index, and every pass by a host that predates the stamp
+    # writes unstamped rows straight back in, so the gate declines on every beat,
+    # forever — strictly worse than no gate, since it costs such a fleet MORE full
+    # passes than it would pay without it.
     #
     # Stale rows still heal, just not from here: the incremental-reuse gate
     # refuses to reuse a stale-projection row, forcing the reparse that re-caps +
@@ -423,12 +422,13 @@ def _fold_and_gc_acks(transport: Any, team: str, live_slugs: set, *, now: str,
     window that reported it and stays invisible until the backstop. Failing
     closed means failing SLOW, not failing quiet.
 
-    Why it exists: the full fold costs one ``list_dir`` per ack dir per pass (280
-    dirs on the live bus = ~336s at a remote host's 1.2s/op), even though at a
-    20-min heartbeat ~0-2 shards actually change. So we ask the store what changed
-    since ``since`` (the ack anchor — see ``ACKS_ANCHOR_KEY``), re-fold only those
-    slugs, and reuse ``prior_acks`` — the prior aggregate rows' ``acked_by`` — for
-    the rest, at zero ops.
+    Why it exists: the full fold costs one ``list_dir`` per ack dir per pass, so
+    its cost grows with the team's whole ack history while the work per pass is
+    bounded by the handful of shards that actually changed since the last one.
+    The invariant: pass cost must scale with what CHANGED, not with what EXISTS.
+    So we ask the store what changed since ``since`` (the ack anchor — see
+    ``ACKS_ANCHOR_KEY``), re-fold only those slugs, and reuse ``prior_acks`` — the
+    prior aggregate rows' ``acked_by`` — for the rest, at zero ops.
 
     GC rides the full fold ONLY (see ``_full_fold_and_gc``): it is cleanup, not
     correctness, and the incremental path deliberately never lists the ack root,
@@ -516,8 +516,8 @@ def _verified_copy(transport: Any, src: str, dst: str) -> bool:
 
 
 def _crash_safe_move(transport: Any, src: str, dst: str) -> bool:
-    """Copy -> verify -> delete (the incumbent's archival discipline: never a
-    window where the doc exists nowhere)."""
+    """Copy -> verify -> delete — the archival invariant: there is never a window
+    where the doc exists nowhere."""
     if not _verified_copy(transport, src, dst):
         return False
     return transport.delete(src) if hasattr(transport, "delete") else False
@@ -665,19 +665,19 @@ def reconcile(
         #       SAME-length edit made in the SAME clock-minute (the fossil: the row
         #       lies stale until an unrelated write). This is the honest narrow
         #       guarantee: same-minute-TOUCHED docs are reparsed, not reused; it is
-        #       the index-side companion to PR #356's read-side doc-authoritative
-        #       status guard. When there is no anchor (legacy aggregate w/o
-        #       generated_at) (c) is skipped and reuse falls back to (a)+(b).
+        #       the index-side companion to the read-side doc-authoritative status
+        #       guard. When there is no anchor (legacy aggregate w/o generated_at)
+        #       (c) is skipped and reuse falls back to (a)+(b).
         #   (d) the prior row carries the CURRENT row-schema stamp — a row projected
-        #       by an older `row_from_frontmatter` (e.g. pre-#388, uncapped title/
-        #       description, no `sv`) is NOT content-stale but PROJECTION-stale, so
-        #       mtime+size can't detect it (the doc never changed). Force one reparse
-        #       so the current projection (cap + stamp) applies; it then reuses
-        #       normally. This is what self-heals the legacy uncapped index, and
-        #       since v1.6.9 it is the ONLY place the `sv` check lives: the fast
-        #       path used to gate on it too, but a mixed fleet re-introduces
-        #       unstamped rows continuously, so gating there never settled (see
-        #       _fast_path_no_changes). Here it settles per-row, on contact.
+        #       by an older `row_from_frontmatter` (uncapped title/description, no
+        #       `sv`) is NOT content-stale but PROJECTION-stale, so mtime+size can't
+        #       detect it (the doc never changed). Force one reparse so the current
+        #       projection (cap + stamp) applies; it then reuses normally. This is
+        #       what self-heals a legacy uncapped index, and it is the ONLY place
+        #       the `sv` check lives: gating the fast path on it never settles,
+        #       because a mixed-version fleet re-introduces unstamped rows
+        #       continuously (see _fast_path_no_changes). Here it settles per-row,
+        #       on contact.
         minute_safe = _same_minute_reuse_safe(entry_mtime, last_reconcile_iso)
         reusable = (
             prior is not None
@@ -767,19 +767,6 @@ def reconcile(
         ):
             warnings.append("log.md write failed")
 
-    # --- structured transitions for the projection fold (ADDITIVE; the bullet
-    # strings + log.md above are untouched). Persist this pass's transitions to
-    # the bus so a SEPARATE `annotate project` invocation (the heartbeat runs it
-    # right after reconcile) can fold them onto the timeline. Gated by the bus
-    # resolution level and defaulting OFF, so a team that never opted in sees no
-    # extra artifact and existing reconcile behavior is unchanged. Best-effort:
-    # a local import (annotate imports a constant from this module) + never-raise
-    # helpers keep it from ever affecting the core pass.
-    from . import annotate as _annotate
-    if _annotate.read_resolution(transport, team) in _annotate.LIVE_PROJECTING:
-        structured = aggregate.diff_transitions(prior_for_diff, rows)
-        _annotate.write_pending(transport, team, structured, now=now)
-
     # --- ack fold state (not task state; consumers ignore both keys) ---
     # These ride the aggregate because it is already read + written every pass, so
     # they cost no transport op. The fast path returns before this and rewrites
@@ -800,9 +787,11 @@ def reconcile(
             ack_state[ACKS_ANCHOR_KEY] = prior_anchor
         ack_state[ACKS_STREAK_KEY] = streak
     # `prior` carries any top-level key a NEWER host wrote that this build does not
-    # know about — see build_aggregate's invariant: rebuilding from a fixed key set
-    # is what killed v1.6.8's anchor on the live mixed fleet. The ack keys are cut
-    # from the passthrough first because THIS build owns them: `ack_state` above is
+    # know about — see build_aggregate's invariant. Hosts running different builds
+    # write the same aggregate, so rebuilding it from THIS build's fixed key set
+    # silently drops whatever a newer one added: passthrough, not reconstruction,
+    # is what makes a mixed-version fleet safe. The ack keys are cut from the
+    # passthrough first because THIS build owns them: `ack_state` above is
     # their complete, recomputed value, including the case where it deliberately
     # writes no anchor at all (inconclusive fold, no prior anchor). Passing them
     # through would resurrect a value this pass decided not to keep.

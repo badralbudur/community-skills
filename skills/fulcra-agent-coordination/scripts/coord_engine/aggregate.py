@@ -1,7 +1,7 @@
 """The ``_coord/summaries.json`` aggregate + row diffing for the log.
 
 The aggregate is a cache of the concept docs (never authoritative) — deleting it
-and re-running reproduces it exactly (spec §4, §6/C4).
+and re-running reproduces it exactly.
 """
 
 from __future__ import annotations
@@ -38,17 +38,16 @@ def build_aggregate(
     document written by MANY hosts at MANY versions, and any top-level key added
     in version N is silently wiped by every host older than N** — an older host
     rebuilds the document from the keys it knows about and writes the result over
-    everyone else's. That is not hypothetical: v1.6.8 added the ack fold's anchor
-    here, and on the live mixed fleet a v1.6.6 host (which predates the key)
-    deleted it on its very next pass, holding the ack fold on its full-fold
-    fallback permanently.
+    everyone else's. The wipe is not a race that eventually settles: the older
+    host does it on every pass, so a newer host's fold state never survives to be
+    read, and whatever fold depends on that state is pinned to its fallback for
+    as long as the old host runs.
 
     So: **never rebuild this document from a fixed key set.** Preserving unknown
-    keys cannot rescue us from a host that predates the passthrough itself — that
-    needs the fleet on >= v1.6.9 — but it stops the same defect recurring one
-    version later, when an older-but-still-preserving host meets a newer host's
-    fold state. A key you do not recognize belongs to a version you are not; carry
-    it.
+    keys cannot rescue a fleet from a host that predates the passthrough itself —
+    only upgrading it can — but it stops the defect recurring one version later,
+    when an older-but-still-preserving host meets a newer host's fold state. A key
+    you do not recognize belongs to a version you are not; carry it.
     """
     out: dict[str, Any] = {
         "schema": SCHEMA,
@@ -89,16 +88,14 @@ def _label(row: dict[str, Any]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Shared categorization — the SINGLE source of truth both diff views consume
+# Categorization — the single source of truth for what counts as a transition
 # ---------------------------------------------------------------------------
 #
-# ``diff_rows`` (log bullets) and ``diff_transitions`` (fold-ready dicts) MUST
-# agree on WHICH changes count as a transition and in WHAT order. Rather than
-# keep two hand-mirrored loops honest with a comment + one test (the byte-identity
-# guard only pins ``diff_rows``' formatting, not its categorization, so a change
-# to the status-change rule could silently drift the two), both fold over this one
-# generator. Drift-proof by construction: edit the rule here and both views move
-# together.
+# WHICH changes count as a transition, and in WHAT order, is decided here and
+# nowhere else. Rendering is a separate concern layered on top: the byte-identity
+# guard pins ``diff_rows``' formatting, not its categorization, so keeping the
+# rule in one generator is what stops a formatter and a fold from drifting on the
+# rule itself.
 
 def _categorize(
     prior_rows: list[dict[str, Any]], new_rows: list[dict[str, Any]]
@@ -139,8 +136,8 @@ def diff_rows(
 
     Creations, status transitions, and removals — keyed by task id. Content-only
     edits (no status change) are intentionally not logged (they're in the file's
-    own version history). Categorization comes from :func:`_categorize` (shared
-    with :func:`diff_transitions`); this function only renders the bullets.
+    own version history). Categorization comes from :func:`_categorize`; this
+    function only renders the bullets.
     """
     out: list[str] = []
     for kind, r, prior_r in _categorize(prior_rows, new_rows):
@@ -156,36 +153,10 @@ def diff_rows(
     return out
 
 
-# ---------------------------------------------------------------------------
-# Structured transitions — the projection fold's input (Task 2, ADDITIVE)
-# ---------------------------------------------------------------------------
-#
-# ``diff_transitions`` is the STRUCTURED sibling of ``diff_rows``: same three-way
-# categorization (creation / status-transition / removal, keyed by task id), but
-# it emits fold-ready dicts ``{task_id, kind, ts, title, assignee?, next_action?}``
-# instead of markdown bullets. It is a SEPARATE function on purpose:
-#
-#   * ``diff_rows``' ``list[str]`` return + ``log.md`` output MUST stay
-#     byte-identical (existing aggregate/reconcile tests are the guardrail), so
-#     its signature is left untouched — a second return value would force every
-#     caller (reconcile + the aggregate tests) to change, breaking that guarantee.
-#   * The two share their categorization via ``_categorize`` (above) so they can
-#     never drift on WHICH changes count as a transition: ``diff_rows`` renders
-#     each ``(kind, row, prior_row)`` as a bullet, ``diff_transitions`` as a dict.
-#     Kinds: create / update / deprecate.
-#
-# ``ts`` is the task row's own ``updated_at`` — the frontmatter ``timestamp``
-# reconcile stamps on every write (``mtime`` as a defensive fallback) — normalized
-# to a UTC-``Z`` zero-padded ISO string per the Task-1 ts contract so the fold's
-# watermark ordering and skew-margin arithmetic hold.
-
 #: The store's ``file list`` mtime format(s) — UTC, minute-granular, e.g.
-#: ``2026-07-01 04:12PM UTC`` (see ``transport.parse_list_output``). This is the
-#: DEFENSIVE ts fallback when a task carries no ``timestamp`` frontmatter. Because
-#: it carries a full date (year included), it normalizes cleanly to a UTC-``Z``
-#: ISO instant — there is no ls-style yearless ambiguity to resolve, so the ts
-#: contract (parseable, lexicographically comparable) holds even for a
-#: timestamp-less task, keeping the fold's skew math + seen_ids prune bounded.
+#: ``2026-07-01 04:12PM UTC`` (see ``transport.parse_list_output``). It carries a
+#: full date (year included), so it normalizes cleanly to a UTC-``Z`` ISO instant:
+#: there is no ls-style yearless ambiguity to resolve.
 _STORE_MTIME_FORMATS = ("%Y-%m-%d %I:%M%p %Z", "%Y-%m-%d %I:%M%p")
 
 
@@ -203,66 +174,3 @@ def _parse_store_mtime(s: str) -> Optional[datetime]:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt
     return None
-
-
-def _normalize_ts(raw: Any) -> str:
-    """Normalize a row timestamp to a lexicographically-comparable UTC-``Z`` ISO
-    string (``2026-07-09T09:00:00Z``). Accepts ISO-8601 (the ``timestamp``
-    frontmatter reconcile stamps) AND the store's list-style ``mtime``
-    (``2026-07-01 04:12PM UTC``), the defensive fallback — so a task with no
-    ``timestamp`` still yields a parseable ISO ts (the fold's ``_parse_ts``
-    succeeds, the skew boundary + seen_ids prune stay bounded) rather than a raw,
-    unparseable string. A genuinely unparseable value is passed through unchanged
-    (the fold tolerates a non-normalized ts — it degrades to emit/keep rather than
-    dropping a transition); ``None``/blank -> ``""`` (the fold treats a falsy ts as
-    malformed and skips it). Never raises."""
-    if raw is None:
-        return ""
-    s = str(raw).strip()
-    if not s:
-        return ""
-    iso = (s[:-1] + "+00:00") if s.endswith(("Z", "z")) else s
-    try:
-        dt = datetime.fromisoformat(iso)
-    except ValueError:
-        dt = _parse_store_mtime(s)
-        if dt is None:
-            return s  # genuinely unparseable -> pass through (fold tolerates it)
-    if dt.tzinfo is not None:
-        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
-    return dt.isoformat(timespec="seconds") + "Z"
-
-
-def _transition(row: dict[str, Any], kind: str) -> dict[str, Any]:
-    """One structured transition dict from a task row (the shape the fold reads)."""
-    out: dict[str, Any] = {
-        "task_id": str(row.get("id") or row.get("name") or ""),
-        "kind": kind,
-        "ts": _normalize_ts(row.get("timestamp") or row.get("mtime")),
-        "title": str(row.get("title") or row.get("name") or row.get("id") or "untitled"),
-    }
-    assignee = row.get("assignee")
-    if assignee:
-        out["assignee"] = str(assignee)
-    nxt = row.get("next_action")
-    if nxt:
-        out["next_action"] = str(nxt)
-    return out
-
-
-def diff_transitions(
-    prior_rows: list[dict[str, Any]], new_rows: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
-    """Structured transitions for the projection fold — the ADDITIVE sibling of
-    :func:`diff_rows`, categorized identically (creation / status-transition /
-    removal by task id). ``ts`` = each row's own ``updated_at`` (frontmatter
-    ``timestamp``), normalized to UTC-``Z``. Content-only edits are not a
-    transition (mirrors ``diff_rows``).
-
-    Folds over the SAME :func:`_categorize` generator ``diff_rows`` does — so the
-    two views cannot drift on WHICH changes count as a transition or in WHAT
-    order; each ``(kind, row, _prior)`` tuple renders here as a structured dict
-    and there as a bullet."""
-    return [
-        _transition(r, kind) for kind, r, _prior in _categorize(prior_rows, new_rows)
-    ]
