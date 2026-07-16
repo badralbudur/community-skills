@@ -73,10 +73,12 @@ def test_terminal_and_open_sets():
 
 
 # --- summaries-row text cap (COORD_SUMMARY_TEXT_CAP) ---------------------------
-# The summaries index is a SUMMARY: a fleet whose directives carry multi-KB
-# payloads in title/description must not inflate _coord/summaries.json past what
-# a remote transport can read inside the fold budgets (the 954KiB incident,
-# 2026-07-15: every remote briefing degraded to "summaries index unreadable").
+# The summaries index is a summary. Directives can carry multi-KB payloads in
+# title/description, and without a cap those payloads inflate
+# _coord/summaries.json past what a remote transport can read inside the fold
+# budgets. The index is on the read path for every briefing, so once it is too
+# large to read, every agent's briefing degrades at once — capping the text per
+# row is what bounds that.
 
 
 def test_row_caps_long_title_and_description():

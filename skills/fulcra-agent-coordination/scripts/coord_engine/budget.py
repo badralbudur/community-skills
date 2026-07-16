@@ -18,10 +18,10 @@ unit — and is the shape any NEW bounded fan-out is expected to adopt.
 
 **Deadline discipline** (the invariant every fold upholds): a deadline is an
 absolute ``time.monotonic()`` instant, or ``None`` for "no bound". It is checked
-BOTH before and after each blocking transport op — a strict wall-clock bound is
+both before and after each blocking transport op — a strict wall-clock bound is
 impossible without cancellable transport, so the guarantee is that an overrun is
 DETECTED immediately after the op that caused it (a single stalled read can no
-longer return a clean row), and overshoot is bounded by ONE transport timeout.
+longer return a clean row), and overshoot is bounded by one transport timeout.
 
 stdlib-only; nothing here raises.
 """

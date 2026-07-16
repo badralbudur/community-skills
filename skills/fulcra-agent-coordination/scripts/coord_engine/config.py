@@ -1,11 +1,11 @@
 """coord-engine env-var config — the single home for the engine's tuning knobs.
 
-ONE parser policy, applied everywhere, so the family of budgets/timeouts can never
+one parser policy, applied everywhere, so the family of budgets/timeouts can never
 drift apart in NaN/inf handling or flag-vs-env fallback (the drift observed when
 these bodies were copy-pasted per-helper). A knob is a **positive-finite** number,
 resolved ``override > env[name] > env[alias…] > default``; anything unparseable, NaN,
 non-finite, or not greater than ``minimum`` falls back to ``default`` — a bad env value
-must NEVER disable a bound or make an op hang.
+must never disable a bound or make an op hang.
 
 Every knob is read here and nowhere else, so this module is the catalogue: each
 ``_knob`` call below names the variable, its default, and what it bounds. The

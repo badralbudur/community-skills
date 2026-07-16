@@ -1,7 +1,7 @@
 """Transport failure-mode contract: a hung or missing ``fulcra-api`` binary must
 degrade to ``TransportError`` / documented soft returns, never escape raw.
 
-These use a REAL subprocess (no fakes): a ``sh -c 'sleep 5'`` shim against a tiny
+These use a real subprocess (no fakes): a ``sh -c 'sleep 5'`` shim against a tiny
 timeout to force ``subprocess.TimeoutExpired`` inside ``_run``, and a nonexistent
 binary to force ``FileNotFoundError``. The guarantee under test is the one the
 briefing/needs-me folds rely on: nothing but ``TransportError`` (or the method's
@@ -43,7 +43,7 @@ def test_list_dir_raises_transport_error_not_timeout_on_timeout():
     t = _slow()
     with pytest.raises(tr.TransportError) as ei:
         t.list_dir("/prefix")
-    # the critical regression guard: it must be TransportError, NOT the raw
+    # the critical regression guard: it must be TransportError, not the raw
     # subprocess.TimeoutExpired that used to escape and crash the folds.
     assert not isinstance(ei.value, subprocess.TimeoutExpired)
     assert "timeout" in str(ei.value)
@@ -126,7 +126,7 @@ def test_degraded_fold_over_timing_out_transport_yields_result_not_traceback():
 # DIRECT child (and on POSIX ``wait()``s on it alone), so a grandchild that
 # inherited the stdout/stderr pipes is left running — a leaked process tree that
 # keeps holding the fds, and on non-POSIX the post-kill drain can block on it
-# indefinitely. The hardened path runs the child in its OWN session and, on
+# indefinitely. The hardened path runs the child in its own session and, on
 # timeout, SIGKILLs the whole group, then drains under a short grace, abandoning
 # the pipes rather than blocking if even that won't complete. Invariant: a
 # transport op RETURNS OR RAISES within ``timeout`` + a small constant, no
@@ -206,7 +206,7 @@ def test_bad_env_timeout_falls_back_to_default(monkeypatch, bad):
 
 # --- recent_changes: the ack fold's evidence source. UNKNOWN is None, always ---
 #
-# The contract the ack fold rests on: this method NEVER raises and NEVER invents
+# The contract the ack fold rests on: this method never raises and never invents
 # an empty list. Every failure (no token, HTTP 500 on an over-wide window, a
 # timeout, a body it can't parse) returns None = UNKNOWN, which the caller must
 # read as "fall back to the full fold" — never as "nothing changed".

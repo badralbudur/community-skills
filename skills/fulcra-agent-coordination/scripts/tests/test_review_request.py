@@ -1,9 +1,9 @@
 """CLI `review request` — requester-side durability.
 
-A review request must write EXACTLY the doc the tally/needs-me readers consume,
+A review request must write exactly the doc the tally/needs-me readers consume,
 so a named required reviewer sees a durable `pending_required` obligation that
-stays until their verdict file exists. Regression cover for the production
-failure where a reviewer acked directives and the obligation vanished.
+stays until their verdict file exists. Regression cover for the failure where a
+reviewer acked the directives and the obligation vanished with them.
 """
 
 import json
@@ -65,7 +65,7 @@ def test_settled_slug_skipped_with_zero_reads(capsys):
     capsys.readouterr()
     cli._pending_reviews_for(t, "r", "someone")
     assert "team/r/review/pr-set/verdicts/.settled" in t.store, "fold must settle it"
-    # ...so a second fold skips the slug with ZERO reads of its doc/verdicts.
+    # ...so a second fold skips the slug with zero reads of its doc/verdicts.
     t.reads.clear()
     cli._pending_reviews_for(t, "r", "someone")
     slug_reads = [p for p in t.reads if "pr-set" in p]
@@ -94,7 +94,7 @@ def test_review_status_writes_settled_marker(capsys):
 
 
 def test_review_status_ignores_wrong_stale_marker(capsys):
-    # A corrupt marker claiming APPROVED must NOT fool a direct query.
+    # A corrupt marker claiming APPROVED must not fool a direct query.
     t = FakeTransport()
     cli.main(["review", "request", "r", "pr-w", "--of", "url",
               "--reviewer", "alice", "--reviewer", "bob"], transport=t)
@@ -141,8 +141,8 @@ def test_briefing_and_needs_me_degraded_exit_zero_with_text(capsys, monkeypatch)
 
 
 class DocReadFailsTransport(CountingTransport):
-    """Doc reads return None (the Task-1 `read()` timeout contract — it never
-    raises) while verdict reads succeed: the false-settle incident shape."""
+    """Doc reads return None (the `read()` timeout contract — it never raises)
+    while verdict reads succeed: the shape that can produce a false settle."""
 
     def __init__(self):
         super().__init__()
@@ -157,7 +157,7 @@ class DocReadFailsTransport(CountingTransport):
 
 
 def _trap(t, slug="pr-t"):
-    """Open a required-alice review, then plant a READABLE stray approval —
+    """Open a required-alice review, then plant a readable stray approval —
     with the doc unreadable, required=None + one approval = false APPROVED."""
     cli.main(["review", "request", "r", slug, "--of", "url",
               "--reviewer", "alice"], transport=t)
@@ -166,7 +166,7 @@ def _trap(t, slug="pr-t"):
 
 
 def test_doc_read_timeout_never_writes_false_settled(capsys):
-    # Regression (review REJECTED finding): doc read -> None => required=None
+    # Regression (review rejected finding): doc read -> None => required=None
     # => tally APPROVED off one readable approval => durable false .settled.
     t = DocReadFailsTransport()
     _trap(t)
@@ -238,7 +238,7 @@ def test_unreadable_verdict_blocks_settle_marker(capsys):
 
 def test_forge_style_doc_without_required_never_settles(capsys):
     # Legacy/forge review docs carry no `required:` — legitimately APPROVED but
-    # NOT cacheable (an empty required list is indistinguishable from the
+    # not cacheable (an empty required list is indistinguishable from the
     # doc-read-failure shape, so it never earns a marker; state is unaffected).
     t = FakeTransport()
     t.put("team/r/review/pr-f.md", "---\ntype: Review\ntitle: R\n---\n")
@@ -273,7 +273,7 @@ def test_single_slug_transport_error_skipped_and_counted(capsys):
 
 
 def test_single_slug_many_verdicts_bounded_by_budget(capsys):
-    # F2: the budget was checked only BETWEEN slugs, so ONE review with many
+    # F2: the budget was checked only BETWEEN slugs, so one review with many
     # verdict shards read every shard unbounded (N x transport.timeout) with no
     # degraded marker. The deadline must be threaded into the per-verdict loop:
     # the fold stops mid-slug, counts it skipped, and surfaces the marker.
@@ -299,12 +299,12 @@ def test_single_slug_many_verdicts_bounded_by_budget(capsys):
 
 
 def test_single_slow_verdict_read_overrun_marks_slug_skipped(capsys):
-    # Checking the deadline only BEFORE each verdict read is not enough: ONE
+    # Checking the deadline only before each verdict read is not enough: one
     # stalled read that sleeps past the budget still completes and the slug
     # returns a clean `fully_scanned` row — budget blown, no degraded marker.
     # The check must also run AFTER the blocking read: a read that pushes
     # us over budget marks the slug not-fully-scanned (skipped) and surfaces the
-    # degraded marker. Overshoot is bounded by ONE transport timeout.
+    # degraded marker. Overshoot is bounded by one transport timeout.
     class SlowVerdictRead(CountingTransport):
         def read(self, path):
             if "/verdicts/" in path and path.endswith(".md"):
@@ -313,7 +313,7 @@ def test_single_slow_verdict_read_overrun_marks_slug_skipped(capsys):
 
     t = SlowVerdictRead()
     # two required reviewers; bob's verdict shard exists (a shard to read), alice
-    # is still pending -> at HEAD this yields a clean review-pending row for alice.
+    # is still pending -> without the guard this yields a clean review-pending row for alice.
     cli.main(["review", "request", "r", "pr-stall", "--of", "url",
               "--reviewer", "alice", "--reviewer", "bob"], transport=t)
     t.put("team/r/review/pr-stall/verdicts/bob.md",
@@ -427,7 +427,7 @@ def test_fold_counts_slug_skipped_when_verdicts_listing_fails(capsys):
 
 
 def test_request_creates_doc_at_tally_path(capsys):
-    # (a) the request writes to the SAME path _review_doc_path/_review_tally read.
+    # (a) the request writes to the same path _review_doc_path/_review_tally read.
     t = FakeTransport()
     assert cli.main(
         ["review", "request", "r", "PR 9: fix auth", "--of",
@@ -520,7 +520,7 @@ def test_review_status_reflects_required_gating(capsys):
 
 
 def test_rerequest_under_read_timeout_fails_closed_no_overwrite(capsys):
-    # A re-request whose review-doc READ times out (returns None) must NOT fall
+    # A re-request whose review-doc READ times out (returns None) must not fall
     # through to WRITE — that would clobber a live review under a degraded
     # transport. The listing guard sees the doc PRESENT in the
     # listing + read None -> rc 1 "unreadable, retry", never overwrite. (Changing a
@@ -555,7 +555,7 @@ def test_rerequest_under_read_timeout_fails_closed_no_overwrite(capsys):
 
 
 def test_matching_rerequest_clears_stale_settled_marker(capsys):
-    # The stale-marker self-heal (former I2) now rides the MATCHING-recovery path:
+    # The stale-marker self-heal rides the matching-recovery path:
     # a re-request byte-identical in of/required/requested_by clears a lingering
     # `.settled` marker so the next fold recomputes — WITHOUT the dangerous
     # rewrite-on-read-timeout the old path relied on, and without rewriting the doc.
@@ -577,13 +577,13 @@ def test_matching_rerequest_clears_stale_settled_marker(capsys):
 
 
 def test_partial_failure_then_recovery_notifies_missing_reviewer(capsys):
-    # P1 (the exact repro): bob's directive write fails on the first request, so the
-    # doc lands but bob is never notified -> rc 1 "retry". At HEAD every retry died
+    # bob's directive write fails on the first request, so the
+    # doc lands but bob is never notified -> rc 1 "retry". Before the fix every retry died
     # at the exists-guard ("already exists" rc 1) because the doc now exists, so bob
     # stayed an invisible orphan forever. Fix: a MATCHING re-request is idempotent
     # RECOVERY — alice's already-delivered directive dedupes (rc 0), bob's missing
     # one is delivered, the doc is byte-unchanged, and each reviewer ends with
-    # EXACTLY ONE canonical directive.
+    # exactly one canonical directive.
     fail = {"bob": True}
 
     class BobDirectiveFailsOnce(FakeTransport):
@@ -611,7 +611,7 @@ def test_partial_failure_then_recovery_notifies_missing_reviewer(capsys):
     assert "matching" in out and "re-verified" in out
     assert t.read("team/r/review/pr-rec.md") == doc_before, \
         "recovery must NOT rewrite the doc (byte-compare)"
-    # BOTH reviewers now hold EXACTLY ONE canonical directive each.
+    # both reviewers now hold exactly one canonical directive each.
     for reviewer in ("alice", "bob"):
         hits = [p for p, c in t.store.items()
                 if p.startswith("team/r/task/")
@@ -621,7 +621,7 @@ def test_partial_failure_then_recovery_notifies_missing_reviewer(capsys):
 
 
 def test_rerequest_with_different_required_is_conflict(capsys):
-    # A re-request with a DIFFERENT required set is a conflict, not a recovery:
+    # A re-request with a different required set is a conflict, not a recovery:
     # changing the required set re-opens a review only via a new slug. rc 1 naming
     # what differs; the doc is never overwritten.
     t = FakeTransport()
@@ -641,7 +641,7 @@ def test_rerequest_with_different_required_is_conflict(capsys):
 
 
 def test_rerequest_by_different_requester_is_conflict(capsys):
-    # requested_by is part of the request identity: a DIFFERENT requester re-opening
+    # requested_by is part of the request identity: a different requester re-opening
     # someone else's review is a conflict, never a silent recovery. rc 1, no rewrite.
     t = FakeTransport()
     cli.main(["review", "request", "r", "pr-cr", "--of", "url",
@@ -658,9 +658,9 @@ def test_rerequest_by_different_requester_is_conflict(capsys):
 
 
 def test_request_write_timeout_fails_loud(capsys):
-    # I2 (requester-side C1 mirror): a timed-out write() returns False (T1), not a
-    # raise. An rc-0 "review requested" that never landed is the requester-side
-    # incident. A False write must fail loud (rc 1).
+    # Requester-side mirror of the verdict-write case: a timed-out write() returns
+    # False rather than raising. An rc-0 "review requested" for a request that
+    # never landed is the failure this guards. A False write must fail loud (rc 1).
     class WriteTimesOut(FakeTransport):
         def write(self, path, content):
             return False
@@ -795,7 +795,7 @@ def test_fold_emits_review_orphan_row_each_pass(capsys):
 
 def test_fold_role_lease_listing_degraded_is_visible_not_vacant(capsys):
     # A review whose pending_required names a ROLE whose lease LISTING raises must
-    # NOT silently read as "no holders" (dropping the obligation). The fold
+    # not silently read as "no holders" (dropping the obligation). The fold
     # surfaces a role-degraded marker and never crashes; exit 0.
     class LeaseListFails(FakeTransport):
         def list_dir(self, prefix):
@@ -840,7 +840,7 @@ def test_fold_role_doc_none_but_listed_degrades_visibly(capsys):
 #
 # The store's deletes are SOFT: an archived/deleted review leaves its `<slug>/`
 # prefix behind forever. Fail-closed folding would surface each such ghost as a
-# forever-unknown orphan/[?] row in EVERY briefing — correct fail-closed behavior
+# forever-unknown orphan/[?] row in every briefing — correct fail-closed behavior
 # over the WRONG ontology. An EMPTY review dir (no verdict shards) must fold as a
 # TOMBSTONE: silently skipped. The three-way is: doc -> normal, verdicts-no-doc ->
 # orphan (surface), empty/`.settled`-only -> tombstone (skip), listing-raise ->
@@ -848,7 +848,7 @@ def test_fold_role_doc_none_but_listed_degrades_visibly(capsys):
 
 def test_empty_review_dir_folds_as_tombstone_invisible(capsys):
     # A `<slug>/` dir with NO verdict `.md` shards and no `<slug>.md` doc is a
-    # soft-delete ghost: it must NOT surface as review-orphan, a [?] pending row,
+    # soft-delete ghost: it must not surface as review-orphan, a [?] pending row,
     # or a degraded marker. A real orphan (verdicts present) and a real pending
     # review are untouched.
     t = FakeTransport()
@@ -869,7 +869,7 @@ def test_empty_review_dir_folds_as_tombstone_invisible(capsys):
 
 
 def test_settled_only_review_dir_folds_as_tombstone(capsys):
-    # A dir holding ONLY a stale `.settled` marker (the review doc is gone) is a
+    # A dir holding only a stale `.settled` marker (the review doc is gone) is a
     # tombstone: the marker is stale cache, not a live settle. Skip it silently.
     t = FakeTransport()
     t.put("team/r/review/pr-stale/verdicts/.settled",
@@ -883,7 +883,7 @@ def test_settled_only_review_dir_folds_as_tombstone(capsys):
 def test_orphan_dir_verdicts_listing_raise_is_degraded_not_tombstone(capsys):
     # Fail-closed outranks tombstone-skip: a verdicts LISTING that RAISES means the
     # dir's contents are UNKNOWN — never assume it is empty (a tombstone). Surface
-    # a degraded marker; do NOT silently skip.
+    # a degraded marker; do not silently skip.
     class OrphanListFails(FakeTransport):
         def list_dir(self, prefix):
             if prefix == "team/r/review/pr-unknown/verdicts/":
@@ -924,7 +924,7 @@ def test_dir_classification_runs_under_the_fold_budget(capsys):
     # listings AHEAD of the budget. Classification is capped at a RESERVED half of
     # the fold budget (visibility-only work must never starve the load-bearing doc
     # scan — the reconcile reserved-budget pattern). On breach the remaining
-    # unclassified dirs roll into ONE aggregate degraded row ({unclassified: k})
+    # unclassified dirs roll into one aggregate degraded row ({unclassified: k})
     # and the fold proceeds to the doc scan with the reserved remainder — a real
     # pending review is still served.
     class SlowGhostListings(CountingTransport):

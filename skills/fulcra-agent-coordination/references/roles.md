@@ -72,8 +72,8 @@ uv tool run fulcra-api file upload /tmp/reviewer.md "team/<team>/roles/reviewer.
 
 Writes your lease shard (engine-named `<slug>-<hash6>.md`; the command echoes the filename). **Re-run it**
 whenever you do work in the role — the refreshed `timestamp` is what keeps the role "held". Never
-hand-upload a lease file: a hand-named shard makes a SECOND lease for your id, which reads as spurious
-CONTESTED on exclusive roles. The Fulcra File Store versions every write, so the lease's history is an
+hand-upload a lease file: a hand-named shard makes a second lease for your id, which reads as a spurious
+`CONTESTED` on exclusive roles. The Fulcra File Store versions every write, so the lease's history is an
 audit trail of your tenure.
 
 ### Release
@@ -88,8 +88,9 @@ of released.
 
 ### Determine role status (the fold) — use the engine, do not eyeball timestamps
 
-Classifying a role from many lease files is a *fold* over derived state: two agents must AGREE on whether a
-role is vacant before one escalates. Eyeballing timestamps drifts, so this is a deterministic command:
+Classifying a role from many lease files is a *fold* over derived state: two agents must agree on whether a
+role is vacant before one escalates. Comparing timestamps by hand gives different answers to different
+readers, so this is a deterministic command:
 
 ```bash
 <skill-dir>/scripts/coord-engine roles status <team> reviewer --json
@@ -111,30 +112,30 @@ Freshness window: a lease is fresh if its `timestamp` is within the role's `sla_
 ### Role-as-identity
 
 When a session exists to serve one role, use the role name AS its agent identity
-(`FULCRA_COORD_AGENT=release-reviewer`) — see [presence](presence.md), "Pick your identity by ROLE". Claim
+(`FULCRA_COORD_AGENT=release-reviewer`) — see [presence](presence.md), "Pick your identity by role". Claim
 the role's lease while you act as it. Know what each guard does and does not catch:
 
 - **Different ids claiming an exclusive role** (e.g. `release-reviewer` and a stray
-  `claude-code:host:repo`): two FRESH lease shards within `sla_hours` → `roles status` reports
-  **CONTESTED**. A stale stray shard yields HELD, not CONTESTED. Detected.
-- **Two sessions under the SAME id string**: they write the SAME lease shard (shard names derive from the
-  id), so leases alone CANNOT see this — last write silently wins. The engine detects it via a session
+  `claude-code:host:repo`): two fresh lease shards within `sla_hours` make `roles status` report
+  `CONTESTED`. A stale stray shard yields `HELD` instead. This case is detected.
+- **Two sessions under the same id string**: they write the same lease shard (shard names derive from the
+  id), so leases alone cannot see this — the last write silently wins. The engine detects it via a session
   nonce: every `roles claim` writes a nonce into the lease and compares on refresh. A foreign nonce prints
-  a loud stderr WARNING ("nonce mismatch … same-id double-acting"); claiming with no local state over an
+  a warning to stderr ("nonce mismatch … same-id double-acting"); claiming with no local state over an
   existing shard prints a takeover note. Heed those. The manual fallback, in this order at the start of
   every work burst:
-  1. `roles status <team> <role> --json` — proceed only if VACANT or the sole holder is your id.
+  1. `roles status <team> <role> --json` — proceed only if the status is `VACANT` or the sole holder is your id.
   2. Read your lease shard raw (`fulcra-api file download team/<team>/roles/<role>/leases/<agent-key>.md`
      — learn your `<agent-key>` by listing the leases dir, or from `presence beat` output, which prints the
-     same key) and compare its `timestamp` to when YOU last claimed. A fresher timestamp you did not write
+     same key) and compare its `timestamp` to when you last claimed. A fresher timestamp you did not write
      means another session is acting under your id.
-  3. Only then re-claim to refresh. Re-claiming FIRST destroys that evidence.
+  3. Only then re-claim to refresh. Re-claiming before reading destroys that evidence.
 
 Multi-host variants (`release-reviewer@host1`, `@host2`) are acceptable when one role legitimately runs in
-several places — each host claims the SAME role (`roles claim <team> release-reviewer --agent
+several places — each host claims the one role (`roles claim <team> release-reviewer --agent
 release-reviewer@host1`), never a role named after the variant. Such a role needs `policy: shared`; on
-`exclusive` it would sit in permanent CONTESTED by construction, and note that `shared` trades away the
-CONTESTED collision guard for that role. Keep the role doc's `maintainer:` field a distinct SUPERVISING
+`exclusive` it would sit in permanent `CONTESTED` by construction. Note that `shared` trades away the
+`CONTESTED` collision guard for that role. Keep the role doc's `maintainer:` field a distinct supervising
 identity: vacancy escalations are assigned to that field, so pointing it at the role itself mails the alert
 to the very inbox that just went dark.
 

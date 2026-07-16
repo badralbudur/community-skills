@@ -134,7 +134,7 @@ def test_cli_review_status(capsys):
 
 
 def test_cli_review_keys_by_filename_not_frontmatter(capsys):
-    # a file claiming someone else's reviewer name must NOT shadow their verdict
+    # a file claiming someone else's reviewer name must not shadow their verdict
     import json as _j
     t = FakeTransport()
     t.put("team/r/review/pr-1.md", "---\ntype: Review\nrequired: alice\n---\n")
@@ -562,13 +562,13 @@ def test_cli_inbox_ack_hides_immediately_pre_reconcile(capsys):
 # --- live-freshness overlay: the between-reconciles false-clear -------------
 
 def test_cli_inbox_overlay_surfaces_fresh_directive_before_reconcile(capsys):
-    """The exact repro: a directive delivered BETWEEN reconciles (task doc present,
+    """A directive delivered between reconciles (task doc present,
     summaries index stale) is surfaced by inbox immediately via the overlay — no
     heartbeat rebuild required."""
     t = FakeTransport()
     cli.main(["tell", "r", "amy", "Old news", "--from", "boss"], transport=t)
     cli.main(["reconcile", "r"], transport=t)            # summaries now has old-news
-    # NEW directive between reconciles: task doc written, index NOT rebuilt
+    # NEW directive between reconciles: task doc written, index not rebuilt
     cli.main(["tell", "r", "amy", "Fresh work", "--from", "boss"], transport=t)
     fresh = _dslug("Fresh work", assignee="amy")
     capsys.readouterr()
@@ -578,7 +578,7 @@ def test_cli_inbox_overlay_surfaces_fresh_directive_before_reconcile(capsys):
 
 
 def test_cli_inbox_overlay_no_duplicate_for_indexed_doc(capsys):
-    """A doc present in BOTH the index and the task dir yields exactly one row —
+    """A doc present in both the index and the task dir yields exactly one row —
     the index row wins, the overlay never re-reads it."""
     t = FakeTransport()
     cli.main(["tell", "r", "amy", "Do it", "--from", "boss"], transport=t)
@@ -636,8 +636,8 @@ def test_load_rows_no_summaries_is_unchanged_no_overlay():
 
 
 def test_load_rows_overlay_listed_doc_read_failure_degrades_not_silent():
-    """MUST 1: a doc the overlay's OWN listing just proved exists but that reads as
-    None must NOT vanish silently (the false-clear class, at the overlay's read
+    """must 1: a doc the overlay's own listing just proved exists but that reads as
+    None must not vanish silently (the false-clear class, at the overlay's read
     step) — ``ok`` flips False with overlay attribution; the index rows AND the
     other readable fresh docs are still served. Parse-garbage stays a sanctioned
     silent skip (separate test)."""
@@ -682,7 +682,7 @@ def _put_fresh_docs(t, n):
 
 
 def test_overlay_cap_truncates_deterministically_and_degrades():
-    """MUST 2: the overlay read-cost is bounded when reconcile is down. 20 fresh
+    """must 2: the overlay read-cost is bounded when reconcile is down. 20 fresh
     docs + default cap 16 -> exactly the first 16 BY SORTED NAME are served (every
     agent converges on the same subset) and the fold degrades visibly with the
     {served, absent_total} counts — capped-but-visible, never silent truncation."""
@@ -724,7 +724,7 @@ def test_overlay_under_cap_unchanged_no_flag():
 
 
 def test_overlay_budget_stops_slow_reads_partial_served(monkeypatch):
-    """MUST (whole-branch review): the cap bounds read COUNT, not TIME — slow
+    """must (whole-branch review): the cap bounds read COUNT, not TIME — slow
     per-doc reads (each running toward the transport's subprocess timeout) must not
     starve every canonical surface read. A tiny budget + reads that sleep past it →
     the overlay stops after the first slow read (after-op discipline), serves what
@@ -1279,7 +1279,7 @@ def test_roles_claim_warns_on_foreign_nonce(capsys, tmp_path, monkeypatch):
     t = FakeTransport()
     assert _claim(t) == 0
     capsys.readouterr()
-    # simulate a second session under the SAME id: rewrite the shard with a different nonce
+    # simulate a second session under the same id: rewrite the shard with a different nonce
     path = f"team/r/roles/reviewer/leases/{agent_key('lead-agent')}.md"
     fm = okf.parse_frontmatter(t.read(path))
     fm["nonce"] = "f" * 16
@@ -1322,7 +1322,7 @@ def test_needs_me_review_role_aware(capsys):
     from coord_engine.tasks import agent_key
     t = FakeTransport()
     _seed_review(t, "pr-7", "peer-reviewer")
-    # wren holds a FRESH lease on the peer-reviewer role
+    # wren holds a fresh lease on the peer-reviewer role
     t.put("team/r/roles/peer-reviewer.md", "---\ntype: Role\npolicy: shared\n---\n")
     t.put(f"team/r/roles/peer-reviewer/leases/{agent_key('wren')}.md",
           f"---\ntype: Lease\nagent: wren\ntimestamp: {_now_iso()}\n---\n")
@@ -1474,7 +1474,7 @@ def _seed_presence(t, agents=("amy", "bob", "cid", "dee")):
 
 def test_presence_shards_bounded_healthy_byte_identical():
     # Healthy transport, generous/absent deadline: the bounded reader yields the
-    # SAME shards as the legacy `_presence_shards` (folds to an identical roster)
+    # same shards as the legacy `_presence_shards` (folds to an identical roster)
     # and NO degraded marker — the healthy path must not change.
     t = FakeTransport()
     _seed_presence(t)
@@ -1557,7 +1557,7 @@ def test_presence_shards_deadline_spent_before_listing_skips_call():
 
 
 def test_presence_shards_slow_listing_overrun_visible_even_when_empty():
-    # The deadline passing DURING the listing itself must be
+    # The deadline passing during the listing itself must be
     # detected AFTER the blocking op — even when the listing returns [] (no shard
     # reads happen, so the per-shard loop can't catch it): `([], None)` here would
     # be a falsely-clean empty roster despite blowing the budget.
@@ -1692,11 +1692,11 @@ def test_escalate_does_not_escalate_on_unknown_lease(capsys):
 
 
 def test_escalate_skips_role_on_transient_doc_read_failure(capsys):
-    # Review fix (HIGH): the role doc was JUST LISTED by the parent roles/ scan, so
-    # a None doc read is knowably transient-or-deleted — NOT a role with default
-    # SLA. Falling through with DEFAULT_SLA_HOURS=24 would collapse a >24h-SLA
-    # role's window and fire a false VACANT escalation (the incident vector, on the
-    # acting path). Fix: doc-None after listing -> UNKNOWN -> skip.
+    # The role doc was just listed by the parent roles/ scan, so a None doc read is
+    # knowably either transient or deleted, not a role with the default SLA.
+    # Falling through with DEFAULT_SLA_HOURS=24 would collapse the window of a role
+    # whose SLA is longer than 24h and fire a false vacancy escalation on the
+    # acting path. A doc-None after a listing is `UNKNOWN`, and is skipped.
     class RoleDocReadFails(FakeTransport):
         def read(self, path):
             if path == "team/r/roles/patient.md":
@@ -1742,7 +1742,7 @@ def test_roles_status_doc_none_but_listed_unknown_rc1(capsys):
 
 
 def test_roles_status_unregistered_role_still_works(capsys):
-    # Doc genuinely ABSENT (not in the roles/ listing): the unregistered-role flow
+    # Doc genuinely absent (not in the roles/ listing): the unregistered-role flow
     # keeps its default-SLA behavior — claim-without-doc still reads HELD.
     t = FakeTransport()
     assert cli.main(["roles", "claim", "r", "adhoc", "--agent", "amy"], transport=t) == 0
@@ -1803,8 +1803,10 @@ def _past_iso(days=30):
 
 
 def test_escalate_dormant_future_suppresses_vacancy(capsys):
-    # A deliberately-parked role (future dormant_until) is vacant past SLA but must
-    # NOT fire a vacancy escalation on any heartbeat host — the live incident.
+    # A deliberately-parked role (future dormant_until) is vacant past SLA, but a
+    # park is an intentional state: it must not fire a vacancy escalation. Any
+    # host running the periodic escalate pass would otherwise re-raise it every
+    # pass for as long as the park lasts.
     t = FakeTransport()
     t.put("team/r/roles/reviewer.md",
           f"---\ntype: Role\nsla_hours: 24\nmaintainer: ada\n"
@@ -1830,7 +1832,7 @@ def test_escalate_dormant_past_escalates_as_normal(capsys):
 
 
 def test_escalate_dormant_garbage_notes_stderr_and_escalates(capsys):
-    # Unparseable dormant_until -> treat as ABSENT, note it on stderr, and escalate.
+    # Unparseable dormant_until -> treat as absent, note it on stderr, and escalate.
     # Fail OPEN: a typo must never silently suppress an escalation.
     t = FakeTransport()
     t.put("team/r/roles/reviewer.md",
@@ -1885,7 +1887,7 @@ def test_roles_status_held_outranks_dormant(capsys):
 #
 # Contract (see cli._read_degraded_row): every aggregate-backed public read
 # surfaces the shared degraded marker when the summaries index/listing is UNKNOWN
-# (`_load_rows_status(...).ok is False`) — NEVER a clean-empty result that a
+# (`_load_rows_status(...).ok is False`) — never a clean-empty result that a
 # poller can't distinguish from "nothing to do". Without it, an `inbox` whose
 # index read failed exits 0 with `[]` and silently suppresses a live unacked
 # directive.
@@ -1936,8 +1938,8 @@ def test_inbox_degraded_transport_text_stderr_notice(capsys):
 
 
 def test_inbox_absent_index_is_not_degraded(capsys):
-    # A genuinely-absent index (no reconcile yet) is a real readable empty, NOT a
-    # degradation — the marker must NOT appear (absence != failure).
+    # A genuinely-absent index (no reconcile yet) is a real readable empty, not a
+    # degradation — the marker must not appear (absence != failure).
     t = FakeTransport()
     cli.main(["tell", "r", "amy", "hi", "--from", "boss"], transport=t)  # no reconcile
     capsys.readouterr()
@@ -1998,7 +2000,7 @@ def test_briefing_degraded_transport_marker(capsys):
 
 
 def test_public_reads_healthy_no_degraded_marker(capsys):
-    # Positive control: a HEALTHY read must NOT emit the marker (no over-alarm).
+    # Positive control: a HEALTHY read must not emit the marker (no over-alarm).
     t = FakeTransport()
     _seed_indexed_directive(t)
     capsys.readouterr()

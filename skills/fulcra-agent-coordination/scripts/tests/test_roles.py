@@ -14,10 +14,10 @@ def _pin_module_clock(monkeypatch):
     """Pin cli._now to PINNED_NOW (just after the module NOW).
 
     Fixtures stamp data relative to NOW, but folds/verbs compute windows and
-    staleness off cli._now() against the REAL clock — so once wall-clock time
-    crossed NOW + a window this suite flipped RED for good (the repo's
+    staleness off cli._now() against the real clock — so once wall-clock time
+    crossed NOW + a window this suite flipped red for good (the repo's
     date-boundary flake class). Remedy: pin the
-    clock, never weaken assertions. Tests that MOVE time monkeypatch cli._now
+    clock, never weaken assertions. Tests that move time monkeypatch cli._now
     themselves, overriding this."""
     monkeypatch.setattr(cli, "_now", lambda: PINNED_NOW)
 
@@ -101,7 +101,7 @@ def test_dormant_state_garbage_is_parse_error_not_dormant():
 
 
 def test_escalation_suppressed_when_dormant():
-    # A vacant-past-SLA role that is dormant must NOT escalate.
+    # A vacant-past-SLA role that is dormant must not escalate.
     assert roles.escalation_due([_lease("a", 30)], now=NOW, sla_hours=24,
                                 dormant=True) is False
 

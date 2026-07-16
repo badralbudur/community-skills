@@ -30,7 +30,7 @@ DEFAULT_COMMAND = ("fulcra-api",)
 #: packages use).
 DEFAULT_API_BASE = "https://api.fulcradynamics.com"
 
-#: Per-op HARD upper bound (seconds). Overridable via ``COORD_TRANSPORT_TIMEOUT``
+#: Per-op hard upper bound (seconds). Overridable via ``COORD_TRANSPORT_TIMEOUT``
 #: or the constructor arg (which wins). Watchers run this tight (e.g. 8s) so the
 #: engine's fold budgets buy real responsiveness instead of soft promises.
 DEFAULT_TRANSPORT_TIMEOUT = 30.0
@@ -70,11 +70,11 @@ def _kill_process_group(proc: "subprocess.Popen") -> None:
 def run_bounded(
     argv: list[str], timeout: float, **popen_kw: Any
 ) -> "tuple[int, str, str]":
-    """Run ``argv`` with a HARD upper bound of ``timeout`` + ``_TRANSPORT_GRACE``,
+    """Run ``argv`` with a hard upper bound of ``timeout`` + ``_TRANSPORT_GRACE``,
     no matter what the child's descendant tree does. Returns
     ``(returncode, stdout, stderr)``.
 
-    ``subprocess.run(timeout=)`` is NOT enough: on ``TimeoutExpired`` it kills
+    ``subprocess.run(timeout=)`` is not enough: on ``TimeoutExpired`` it kills
     only the DIRECT child and (on POSIX) ``wait()``s on it alone, so a grandchild
     that inherited the pipes is left running — a leaked tree still holding the
     fds — and on non-POSIX the post-kill drain can block on it indefinitely. We
@@ -264,7 +264,7 @@ class FulcraFileTransport:
         return files if isinstance(files, list) else None
 
     def _run(self, args: list[str], **kw: Any) -> subprocess.CompletedProcess:
-        """Invoke ``fulcra-api file <args>``, HARD-bounded by ``self.timeout``.
+        """Invoke ``fulcra-api file <args>``, hard-bounded by ``self.timeout``.
 
         The call runs through ``run_bounded``: the child gets its own process
         group and, on timeout, the whole group is SIGKILLed and the drain is

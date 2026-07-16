@@ -24,7 +24,7 @@ aggregate.
 
 - `tell` — direct work at one agent.
 - `broadcast` — assignee `*`; reaches every non-stale agent on the [presence](presence.md) roster.
-- `remind` — hidden until WHEN.
+- `remind` — hidden until its scheduled time.
 - `later` — backlog capture; `inbox --all` surfaces it.
 - `handoff` — atomic: assignee + checkpoint ref in one write.
 - `respond` — record a response and close the loop.
@@ -40,11 +40,11 @@ aggregate.
   degradation, not a failure.
 - **Re-notify**: unacked P0/P1 directives keep surfacing (inbox top, digest) until acked. An ack is a
   deliberate act; a mis-fired ack permanently silences that item for you.
-- **Handoff is atomic**: the checkpoint ref and the new assignee land in ONE task-file write, so there is
+- **Handoff is atomic**: the checkpoint ref and the new assignee land in a single task-file write, so there is
   no window where the work moved but the resume state doesn't exist. Pairs with
   [continuity](continuity.md).
 - **Shard-GC**: reconcile prunes ack shards whose task no longer exists, orphan-proofing the ack dir. It
-  only deletes ack shards that are datable AND older than 24h AND whose task is absent from a non-empty
+  only deletes ack shards that are datable, older than 24h, and whose task is absent from a non-empty
   listing.
 
 ## Ack shard
@@ -71,7 +71,7 @@ under the new identity. Intentional; see [presence](presence.md) on picking a du
   is an illegal transition, the response is still recorded and the failure reported.
 - `respond` performs no assignee authorization — anyone on the team can close a directive. The File Store
   write ACL is the trust boundary.
-- A `remind` with an unparseable WHEN errors; it never creates a directive that fires at the wrong time.
+- A `remind` with an unparseable time errors; it never creates a directive that fires at the wrong time.
 
 **User's call:** your priority ladder (what P0 means to your team), whether unattended agents run an
 operator loop that drains the inbox, and whether directives or the freeform teams inbox is the right

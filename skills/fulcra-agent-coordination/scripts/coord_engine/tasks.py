@@ -159,7 +159,7 @@ def apply_update(
 def apply_answer(existing: Optional[str], *, now: str, answer: str,
                  relayer: Optional[str] = None, human: str = "human") -> tuple[str, str]:
     """The operator return-leg: validate the task is a
-    waiting-for-operator ask, then in ONE write: record the answer, unblock
+    waiting-for-operator ask, then in one write: record the answer, unblock
     (blocked -> active), hand the task back to its OWNER (so it lands in their
     inbox and their listener fires), and strip the needs:human marker.
     Returns (new_doc, owner). Raises TaskError on a non-ask or missing owner."""

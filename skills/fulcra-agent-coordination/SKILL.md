@@ -16,8 +16,9 @@ not by session), **continuity** (structured snapshots and a deterministic resume
 N-reviewer verdict tally), **directives** (directed work with priorities and acks), and **health** (is
 anything actually running, and which host went dark).
 
-The through-line: anything two agents must AGREE on is a **fold over derived state**, computed by the
-engine — never a prose instruction to eyeball timestamps and guess. Agents drift; folds don't.
+The through-line: anything two agents must agree on is a **fold over derived state**, computed by the
+engine, rather than a prose instruction telling each agent to compare timestamps and reach its own
+conclusion. Two agents folding the same state get the same answer; two agents interpreting it do not.
 
 ## Invoking the engine
 
@@ -45,7 +46,8 @@ cold team prints empty sections rather than failing; a broadcast without presenc
 per-agent, it just can't tell you when everyone has seen it. Nothing here requires you to decide up front
 which layers you are "installing".
 
-Don't read all six. Run a probe, land in the reference it points at.
+There is no need to read all six references. Run the probe that matches your question and read the
+reference it points at.
 
 ## Router
 
@@ -56,10 +58,10 @@ Don't read all six. Run a probe, land in the reference it points at.
 | Is the engine reaching the store? | `<skill-dir>/scripts/coord-engine doctor <team>` | exit 0 | [health.md](references/health.md) |
 | Cold start — what is this team's state? | `<skill-dir>/scripts/coord-engine briefing <team> --agent <you>` | exit 0; prints the presence/board/inbox/needs-me sections (empty sections are a pass) | [continuity.md](references/continuity.md) |
 | Who is alive right now? | `<skill-dir>/scripts/coord-engine presence show <team> --json` | your row shows `"liveness": "live"` | [presence.md](references/presence.md) |
-| Does anyone hold this role? | `<skill-dir>/scripts/coord-engine roles status <team> <role> --json` | exit 0 and `"status": "HELD"` (exit 1 = degraded transport, retry — never read it as VACANT) | [roles.md](references/roles.md) |
+| Does anyone hold this role? | `<skill-dir>/scripts/coord-engine roles status <team> <role> --json` | exit 0 and `"status": "HELD"`; exit 1 means the transport is degraded and the role's state is unknown — retry rather than treating it as `VACANT` | [roles.md](references/roles.md) |
 | Can I resume what I left? | `<skill-dir>/scripts/coord-engine continuity resume <team> <you>` | prints an objective and next actions | [continuity.md](references/continuity.md) |
 | Do I have directed work waiting? | `<skill-dir>/scripts/coord-engine inbox <team> --agent <you> --json` | exit 0 and a JSON array with no leading `inbox-degraded` row (that row means transport, not an empty inbox) | [directives.md](references/directives.md) |
-| Is this artifact cleared to land? | `<skill-dir>/scripts/coord-engine review status <team> <slug> --json` | `"state": "APPROVED"` with empty `pending_required` (exit 1 = tally unknown, retry) | [review.md](references/review.md) |
+| Is this artifact cleared to land? | `<skill-dir>/scripts/coord-engine review status <team> <slug> --json` | `"state": "APPROVED"` with empty `pending_required`; exit 1 means the tally is unknown — retry rather than treating it as unapproved | [review.md](references/review.md) |
 | Is anything actually reconciling this team? | `<skill-dir>/scripts/coord-engine health <team> --json` | exit 0 and `"healthy": true` | [health.md](references/health.md) |
 
 ## What's yours to decide

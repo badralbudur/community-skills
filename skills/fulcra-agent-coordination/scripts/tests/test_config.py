@@ -1,4 +1,4 @@
-"""The shared env-var parser (``coord_engine.config``) and its policy — the ONE
+"""The shared env-var parser (``coord_engine.config``) and its policy — the one
 place NaN/inf/flag-vs-env handling is defined, so the family of budgets/timeouts
 cannot drift apart. Also: each budget wrapper's default.
 """

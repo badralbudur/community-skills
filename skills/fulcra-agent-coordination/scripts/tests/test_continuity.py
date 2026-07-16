@@ -14,9 +14,9 @@ def _pin_module_clock(monkeypatch):
     """Pin cli._now to PINNED_NOW (just after the module NOW).
 
     Fixtures stamp data relative to NOW, but folds/verbs compute windows and
-    staleness off cli._now() against the REAL clock — so once wall-clock time
-    crosses NOW + a window the suite flips RED for good. Remedy: pin the clock,
-    never weaken assertions. Tests that MOVE time monkeypatch cli._now
+    staleness off cli._now() against the real clock — so once wall-clock time
+    crosses NOW + a window the suite flips red for good. Remedy: pin the clock,
+    never weaken assertions. Tests that move time monkeypatch cli._now
     themselves, overriding this."""
     monkeypatch.setattr(cli, "_now", lambda: PINNED_NOW)
 

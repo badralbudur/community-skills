@@ -34,7 +34,7 @@ def build_aggregate(
     top-level key in it that this build does not own (``OWNED_KEYS``) is carried
     forward untouched.
 
-    THE INVARIANT, and why the passthrough exists: **summaries.json is ONE shared
+    THE INVARIANT, and why the passthrough exists: **summaries.json is one shared
     document written by MANY hosts at MANY versions, and any top-level key added
     in version N is silently wiped by every host older than N** — an older host
     rebuilds the document from the keys it knows about and writes the result over
@@ -110,7 +110,7 @@ def _categorize(
     * ``deprecate``— id present in prior only; ``row`` = the removed prior row,
                      ``prior_row`` None.
 
-    Content-only edits (same status) are intentionally NOT a change (they live in
+    Content-only edits (same status) are intentionally not a change (they live in
     the file's own version history). Order is stable: creations + status-updates
     over ``new`` (by id) first, then removals over ``prior`` (by id) — the order
     ``diff_rows`` has always emitted, which the byte-identity guard pins.

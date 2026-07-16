@@ -135,9 +135,9 @@ def _reconcile_at(t, now, team="r"):
 
 
 def test_reconcile_same_minute_double_write_not_fossilized():
-    """A doc changed TWICE in one clock-minute
-    keeps an identical minute-resolution mtime; a length-CHANGING second write is
-    caught by the size compare so the row reflects the LATEST content, never the
+    """A doc changed twice in one clock-minute
+    keeps an identical minute-resolution mtime; a length-changing second write is
+    caught by the size compare so the row reflects the latest content, never the
     fossil."""
     t = FakeTransport()
     minute = "2026-07-01 04:23PM UTC"
@@ -151,10 +151,10 @@ def test_reconcile_same_minute_double_write_not_fossilized():
 
 
 def test_reconcile_same_minute_equal_length_edit_reflects_latest():
-    """The mtime+size blind spot: a SAME-length edit in the SAME
+    """The mtime+size blind spot: a same-length edit in the same
     clock-minute leaves mtime AND byte size identical, so mtime+size alone would
     fossilize the stale row. The same-minute guard (mtime-minute not proven closed
-    before our last reconcile) forces a reparse — the row reflects the LATEST
+    before our last reconcile) forces a reparse — the row reflects the latest
     content. `blocked`->`waiting` are both 7 chars, so the doc size is unchanged."""
     t = FakeTransport()
     minute = "2026-07-01 04:23PM UTC"
@@ -172,7 +172,7 @@ def test_reconcile_same_minute_equal_length_edit_reflects_latest():
 
 def test_reconcile_legacy_no_size_row_reparsed_once():
     """A legacy prior row carries NO stamped
-    `size` (pre-upgrade aggregate). It must be reparsed ONCE — never reused on
+    `size` (pre-upgrade aggregate). It must be reparsed once — never reused on
     mtime alone — so a pre-existing stale/fossilized row is healed and re-stamped
     on the first post-upgrade reconcile, even for a same-length live edit."""
     t = FakeTransport()
@@ -190,9 +190,9 @@ def test_reconcile_legacy_no_size_row_reparsed_once():
 
 
 def test_reconcile_legacy_unstamped_row_reparsed_and_capped():
-    """A legacy row built BEFORE the text cap carries an uncapped
+    """A legacy row built before the text cap carries an uncapped
     title/description and NO `sv` stamp. Even with matching mtime+size
-    (an unchanged, static task) it must NOT be reused — it is force-reparsed so
+    (an unchanged, static task) it must not be reused — it is force-reparsed so
     the cap applies, then re-stamped with the current schema version."""
     from coord_engine import model
     t = FakeTransport()
@@ -200,7 +200,7 @@ def test_reconcile_legacy_unstamped_row_reparsed_and_capped():
     long_title = "T" * 5000
     long_desc = "D" * 5000
     # The live doc carries a multi-KB title/description. A legacy
-    # prior row built pre-cap holds the SAME uncapped text and matching mtime+size,
+    # prior row built pre-cap holds the same uncapped text and matching mtime+size,
     # so mtime+size reuse would carry it forward untouched — the cap never applies.
     body = (f"---\ntype: Task\ntitle: {long_title}\ndescription: {long_desc}\n"
             f"status: proposed\npriority: P2\n---\nbody")
@@ -389,12 +389,10 @@ def test_fast_path_declines_on_unparseable_feed_entries():
 
 
 def test_fast_path_declines_on_deletion_entry():
-    # LIVE-CAPTURED feed shape for a deleted file (2026-07-05, fulcra data-updates):
-    # {"id": "6b369982-...", "full_name": "/team/fulcra/_scratch/del-probe.txt",
-    #  "scan_state": "unscanned", "size": 6, "uploaded_at": "2026-07-05T12:46:43Z",
-    #  "archived_at": null, "deleted_at": "2026-07-05T12:46:43.832485Z",
-    #  "state": "deleted"}
-    # -> deletions DO carry full_name; a deleted task file declines the fast path.
+    # A deletion entry in the change feed carries both `full_name` and
+    # `state: "deleted"` (alongside a `deleted_at` stamp). Because the name is
+    # present, a deleted task file is attributable to the task subtree, and the
+    # fast path must decline rather than assume the tree is unchanged.
     t = FakeTransport()
     t.put("team/r/task/a.md", _task("Alpha", "active"))
     _reconciled(t)
@@ -415,13 +413,13 @@ def _unstamp_prior_rows(t):
 
 
 def test_fast_path_does_not_gate_on_row_schema_stamps():
-    """The fast path must NOT decline over stale-schema rows.
+    """The fast path must not decline over stale-schema rows.
 
     Gating it there would stop a quiet fleet perpetuating legacy unstamped rows —
     but that reasoning only holds for a fleet that converges. It does not: a
     MIXED fleet reconciles one shared index, and every pass by a pre-stamp host
     re-introduces unstamped rows. The gate therefore never settles — it declines
-    forever, making a mixed fleet do MORE full passes than before it existed.
+    forever, making a mixed fleet do more full passes than before it existed.
     Healing is the reuse gate's job (below), not the fast path's."""
     t = FakeTransport()
     t.put("team/r/task/a.md", _task("Alpha", "active"))
@@ -436,7 +434,7 @@ def test_stale_schema_rows_still_heal_via_the_reuse_gate():
     """The counterpart to the above: dropping the fast-path gate must not cost us
     the heal. On any pass that does real work, the incremental-reuse gate still
     refuses a stale-projection row, forcing the reparse that re-caps + re-stamps
-    it. This is the heal, and it is the ONLY place the `sv` check now lives."""
+    it. This is the heal, and it is the only place the `sv` check now lives."""
     from coord_engine import model
     t = FakeTransport()
     t.put("team/r/task/a.md", _task("Alpha", "active"))
@@ -478,12 +476,13 @@ def test_fast_path_fires_on_a_quiet_beat():
 
 # --- acks fold: change-driven via recent_changes ---
 #
-# The acks fold used to list EVERY ack dir every pass (280 listings on the live
-# bus = ~336s at a remote host's 1.2s/op). It now asks the store what changed and
-# re-folds only those slugs. These tests pin the invariant that makes that safe:
-# the incremental path is an OPTIMIZATION, and every way it can fail — no change
-# query, a query error, a bad anchor, feed-shape drift — falls back to the full
-# fold and says so. Nothing here may ever "assume unchanged".
+# The acks fold used to list every ack directory every pass, so its cost grew
+# with the team and, on a high-latency transport, dominated the pass. It now asks
+# the store what changed and re-folds only those slugs. These tests pin the
+# invariant that makes that safe: the incremental path is an optimization, and
+# every way it can fail — no change query, a query error, a bad anchor, feed-shape
+# drift — falls back to the full fold and says so. Nothing here may ever assume a
+# slug is unchanged.
 
 def _seed_acks(t):
     """Three live tasks, each with one ack shard."""
@@ -592,7 +591,7 @@ def test_acks_no_change_query_support_falls_back_to_full_fold():
 def test_acks_full_fold_without_an_ack_anchor():
     """A legacy aggregate (pre-1.6.8) carries no ack anchor: there is no window to
     ask about, so the pass must full-fold — not silently reuse the prior acks.
-    generated_at is NOT a fallback anchor: it advances on every pass, including
+    generated_at is not a fallback anchor: it advances on every pass, including
     passes whose ack fold was inconclusive, so trusting it would reuse across a
     change we never read."""
     t = _seeded()
@@ -706,7 +705,7 @@ def test_acks_change_query_window_covers_the_anchor_with_skew_margin():
 #
 # A fold that could not READ a slug it knew had changed must not let the pass
 # behave as though it had. The ack anchor is what makes that enforceable: it is
-# the engine's OWN record of what it has provably folded through, separate from
+# the engine's own record of what it has provably folded through, separate from
 # generated_at (which the task path advances every pass, unconditionally). An
 # inconclusive fold holds the anchor back, so the unread change stays inside the
 # next pass's query window instead of being consumed by it.
@@ -773,9 +772,9 @@ def test_acks_inconclusive_fold_does_not_advance_the_anchor_or_streak():
 def test_acks_change_unfolded_in_one_pass_is_still_folded_in_the_next():
     """(b) The retry-window boundary — the point of holding the anchor. The change
     lands at 16:06; pass N (16:40) can't read it. If the anchor had advanced to
-    16:40, pass N+1's window would start at 16:25 and the change would be gone for
-    good (until the ~daily backstop (DEFAULT_ACKS_FULL_EVERY=72 at a 20-min heartbeat)). With the anchor held at 16:05, it is still in
-    the window and folds."""
+    16:40, pass N+1's window would start at 16:25 and the change would be gone
+    until the periodic full-fold backstop (`DEFAULT_ACKS_FULL_EVERY`). With the
+    anchor held at 16:05, it is still in the window and folds."""
     t = _seeded()                                      # anchor: 2026-07-01T16:05:00Z
     changes = [{"full_name": "/team/r/_coord/acks/b/dan.md",
                 "state": "uploaded", "uploaded_at": "2026-07-01T16:06:00Z"}]
@@ -833,7 +832,7 @@ def test_acks_conclusive_full_fold_advances_the_anchor():
     assert _anchor(t) == "2026-07-01T16:15:00Z"
 
 
-# --- the global fast path may only fire when EVERY sub-fold is settled ---
+# --- the global fast path may only fire when every sub-fold is settled ---
 #
 # Holding the ack anchor is necessary but useless if a pass can skip the fold that
 # reads it. The fast path builds its window from generated_at, which advances even
@@ -845,7 +844,7 @@ def test_fast_path_declines_while_the_ack_fold_owes_a_pass():
     """The two-pass recovery: an inconclusive ack fold at 16:40 must not be
     stranded by a quiet global feed at 16:45. Both transport capabilities are
     live, which is the whole point — `updates` sees nothing in the 16:40->16:45
-    window, but the ack fold is still owed the 16:06 change from BEFORE it."""
+    window, but the ack fold is still owed the 16:06 change from before it."""
     t = _seeded()                                      # anchor == generated_at == 16:05
     changes = [{"full_name": "/team/r/_coord/acks/b/dan.md",
                 "state": "uploaded", "uploaded_at": "2026-07-01T16:06:00Z"}]

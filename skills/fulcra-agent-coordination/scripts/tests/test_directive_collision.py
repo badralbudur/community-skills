@@ -1,11 +1,11 @@
 """CLI `tell`/`broadcast`/`remind` — canonical hash-path directive delivery.
 
-Regression cover for a production message-loss incident and its follow-ons:
-`tell` derived a slug from the title, and on a slug collision printed "already
-exists" and returned 1 — silently DROPPING the message. The fix history moved
-through a suffix-on-collision scheme (still racy: a shared base slot could be
-clobbered after a verified write). The CANONICAL design here makes EVERY
-directive path carry the payload hash — ``<title-slug>-<sha256(payload)[:8]>``:
+Regression cover for a message-loss bug and its follow-ons: `tell` derived a slug
+from the title, and on a slug collision printed "already exists" and returned 1,
+silently dropping the message. The fix moved through a suffix-on-collision scheme
+that was still racy, because a shared base slot could be clobbered after a
+verified write. The canonical design here makes every directive path carry the
+payload hash — ``<title-slug>-<sha256(payload)[:8]>``:
 
 - identical payloads (any senders, any order) -> same path, same bytes: existence
   means already delivered, and a write race is idempotent (can't destroy);
@@ -37,12 +37,12 @@ def _task_docs(t):
 
 def test_late_racer_cannot_destroy_verified_delivery(capsys):
     # The post-write read-back proves the slot held OUR payload
-    # at read-back time, but nothing stops a later write to the SAME base slot
+    # at read-back time, but nothing stops a later write to the same base slot
     # from destroying it. Interleaving: A writes+verifies (rc 0), then B — which
-    # snapshotted the slot as ABSENT before A wrote — writes the base slot,
-    # clobbering A's delivered message. At HEAD both A and B target the bare
-    # title slug, so only ONE survives. The canonical hash-suffixed path must
-    # keep BOTH distinct messages durable (they can never share a path).
+    # snapshotted the slot as absent before A wrote — writes the base slot,
+    # clobbering A's delivered message. With a title-derived slug both A and B target the bare
+    # title slug, so only one survives. The canonical hash-suffixed path must
+    # keep both distinct messages durable (they can never share a path).
     t = FakeTransport()
     assert cli.main(["tell", "r", "amy", "Ship it", "-s", "AAA"], transport=t) == 0
 
@@ -81,9 +81,9 @@ def test_late_racer_cannot_destroy_verified_delivery(capsys):
 
 
 def test_same_payload_race_is_idempotent_one_doc(capsys):
-    # Two senders of the SAME payload converge on the SAME hash-bearing path and
-    # write the SAME message: a race is idempotent (last-writer-wins is a no-op),
-    # so it can never destroy a delivery — it collapses to ONE doc, both rc 0.
+    # Two senders of the same payload converge on the same hash-bearing path and
+    # write the same message: a race is idempotent (last-writer-wins is a no-op),
+    # so it can never destroy a delivery — it collapses to one doc, both rc 0.
     path = f"team/r/task/{_dslug('Ship it', summary='AAA', assignee='amy')}.md"
     t = FakeTransport()
     assert cli.main(["tell", "r", "amy", "Ship it", "-s", "AAA"], transport=t) == 0
@@ -118,7 +118,7 @@ def test_same_payload_race_is_idempotent_one_doc(capsys):
 
 def test_write_readback_none_fails_loud(capsys):
     # If the post-write read-back returns None (transport degraded), we cannot
-    # confirm our write landed/survived -> fail loud (C1), never a silent rc-0
+    # confirm our write landed and survived -> fail loud, never a silent rc-0
     # success on an unverifiable delivery.
     class ReadBackNone(FakeTransport):
         def read(self, path):
@@ -140,7 +140,7 @@ def test_identical_resend_dedupes_rc0_one_doc(capsys):
     t = FakeTransport()
     assert cli.main(["tell", "r", "amy", "Ship it", "-s", "now"], transport=t) == 0
     capsys.readouterr()
-    # re-send the SAME message: sanctioned dedup, not a failure.
+    # re-send the same message: sanctioned dedup, not a failure.
     assert cli.main(["tell", "r", "amy", "Ship it", "-s", "now"], transport=t) == 0
     out = capsys.readouterr().out
     assert "already delivered" in out
@@ -198,7 +198,7 @@ def test_retry_of_distinct_message_dedupes_rc0(capsys):
     cli.main(["tell", "r", "amy", "Ship it", "-s", "C"], transport=t)   # message C
     assert len(_task_docs(t)) == 2, "two distinct messages -> two docs"
     capsys.readouterr()
-    # retry the SAME distinct message: dedupes at its hash slug.
+    # retry the same distinct message: dedupes at its hash slug.
     assert cli.main(["tell", "r", "amy", "Ship it", "-s", "C"], transport=t) == 0
     assert "already delivered" in capsys.readouterr().out
     assert len(_task_docs(t)) == 2, "retry must not create a third doc"
@@ -206,7 +206,7 @@ def test_retry_of_distinct_message_dedupes_rc0(capsys):
 
 def test_same_text_different_assignees_delivers_both(capsys):
     # Assignee IS message identity: the same text told to a different agent is a
-    # DIFFERENT directive with a DIFFERENT hash -> bob must get his own copy.
+    # different directive with a different hash -> bob must get his own copy.
     amy_slug = _dslug("Ship it", summary="now", assignee="amy")
     bob_slug = _dslug("Ship it", summary="now", assignee="bob")
     assert amy_slug != bob_slug
@@ -216,7 +216,7 @@ def test_same_text_different_assignees_delivers_both(capsys):
     assert _task_docs(t) == sorted(
         [f"team/r/task/{amy_slug}.md", f"team/r/task/{bob_slug}.md"])
 
-    # each copy surfaces in its OWN recipient's inbox
+    # each copy surfaces in its own recipient's inbox
     cli.main(["reconcile", "r"], transport=t)
     capsys.readouterr()
     assert cli.main(["inbox", "r", "--agent", "amy", "--json"], transport=t) == 0
@@ -254,15 +254,15 @@ def test_identical_rebroadcast_dedupes(capsys):
     assert cli.main(["broadcast", "r", "All hands", "-s", "now"], transport=t) == 0
     assert "already delivered" in capsys.readouterr().out
     assert _task_docs(t) == [f"team/r/task/{bslug}.md"]
-    # ...while a directed tell of the same text is a DIFFERENT audience -> delivered.
+    # ...while a directed tell of the same text is a different audience -> delivered.
     assert cli.main(["tell", "r", "amy", "All hands", "-s", "now"], transport=t) == 0
     assert len(_task_docs(t)) == 2
 
 
 def test_unparseable_doc_at_canonical_slot_fails_loud(capsys):
     # With the hash-bearing canonical path, an unparseable doc at OUR slot can no
-    # longer be a colliding DIFFERENT message (distinct payloads never share a
-    # path) — only corruption. Fail loud and NEVER overwrite it; a duplicate is
+    # longer be a colliding different message (distinct payloads never share a
+    # path) — only corruption. Fail loud and never overwrite it; a duplicate is
     # cheaper than a dropped message, but a clobbered slot is worse than both.
     slug = _dslug("Ship it", summary="real", assignee="amy")
     path = f"team/r/task/{slug}.md"
@@ -276,9 +276,9 @@ def test_unparseable_doc_at_canonical_slot_fails_loud(capsys):
 
 
 def test_write_timeout_fails_loud_reports_nothing_delivered(capsys):
-    # C1: T1 made a timed-out write() return False (never raise). Discarding that
-    # bool prints "directive <slug> -> <assignee>" rc 0 while the message is GONE.
-    # A False write must fail loud (rc 1), write no doc, and NOT claim delivery.
+    # A timed-out write() returns False rather than raising. Discarding that bool
+    # prints "directive <slug> -> <assignee>" and rc 0 while the message is gone.
+    # A False write must fail loud (rc 1), write no doc, and not claim delivery.
     class WriteTimesOut(FakeTransport):
         def write(self, path, content):
             return False  # timeout/exec failure -> False, never raises
@@ -294,9 +294,9 @@ def test_write_timeout_fails_loud_reports_nothing_delivered(capsys):
 
 
 def test_read_timeout_over_occupied_slot_refuses_to_clobber(capsys):
-    # I1: read() timeout returns None (T1), indistinguishable from a missing slot.
-    # Treating None as "empty" would overwrite an occupied slot. A list_dir of the
-    # parent confirms OUR canonical slot IS present -> refuse to write (rc 1),
+    # A read() timeout returns None, which is indistinguishable from a missing
+    # slot. Treating None as empty would overwrite an occupied slot. A list_dir of
+    # the parent confirms our canonical slot is present -> refuse to write (rc 1),
     # original kept, delivery reported as unverifiable.
     slug = _dslug("Ship it", summary="different message", assignee="bob")
     path = f"team/r/task/{slug}.md"
@@ -318,7 +318,7 @@ def test_read_timeout_over_occupied_slot_refuses_to_clobber(capsys):
 
 
 def test_reremind_new_when_dedupes_and_keeps_original_schedule(monkeypatch, capsys):
-    # Minor (a): re-reminding the same reminder with a DIFFERENT not_before is the
+    # Minor (a): re-reminding the same reminder with a different not_before is the
     # same message (not_before is delivery metadata, outside identity) -> rc 0
     # dedup, original schedule kept, one doc.
     #
@@ -327,7 +327,7 @@ def test_reremind_new_when_dedupes_and_keeps_original_schedule(monkeypatch, caps
     # `created` timestamp from cli._now(), so an unpinned wall clock landing on
     # 2026-07-12 (UTC) would inject "2026-07-12" into the doc and false-fail the
     # `"2026-07-12" not in doc` schedule-preservation assertion. Pinning to a date
-    # distinct from BOTH not_before dates keeps the assertion purely about the
+    # distinct from both not_before dates keeps the assertion purely about the
     # kept schedule, independent of the day the suite runs.
     from datetime import datetime, timezone
     monkeypatch.setattr(cli, "_now", lambda: datetime(2026, 7, 1, 12, 0, 0, tzinfo=timezone.utc))

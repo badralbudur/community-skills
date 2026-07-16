@@ -39,10 +39,10 @@ def _parse_iso_utc(s: Any) -> Optional[datetime]:
 def _same_minute_reuse_safe(entry_mtime: Any, last_reconcile_iso: Any) -> Optional[bool]:
     """Skew-tolerant same-minute guard for incremental reuse.
 
-    Store ``file list`` mtimes are MINUTE-granular, so a doc written twice inside
-    one clock-minute keeps ONE mtime and an equal-length second write is invisible
-    to a mtime+size compare. A prior row is provably unchanged only if our LAST
-    reconcile READ happened after that minute fully CLOSED — i.e. the row's
+    Store ``file list`` mtimes are minute-granular, so a doc written twice inside
+    one clock-minute keeps one mtime and an equal-length second write is invisible
+    to a mtime+size compare. A prior row is provably unchanged only if our last
+    reconcile READ happened after that minute fully closed — i.e. the row's
     mtime-minute + 1 minute is at or before ``last_reconcile``. Returns:
 
     * True  — the minute closed before the last reconcile: safe to reuse.
@@ -52,8 +52,8 @@ def _same_minute_reuse_safe(entry_mtime: Any, last_reconcile_iso: Any) -> Option
     * None  — no reconcile anchor (legacy aggregate without ``generated_at``, or an
               unparseable mtime): the caller falls back to the mtime+size compare.
 
-    Bias under host/store clock skew is toward reparse (a host clock BEHIND the
-    store over-reparses; only a host clock >~1min AHEAD could under-read, the same
+    Bias under host/store clock skew is toward reparse (a host clock behind the
+    store over-reparses; only a host clock more than ~1min ahead could under-read, the same
     now-vs-mtime assumption the retention sub-pass already makes)."""
     lr = _parse_iso_utc(last_reconcile_iso)
     if lr is None:
@@ -108,10 +108,10 @@ def _fast_path_no_changes(transport: Any, team: str, prior_agg: dict, *, now: st
     gen = (prior_agg or {}).get("generated_at")
     if not gen:
         return False
-    # NOT gated on the rows' schema stamp (`sv`), deliberately. Such a gate would
+    # not gated on the rows' schema stamp (`sv`), deliberately. Such a gate would
     # assume the fleet CONVERGES: decline the fast path until one full pass stamps
     # every row, then resume. A mixed-version fleet never converges. All hosts
-    # reconcile ONE shared index, and every pass by a host that predates the stamp
+    # reconcile one shared index, and every pass by a host that predates the stamp
     # writes unstamped rows straight back in, so the gate declines on every beat,
     # forever — strictly worse than no gate, since it costs such a fleet MORE full
     # passes than it would pay without it.
@@ -122,7 +122,7 @@ def _fast_path_no_changes(transport: Any, team: str, prior_agg: dict, *, now: st
     # bounds a quiet fleet regardless — the fast path cannot run indefinitely, so
     # a periodic full pass sweeps whatever a quiet stretch left behind.
     #
-    # The ack-anchor guard below is NOT the same shape of rule, and stays: it is
+    # The ack-anchor guard below is not the same shape of rule, and stays: it is
     # about a sub-fold OWING a pass, and it settles itself in one.
     #
     # That guard: the fast path may only fire when every sub-fold is SETTLED. The
@@ -207,18 +207,21 @@ GC_GRACE_HOURS = 24.0  #: never GC a shard younger than this (or undatable)
 #: indefinitely. It also carries the orphan-shard GC, which only rides the full
 #: fold. ``1`` disables the incremental path entirely.
 #:
-#: Why 72 and not 12: a forced full fold was MEASURED at 1091s (~18min) on a
-#: 1.2s/op remote transport. At 12 (~4h on a 20-min heartbeat) that is an
-#: 18-minute stall every four hours on every remote host — a real cost to pay
-#: for a check whose subject, the change query, was verified complete against an
-#: independent listing (31/31, zero missed). 72 puts the true-full at ~daily on
-#: the same heartbeat: still bounded, still catches a silently-dropped change
-#: within a day, at a SIXTH of the recurring cost (72/12 = 6x less frequent;
-#: the interval goes 4h -> ~24h, but the ratio is 6, not 24). The right end
-#: state is a
-#: change-driven backstop (query a WIDE window since the last CONCLUSIVE full
-#: fold, reserving a true-full for anchor-loss/doubt) — that is a design change,
-#: not a constant, so it is queued rather than rushed in here.
+#: The value trades recurring cost against detection latency. A full fold lists
+#: every ack directory, so its cost grows with the team and is dominated by
+#: per-operation latency on a remote transport; on a slow link it is long enough
+#: to stall a pass noticeably. The incremental path it backstops is driven by the
+#: store's change query, so the backstop exists to catch a change the query never
+#: reported — not to do the query's job. A low value pays that stall often to
+#: re-check a mechanism that is expected to be complete; a high value keeps the
+#: guarantee (a missed ack is corrected within this many passes) while making the
+#: stall rare. This default is chosen so that, at a typical heartbeat, the forced
+#: full fold lands roughly daily: bounded recovery, small recurring cost.
+#:
+#: The better end state is a change-driven backstop — query a wide window since
+#: the last conclusive full fold, reserving a true-full for anchor loss or doubt.
+#: That is a design change rather than a constant, so it is queued, not rushed
+#: in here.
 DEFAULT_ACKS_FULL_EVERY = 72
 
 #: Key under which the aggregate carries the count of consecutive INCREMENTAL ack
@@ -228,7 +231,7 @@ DEFAULT_ACKS_FULL_EVERY = 72
 #: aggregate means no prior acks and no anchor, which is a full fold anyway.
 ACKS_STREAK_KEY = "acks_incremental_streak"
 
-#: Key under which the aggregate carries the ack fold's OWN anchor: the instant
+#: Key under which the aggregate carries the ack fold's own anchor: the instant
 #: through which acks are provably folded. The change-query window starts here.
 #:
 #: Why not ``generated_at``: that anchor advances every pass, unconditionally. If
@@ -236,15 +239,15 @@ ACKS_STREAK_KEY = "acks_incremental_streak"
 #: would consume the change — the next window would start past it and the new ack
 #: would stay invisible until the periodic backstop. That is a FALSE ADVANCE (the
 #: `listen` fold's discipline: a failed read must never mark unknown state as
-#: seen). This anchor advances ONLY on a fold that read everything it meant to,
+#: seen). This anchor advances only on a fold that read everything it meant to,
 #: so an unread change stays inside the next pass's window. Absent (a legacy
 #: aggregate, or a pass that never got a conclusive fold) means NO anchor — a
 #: full fold — never a silent fallback to generated_at.
 ACKS_ANCHOR_KEY = "acks_folded_through"
 
-#: An anchor older than this makes the change query pointless: the endpoint 500s
-#: on an over-wide window (verified at 30 days), so a host that has been down for
-#: days would burn ~10s per pass to learn nothing. Skip straight to the full fold.
+#: An anchor older than this makes the change query pointless: the endpoint fails
+#: on an over-wide window, so a host that has been down for days would spend a
+#: request per pass to learn nothing. Skip straight to the full fold.
 ACKS_ANCHOR_MAX_HOURS = 24.0
 
 
@@ -322,7 +325,7 @@ def _fold_slug(transport: Any, prefix: str, slug: str) -> Optional[list]:
 
 def _full_fold_and_gc(transport: Any, team: str, live_slugs: set, *, now: str,
                       prior_acks: dict, log: Any) -> tuple[dict, int, bool]:
-    """List EVERY ack dir, fold the live ones, and GC shards whose parent task no
+    """List every ack dir, fold the live ones, and GC shards whose parent task no
     longer exists — the shard-GC sub-pass the plan review required. This is the
     fold every failure of the incremental path falls back to; it is also the only
     path that can see orphan dirs, hence the GC's home.
@@ -337,10 +340,12 @@ def _full_fold_and_gc(transport: Any, team: str, live_slugs: set, *, now: str,
     is not a neutral gap — it is a silent un-ack of a real acknowledgement. A
     transport failure must never cost us data we already had.
 
-    GC is guarded against the data-loss case the code review flagged (a silently
-    TRUNCATED task listing makes live tasks look deleted): never GC when the
-    live set is empty, and only delete a shard that is DATABLE and older than
-    ``GC_GRACE_HOURS`` (undatable -> keep; the 0.15.16 age-discriminator lesson).
+    GC is guarded against the data-loss case where a silently truncated task
+    listing makes live tasks look deleted: never GC when the live set is empty,
+    and only delete a shard that is datable and older than ``GC_GRACE_HOURS``. A
+    shard whose age cannot be determined is kept — an undatable shard is unknown,
+    not old, and deleting on that basis is how an age discriminator turns into
+    data loss.
     A transient truncation therefore can't erase recent acks; older ones go only
     when the slug is still absent on a later healthy pass."""
     prefix = _acks_prefix(team)
@@ -391,7 +396,7 @@ class AckFold(NamedTuple):
 
     ``full``       — the full fold ran (resets the backstop counter).
     ``conclusive`` — every listing the fold needed succeeded, so ``acks`` is a
-                     complete picture as of ``now``. ONLY a conclusive fold may
+                     complete picture as of ``now``. only a conclusive fold may
                      advance the ack anchor: an inconclusive one leaves the
                      unread change inside the next pass's window.
     """
@@ -408,7 +413,7 @@ def _fold_and_gc_acks(transport: Any, team: str, live_slugs: set, *, now: str,
     {slug: [agent, ...]}. See :class:`AckFold` for the return.
 
     THE INVARIANT: the incremental path is an OPTIMIZATION, and its failure mode
-    is ALWAYS "fall back to the full fold and say so" — never "assume unchanged".
+    is always "fall back to the full fold and say so" — never "assume unchanged".
     Every unknown (no change-query capability, a query error/500, feed-shape
     drift, no ``since`` anchor, an anchor too old to query, a slug the prior
     aggregate never saw, a slug we knew had changed but could not read) resolves
@@ -430,7 +435,7 @@ def _fold_and_gc_acks(transport: Any, team: str, live_slugs: set, *, now: str,
     ``ACKS_ANCHOR_KEY``), re-fold only those slugs, and reuse ``prior_acks`` — the
     prior aggregate rows' ``acked_by`` — for the rest, at zero ops.
 
-    GC rides the full fold ONLY (see ``_full_fold_and_gc``): it is cleanup, not
+    GC rides the full fold only (see ``_full_fold_and_gc``): it is cleanup, not
     correctness, and the incremental path deliberately never lists the ack root,
     so it cannot see orphan dirs. It is deferred, not dropped — the periodic
     backstop (``DEFAULT_ACKS_FULL_EVERY``) collects within a bounded number of
@@ -459,9 +464,9 @@ def _fold_and_gc_acks(transport: Any, team: str, live_slugs: set, *, now: str,
         # carrying on would be a false advance; re-fold everything instead.
         reason = "a changed slug could not be listed"
 
-    # Visible by design: a degraded fold is 280 listings and must be attributable,
-    # and a fold that silently stopped being change-driven is exactly the
-    # regression this line makes findable.
+    # Visible by design: a degraded fold lists every ack directory, so it must be
+    # attributable, and a fold that silently stopped being change-driven is
+    # exactly the regression this line makes findable.
     log.info("acks: full fold", team=team, reason=reason, dirs="all")
     acks, gc, conclusive = _full_fold_and_gc(transport, team, live_slugs, now=now,
                                              prior_acks=prior_acks, log=log)
@@ -659,10 +664,10 @@ def reconcile(
         #   (a) mtime unchanged — a new write bumps it to a new minute;
         #   (b) byte size unchanged AND the prior row actually CARRIES a size —
         #       a legacy pre-`size` row (or any length-changing edit) is reparsed
-        #       ONCE and re-stamped, so no row lingers on mtime-only reuse;
+        #       once and re-stamped, so no row lingers on mtime-only reuse;
         #   (c) the mtime-minute provably CLOSED before our last reconcile read
         #       (_same_minute_reuse_safe) — mtime+size alone cannot see a
-        #       SAME-length edit made in the SAME clock-minute (the fossil: the row
+        #       same-length edit made in the same clock-minute (the fossil: the row
         #       lies stale until an unrelated write). This is the honest narrow
         #       guarantee: same-minute-TOUCHED docs are reparsed, not reused; it is
         #       the index-side companion to the read-side doc-authoritative status
@@ -670,10 +675,10 @@ def reconcile(
         #       (c) is skipped and reuse falls back to (a)+(b).
         #   (d) the prior row carries the CURRENT row-schema stamp — a row projected
         #       by an older `row_from_frontmatter` (uncapped title/description, no
-        #       `sv`) is NOT content-stale but PROJECTION-stale, so mtime+size can't
+        #       `sv`) is not content-stale but PROJECTION-stale, so mtime+size can't
         #       detect it (the doc never changed). Force one reparse so the current
         #       projection (cap + stamp) applies; it then reuses normally. This is
-        #       what self-heals a legacy uncapped index, and it is the ONLY place
+        #       what self-heals a legacy uncapped index, and it is the only place
         #       the `sv` check lives: gating the fast path on it never settles,
         #       because a mixed-version fleet re-introduces unstamped rows
         #       continuously (see _fast_path_no_changes). Here it settles per-row,
@@ -717,7 +722,7 @@ def reconcile(
     # the fold budgets. Precedence: --retention-days flag > COORD_RETENTION_DAYS >
     # legacy FULCRA_COORD_RETENTION_DAYS. The legacy prefix is alias-ACCEPTED (an
     # operator copying old legacy docs still gets retention) but the legacy
-    # default of 30 is NOT adopted — coord-engine stays opt-in. Routing through the
+    # default of 30 is not adopted — coord-engine stays opt-in. Routing through the
     # shared parser also gives retention the NaN/inf guard the fold budgets have
     # (ENG-1-8: an inf/NaN value now disables cleanly instead of running unbounded).
     archived_map: dict = {}
@@ -772,7 +777,7 @@ def reconcile(
     # they cost no transport op. The fast path returns before this and rewrites
     # nothing, so a skipped pass moves neither — correct: it did no ack fold.
     #
-    # The anchor advances ONLY on a conclusive fold. An inconclusive one carries
+    # The anchor advances only on a conclusive fold. An inconclusive one carries
     # the prior anchor forward unchanged (and writes none if there wasn't one), so
     # whatever it failed to read is still inside the next pass's query window
     # rather than consumed by this one. Likewise the streak: an inconclusive pass

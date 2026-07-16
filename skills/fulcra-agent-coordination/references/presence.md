@@ -29,7 +29,7 @@ your focus changes. Beating more often costs one small write; beating less makes
 ```
 
 `--agent` defaults to `$FULCRA_COORD_AGENT` (or a derived host id). Stale shards drop out of the presence
-fold's `[live]` view by age; the shard FILES are not garbage-collected (reconcile's GC covers ack and
+fold's `[live]` view by age; the shard files are not garbage-collected (reconcile's GC covers ack and
 health shards only). A stale agent reappears by beating again.
 
 ## Shard shape
@@ -49,7 +49,7 @@ timestamp: 2026-07-02T12:00:00Z
 Liveness bands: live ≤1h, idle ≤24h, stale >24h (undatable = stale). The broadcast roster (used by
 directives) = everyone not stale.
 
-## Pick your identity by ROLE, not by folder
+## Pick your identity by role, not by folder
 
 Set `FULCRA_COORD_AGENT` to the role you are acting as (`docs-maintainer`, `release-reviewer`), not a
 host/cwd-derived string. Folder-derived ids collide the moment two sessions share a directory (shared
@@ -59,14 +59,14 @@ id survives both and is what teammates actually want to address.
 Two rules make it safe:
 
 1. **Claim the role's lease while you act as it** (`roles claim <team> <role>`; see [roles](roles.md)). An
-   `exclusive` role turns two sessions acting as the same role under DIFFERENT ids into a visible
+   `exclusive` role turns two sessions acting as the same role under different ids into a visible
    CONTESTED state. It cannot see two sessions sharing one id string (same lease shard, last write wins) —
    see the roles reference's guard matrix for what covers that case.
 2. **Session/host details are metadata, not address.** Put them in the presence `-s` summary or the lease
    body if useful; never in the agent id.
 
 The derived host id remains only as a fallback for throwaway sessions that never take assignments — and it
-is per-HOST, not per-session (`coord-reconcile:<hostname>`), so two env-less sessions on one machine still
+is per-host, not per-session (`coord-reconcile:<hostname>`), so two env-less sessions on one machine still
 share an id and clobber each other's shards. Any session that acts on the team should set an explicit role
 id.
 

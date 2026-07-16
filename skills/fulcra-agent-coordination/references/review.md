@@ -30,7 +30,7 @@ name. OKF `type: Verdict`:
 ```yaml
 ---
 type: Verdict
-reviewer: bob               # who signed off (informational — the FILENAME drives the tally)
+reviewer: bob               # who signed off (informational — the filename drives the tally)
 verdict: approve            # approve | changes
 ---
 Notes / requested changes.

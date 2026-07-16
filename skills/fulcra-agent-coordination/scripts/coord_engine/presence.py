@@ -9,7 +9,7 @@ Liveness:
 - ``live``  — beat within ``live_hours``  (default 1h)
 - ``idle``  — beat within ``stale_hours`` (default 24h)
 - ``stale`` — older than ``stale_hours`` (kept in roster, excluded from the
-  broadcast roster; shard files are NOT garbage-collected — reconcile's GC
+  broadcast roster; shard files are not garbage-collected — reconcile's GC
   covers ack and health shards only)
 """
 

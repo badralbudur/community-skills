@@ -3,8 +3,8 @@ PINS the clock. Catches the date-boundary flake class at author time instead of
 days later in someone else's CI.
 
 The flake: a module fixes a ``NOW`` for its DATA, but the code under test computes
-windows/staleness from the REAL clock (``cli._now()`` or a module ``_now``). Once
-wall-clock time advances past ``NOW + window`` the suite flips RED for good, and
+windows/staleness from the real clock (``cli._now()`` or a module ``_now``). Once
+wall-clock time advances past ``NOW + window`` the suite flips red for good, and
 it does so on a schedule nobody is watching. The remedy is an autouse fixture that
 monkeypatches the relevant ``_now`` to a ``PINNED_NOW`` at/just after ``NOW``;
 never weaken the assertion, derive relative ages from ``PINNED_NOW``.

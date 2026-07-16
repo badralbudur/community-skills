@@ -64,7 +64,7 @@ folds to the newest snapshot by `created_at` across the agent's tasks.
 - `park` is the session-exit verb: each role you hold (fresh lease) gets a snapshot and the role doc's
   `checkpoint_ref` points at it — the next holder, or your next session, resumes from there via
   `checkpoint --role`. See [roles](roles.md).
-- `briefing` is the session-start verb: presence + board + inbox + needs-me + latest snapshot in ONE call.
+- `briefing` is the session-start verb: presence + board + inbox + needs-me + latest snapshot in one call.
   It **tolerates absent layers** — with no presence or directives in use the sections are simply empty; it
   never fails a cold start.
 
