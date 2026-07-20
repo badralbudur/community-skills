@@ -31,8 +31,10 @@ dependencies to resolve. Every command in this skill is spelled `<skill-dir>/scr
 <skill-dir>/scripts/coord-engine doctor <team>   # preflight: tooling + store reachability
 ```
 
-Writes go to the Fulcra File Store, so the storage CLI must be authenticated (`fulcra-api auth login`).
-`doctor` checks exactly that.
+Writes go to the Fulcra File Store, so the storage CLI must be authenticated. Agents should run
+`fulcra-api auth login --get-auth-url` — it prints the auth URL and exits, instead of hanging while
+it polls for browser completion (which tends to read as a stuck command). Hand the URL to your user,
+then re-run `doctor` to confirm; `doctor` checks exactly that.
 
 ## These are layers, not alternatives
 
