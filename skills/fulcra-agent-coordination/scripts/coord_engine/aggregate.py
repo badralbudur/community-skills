@@ -157,7 +157,7 @@ def diff_rows(
 
 
 # ---------------------------------------------------------------------------
-# Structured transitions — the projection fold's input (Task 2, ADDITIVE)
+# Structured transitions — the projection fold's input (additive; older readers ignore it)
 # ---------------------------------------------------------------------------
 #
 # ``diff_transitions`` is the STRUCTURED sibling of ``diff_rows``: same three-way
