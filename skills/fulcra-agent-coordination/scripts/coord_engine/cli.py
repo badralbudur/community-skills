@@ -113,13 +113,12 @@ def _overlay_budget() -> float:
 def _fresh_overlay_rows(
     transport: Any, team: str, index_rows: list[dict[str, Any]]
 ) -> tuple[list[dict[str, Any]], bool, str]:
-    """Freshness overlay (Task 2.5, the PR348 false-clear).
+    """Freshness overlay.
 
     ``inbox``/``listen``/every canonical surface read the reconcile-built summaries
     index, so a task/directive doc written BETWEEN reconciles is invisible to all of
-    them until the next heartbeat rebuild (live-repro'd: delivered 14:05:29Z, raw-
-    file-visible 14:07Z, inbox-visible 14:11Z — a watcher polling the canonical
-    surface misses fresh work for up to a reconcile period). When the index is
+    them until the next heartbeat rebuild — a watcher polling only the canonical
+    surface can miss fresh work for up to a full reconcile period. When the index is
     present+readable we ALSO list the task dir once and parse ONLY docs whose slug is
     ABSENT from the index (bounded by new-since-reconcile items — typically zero or a
     handful — and hard-capped at ``COORD_OVERLAY_CAP``), unioning them into the fold.
@@ -1682,7 +1681,8 @@ def cmd_review_request(args: argparse.Namespace, transport: Any) -> int:
     # Atomic notification: with the doc durably landed, deliver ONE directive per
     # required reviewer through the canonical hash-slug directive path, so a
     # verb-opened review FIRES the reviewer's inbox/listen — this is what removes
-    # the reason agents hand-send review tells (the PR-344 orphan class) and makes
+    # the reason agents hand-send review tells (which historically produced
+    # orphaned reviews: a directive with no verdict target) and makes
     # the listener's `await verdicts` breadcrumb genuine. Same write-verification discipline
     # as the doc: any reviewer-directive fail is reported LOUD naming exactly what
     # landed and what did not (partial is never silent), and the requester's retry
@@ -2002,8 +2002,8 @@ def _deliver_review_directive(transport: Any, team: str, slug: str, reviewer: st
     """Deliver ONE review-request directive to ``reviewer`` via the canonical
     hash-slug directive path — the SAME ``_write_directive`` delivery (payload-hash
     dedup + write-verification) every ``tell`` gets, so a verb-opened review
-    NOTIFIES its reviewers instead of relying on a hand-sent tell (the PR-344
-    orphan class: a review directive sent by hand, with no verdict target). The
+    NOTIFIES its reviewers instead of relying on a hand-sent tell (which yields
+    an orphaned review: a directive sent by hand, with no verdict target). The
     text carries the exact slug AND the verdict-file path (the fail-closed watcher
     contract). Returns ``_write_directive``'s rc (0 delivered/deduped, 1 failed).
 
