@@ -12,4 +12,4 @@ One stdlib-only engine wrapping a ``fulcra-agent-teams`` OKF namespace, exposing
 Every stateful fold is here (deterministic + tested), never prose the agent eyeballs.
 """
 
-__version__ = "1.6.9"
+__version__ = "1.6.10"

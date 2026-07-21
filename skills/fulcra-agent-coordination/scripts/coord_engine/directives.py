@@ -53,7 +53,7 @@ def is_directed_at(
     a = row.get("assignee")
     if a == agent or a == "*":
         return True
-    # Role routing: a directive assigned to a role is directed at whoever holds a
+    # Role routing: a directive assigned to a ROLE is directed at whoever holds a
     # fresh lease on it. The caller resolves holders (a lease read) and passes the
     # roles this agent holds; an empty/None set leaves behavior unchanged.
     return bool(held_roles) and a in held_roles
@@ -69,7 +69,7 @@ def inbox(
     held_roles: "Optional[set[str] | list[str]]" = None,
 ) -> list[dict[str, Any]]:
     """Open directives agent X still owes attention to: assigned to X, ``*``, or a
-    role X holds (``held_roles``), not acked by X, ``not_before`` gate applied.
+    ROLE X holds (``held_roles``), not acked by X, ``not_before`` gate applied.
     Priority-sorted. ``acks`` maps slug -> list of agents who acked."""
     out: list[dict[str, Any]] = []
     for r in rows:
@@ -105,10 +105,14 @@ def broadcast_state(
 def renotify(
     rows: list[dict[str, Any]], acks: dict[str, list[str]], agent: str, *,
     now: Optional[str] = None, min_priority: str = "P1",
+    held_roles: "Optional[set[str] | list[str]]" = None,
 ) -> list[dict[str, Any]]:
     """Unacked directives at/above ``min_priority`` — the re-notify surface
-    (P0 outranks P1). Same gates as ``inbox``."""
+    (P0 outranks P1). Same gates as ``inbox``, including role routing: this is a
+    strict filter OVER ``inbox``, so it takes ``held_roles`` for the same reason
+    (a role-routed P0 nobody re-notifies is the loudest version of the silence
+    this module's role expansion exists to prevent)."""
     order = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
     ceiling = order.get(min_priority, 1)
-    return [r for r in inbox(rows, acks, agent, now=now)
+    return [r for r in inbox(rows, acks, agent, now=now, held_roles=held_roles)
             if order.get(str(r.get("priority")), 9) <= ceiling]

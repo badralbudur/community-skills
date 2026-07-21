@@ -1,6 +1,6 @@
 """coord-engine env-var config — the single home for the engine's tuning knobs.
 
-one parser policy, applied everywhere, so the family of budgets/timeouts can never
+One parser policy, applied everywhere, so the family of budgets/timeouts can never
 drift apart in NaN/inf handling or flag-vs-env fallback (the drift observed when
 these bodies were copy-pasted per-helper). A knob is a **positive-finite** number,
 resolved ``override > env[name] > env[alias…] > default``; anything unparseable, NaN,

@@ -2,8 +2,8 @@
 
 Every reconcile pass writes a small health shard ``_coord/health/<host-key>.json``
 (who reconciled, when, how it went). The ``health`` fold answers the fleet
-question — *which hosts are keeping this team healed, and who has gone dark* —
-deterministically. ``doctor`` is the local
+question — *which hosts are keeping this team
+healed, and who has gone dark* — deterministically. ``doctor`` is the local
 preflight (tooling + store reachability) run before trusting automation.
 """
 

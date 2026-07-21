@@ -9,7 +9,7 @@ Liveness:
 - ``live``  — beat within ``live_hours``  (default 1h)
 - ``idle``  — beat within ``stale_hours`` (default 24h)
 - ``stale`` — older than ``stale_hours`` (kept in roster, excluded from the
-  broadcast roster; shard files are not garbage-collected — reconcile's GC
+  broadcast roster; shard files are NOT garbage-collected — reconcile's GC
   covers ack and health shards only)
 """
 
@@ -59,8 +59,8 @@ def roster(
 
 def broadcast_roster(shards: list[dict[str, Any]], *, now: str,
                      stale_hours: float = STALE_HOURS) -> list[str]:
-    """Agents a ``*`` directive must reach: everyone not stale. The inbox
-    fold uses this to decide when a broadcast is fully acked."""
+    """Agents a ``*`` directive must reach: everyone not stale. The broadcast
+    inbox fold uses this to decide when a broadcast is fully acked."""
     return [r["agent"] for r in roster(shards, now=now, stale_hours=stale_hours)
             if r["liveness"] != "stale"]
 

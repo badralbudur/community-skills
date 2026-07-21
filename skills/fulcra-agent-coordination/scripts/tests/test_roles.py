@@ -14,10 +14,10 @@ def _pin_module_clock(monkeypatch):
     """Pin cli._now to PINNED_NOW (just after the module NOW).
 
     Fixtures stamp data relative to NOW, but folds/verbs compute windows and
-    staleness off cli._now() against the real clock — so once wall-clock time
-    crossed NOW + a window this suite flipped red for good (the repo's
-    date-boundary flake class). Remedy: pin the
-    clock, never weaken assertions. Tests that move time monkeypatch cli._now
+    staleness off cli._now() against the REAL clock — so once wall-clock time
+    crossed NOW + a window this suite flipped RED for good (the repo's
+    date-boundary CI-flake class). Remedy: pin the
+    clock, never weaken assertions. Tests that MOVE time monkeypatch cli._now
     themselves, overriding this."""
     monkeypatch.setattr(cli, "_now", lambda: PINNED_NOW)
 
@@ -95,13 +95,13 @@ def test_dormant_state_absent_is_not_dormant():
 
 
 def test_dormant_state_garbage_is_parse_error_not_dormant():
-    # Fail open toward escalation: a typo must never silently suppress. Report the
+    # Fail OPEN toward escalation: a typo must never silently suppress. Report the
     # parse error so the caller can note it; never treat garbage as dormant.
     assert roles.dormant_state("not-a-date", now=NOW) == (False, True)
 
 
 def test_escalation_suppressed_when_dormant():
-    # A vacant-past-SLA role that is dormant must not escalate.
+    # A vacant-past-SLA role that is dormant must NOT escalate.
     assert roles.escalation_due([_lease("a", 30)], now=NOW, sla_hours=24,
                                 dormant=True) is False
 
@@ -109,3 +109,34 @@ def test_escalation_suppressed_when_dormant():
 def test_escalation_still_due_when_not_dormant():
     assert roles.escalation_due([_lease("a", 30)], now=NOW, sla_hours=24,
                                 dormant=False) is True
+
+
+# --- sla_hours: absent means "the default", invalid means UNKNOWN -----------
+
+def test_parse_sla_hours_absent_or_blank_is_the_default():
+    # The field is OPTIONAL. Omitting it is a legitimate statement of intent
+    # ("default applies"), NOT an unknown — every well-formed role doc that
+    # doesn't set an SLA must keep resolving normally, undegraded.
+    assert roles.parse_sla_hours(None) == roles.DEFAULT_SLA_HOURS
+    assert roles.parse_sla_hours("") == roles.DEFAULT_SLA_HOURS
+    assert roles.parse_sla_hours("   ") == roles.DEFAULT_SLA_HOURS
+
+
+def test_parse_sla_hours_valid_values_are_honoured():
+    assert roles.parse_sla_hours("48") == 48.0
+    assert roles.parse_sla_hours(48) == 48.0
+    assert roles.parse_sla_hours("0.5") == 0.5
+
+
+def test_parse_sla_hours_explicitly_invalid_is_unknown():
+    # An operator SET this and it doesn't parse: we cannot infer the window they
+    # meant, so freshness is unknowable. Never substitute the default for a value
+    # someone explicitly got wrong — that is UNKNOWN comparing equal to a
+    # legitimate empty state, which this module exists to forbid.
+    assert roles.parse_sla_hours("abc") is None
+    assert roles.parse_sla_hours("-1") is None
+    assert roles.parse_sla_hours("0") is None
+    assert roles.parse_sla_hours("inf") is None
+    assert roles.parse_sla_hours("nan") is None
+    assert roles.parse_sla_hours(True) is None      # `sla_hours: true` is not a number
+    assert roles.parse_sla_hours(["24"]) is None    # nor is a list

@@ -64,9 +64,9 @@ def tally(
 def is_pending_for(pending_required: list, agent: str,
                    role_holders: "dict[str, list[str]] | None" = None) -> bool:
     """True iff agent owes a verdict: it is named directly in
-    pending_required, or a name there is a role whose fresh lease holders
+    pending_required, or a name there is a ROLE whose fresh lease holders
     (per role_holders) include the agent. Role-routing doctrine: review
-    requests should name roles, not identities — this matcher honors both."""
+    requests SHOULD name roles, not identities — this matcher honors both."""
     for r in pending_required or []:
         if r == agent:
             return True

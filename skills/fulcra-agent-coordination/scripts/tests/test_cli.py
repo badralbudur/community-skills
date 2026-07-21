@@ -2060,3 +2060,87 @@ def test_toplevel_unexpected_error_is_registered(monkeypatch, capsys):
     err = capsys.readouterr().err
     assert rc == 1
     assert "error:" in err and "command=status" in err and "RuntimeError" in err
+
+
+
+
+def _old_verdict(reviewer, verdict="approve"):
+    return ("---\ntype: Verdict\n"
+            f"reviewer: {reviewer}\nverdict: {verdict}\n"
+            "timestamp: 2020-01-16T00:00:00Z\n---\n")
+
+
+def test_review_restore_moves_archived_orphan_verdict_back(capsys):
+    t = FakeTransport()
+    hot = "team/r/review/settled/verdicts/codex-reviewer.md"
+    cold = ("team/r/_coord/archive/reviews/2020-01/settled/verdicts/"
+            "codex-reviewer.md")
+    t.put(hot, _old_verdict("codex-reviewer"), mtime="2020-01-16 12:00PM UTC")
+    cli.main(["reconcile", "r", "--retention-days", "30"], transport=t)
+    assert hot not in t.store and cold in t.store
+
+    assert cli.main(["review", "restore", "r", "settled"], transport=t) == 0
+    assert hot in t.store and cold not in t.store
+    assert "restored review settled" in capsys.readouterr().out
+
+
+def test_park_refuses_to_claim_nothing_when_role_state_is_unknown(capsys):
+    """A blip at session exit must not read as "you hold no roles".
+
+    park runs as a session ENDS, so a silent no-op discards the checkpoint the next
+    session resumes from, and nobody is watching to catch it. If `_held_roles`
+    swallowed a raised roles/ listing into `[]`, park would print "nothing to park"
+    and exit 0 — the checkpoint never written, the operator told it was clean.
+    UNKNOWN is not empty.
+    """
+    from coord_engine.transport import TransportError
+
+    class ListingDown(FakeTransport):
+        def list_dir(self, path):
+            if path.endswith("/roles/"):
+                raise TransportError("boom")
+            return super().list_dir(path)
+
+    t = ListingDown()
+    t.put("team/r/roles/reviewer.md", "---\ntype: Role\n---\n")
+    rc = cli.main(["continuity", "park", "r", "-a", "amy"], transport=t)
+    cap = capsys.readouterr()
+    assert rc == 1, f"park must fail loud on unknown role state, got rc={rc}"
+    assert "nothing to park" not in cap.out, "must NOT claim nothing to park"
+    assert "CHECKPOINT NOT WRITTEN" in cap.err, cap.err
+    assert not [p for p in t.store if "/continuity/" in p], "nothing may be written"
+
+
+def test_park_unreadable_role_doc_is_unknown_not_no_roles(capsys):
+    """A role the listing PROVES exists, whose doc will not parse, is UNKNOWN.
+
+    Only a complete, successfully parsed listing is negative membership evidence —
+    the same rule the read folds enforce. This surface (the write path) must
+    enforce it too.
+    """
+    class DocUnreadable(FakeTransport):
+        def read(self, path):
+            if path.endswith("/roles/reviewer.md"):
+                return "not frontmatter\n"
+            return super().read(path)
+
+    t = DocUnreadable()
+    t.put("team/r/roles/reviewer.md", "---\ntype: Role\n---\n")
+    rc = cli.main(["continuity", "park", "r", "-a", "amy"], transport=t)
+    cap = capsys.readouterr()
+    assert rc == 1, f"a listed-but-unparseable role doc is UNKNOWN, got rc={rc}"
+    assert "nothing to park" not in cap.out
+
+
+def test_park_genuinely_no_roles_still_exits_zero(capsys):
+    """The over-correction guard: holding nothing is a real, knowable answer.
+
+    Passes with AND without the fix, by design — it exists to catch a fix that
+    turns every park into UNKNOWN, not to catch the regression.
+    """
+    t = FakeTransport()
+    rc = cli.main(["continuity", "park", "r", "-a", "amy"], transport=t)
+    cap = capsys.readouterr()
+    assert rc == 0, f"no roles is a knowable answer, not a failure: rc={rc}"
+    assert "nothing to park" in cap.out
+    assert "CHECKPOINT NOT WRITTEN" not in cap.err
