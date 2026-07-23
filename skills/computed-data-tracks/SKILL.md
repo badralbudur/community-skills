@@ -16,6 +16,12 @@ This skill enables agents to act as personal data engineers. Instead of running 
 1. **The Data:** The user must provide the path to their extracted data files.
 2. **Authentication:** Ensure you are authenticated to the Fulcra CLI (`uv tool run fulcra-api auth login --get-auth-url`).
 
+## Dependencies & References
+
+This skill is an advanced extension of the core ingestion pipeline. You MUST load the `fulcra-ingest` skill (via `skill_view(name="fulcra-ingest")`) to access its reference files:
+- Use `references/fulcra-ingest-cli.md` for the exact syntax for `data-type create`, `tag create`, and `record` operations.
+- Use `references/fulcra-ingest-source-mapping.md` to ensure you properly register the new computed track in the user's `source_map.md` and log it in the `ingest_log.md`.
+
 ## The Workflow
 
 ### 1. Identify the Goal and Data Shape
@@ -24,10 +30,7 @@ Use tools to briefly inspect the shape of their raw data files (e.g., `head -n 2
 
 ### 2. Schema Creation
 Check if the desired target schema already exists using `uv tool run fulcra-api catalog --user-only`.
-If not, create the appropriate base annotation type (`MomentAnnotation`, `DurationAnnotation`, `NumericAnnotation`, etc.) via the CLI:
-```bash
-uv tool run fulcra-api data-type create MomentAnnotation "Spotify Artists" --description "com.fulcradynamics.annotation.computed.spotify_artists" --add-to-timeline
-```
+If not, consult the `fulcra-ingest` CLI reference to create the appropriate base annotation type (`MomentAnnotation`, `DurationAnnotation`, `NumericAnnotation`, etc.) via the CLI.
 Capture the returned JSON schema ID (e.g., `com.fulcradynamics.annotation...`).
 
 ### 3. Generate the Custom Processing Script
@@ -43,10 +46,8 @@ Copy the template, fill in the custom parsing logic in the designated `# TODO:` 
 
 ### 4. Execute and Ingest
 1. Run your generated script to parse the files, fetch/create the tags, and output the `output_records.jsonl` file. 
-2. Batch ingest the records to Fulcra. Since datasets are often large, run this in the background with notifications enabled:
-```bash
-uv tool run fulcra-api record <BASE_TYPE>/<SCHEMA_ID> -f output_records.jsonl
-```
+2. Consult the `fulcra-ingest` CLI reference to batch ingest your `output_records.jsonl` file (running in the background for large datasets).
+3. Update the user's `source_map.md` and `ingest_log.md` according to the rules in the core `fulcra-ingest` skill.
 
 ### 5. Handoff
 Once the background upload begins, notify the user that their data is being processed and let them know they will soon be able to view their customized, categorized data directly on their timeline.
