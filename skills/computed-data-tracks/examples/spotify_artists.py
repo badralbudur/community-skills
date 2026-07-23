@@ -14,7 +14,7 @@ def generate_deterministic_uuid(fields):
 
 def process_spotify_files(files_to_process, output_file):
     source_identifier = "com.spotify.computed_artists"
-    remote_path = "local_upload" # Fallback if remote path isn't known
+    remote_path = "local_upload"
     agent_id = "agent.orchestrator"
     sources = [source_identifier, remote_path, agent_id]
 
@@ -78,7 +78,7 @@ def process_spotify_files(files_to_process, output_file):
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: python process_spotify_artists.py <output_jsonl> <input_json1> [input_json2 ...]", file=sys.stderr)
+        print("Usage: python spotify_artists.py <output_jsonl> <input_json1> [input_json2 ...]", file=sys.stderr)
         sys.exit(1)
         
     output_file = sys.argv[1]

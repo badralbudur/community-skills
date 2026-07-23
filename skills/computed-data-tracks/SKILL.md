@@ -1,0 +1,52 @@
+---
+name: computed-data-tracks
+description: "Generates custom Python scripts to parse raw data exports and ingest them as computed Fulcra Annotation tracks, dynamically tagging records by a specific data dimension (e.g., Artists, Genres, Categories)."
+homepage: "https://github.com/fulcradynamics/community-skills"
+license: "MIT"
+user-invocable: true
+metadata: { "openclaw": { "emoji": "🛠️" } }
+---
+
+# Computed Data Tracks Generator
+
+This skill enables agents to act as personal data engineers. Instead of running a static script, you will generate a custom Python parser on the fly to extract a specific dimension (e.g., Spotify Artists, Netflix Genres, Amazon Categories) from a user's raw data export and upload it to Fulcra as a highly-queryable custom Annotation track.
+
+## Prerequisites
+
+1. **The Data:** The user must provide the path to their extracted data files.
+2. **Authentication:** Ensure you are authenticated to the Fulcra CLI (`uv tool run fulcra-api auth login --get-auth-url`).
+
+## The Workflow
+
+### 1. Identify the Goal and Data Shape
+Ask the user what dimension they want to track (e.g., "I want to track my Spotify streams by Artist"). 
+Use tools to briefly inspect the shape of their raw data files (e.g., `head -n 20 data.json`) to identify the required fields (timestamps, specific tags, and notes).
+
+### 2. Schema Creation
+Check if the desired target schema already exists using `uv tool run fulcra-api catalog --user-only`.
+If not, create the appropriate base annotation type (`MomentAnnotation`, `DurationAnnotation`, `NumericAnnotation`, etc.) via the CLI:
+```bash
+uv tool run fulcra-api data-type create MomentAnnotation "Spotify Artists" --description "com.fulcradynamics.annotation.computed.spotify_artists" --add-to-timeline
+```
+Capture the returned JSON schema ID (e.g., `com.fulcradynamics.annotation...`).
+
+### 3. Generate the Custom Processing Script
+You must write a custom Python script that parses the user's files and builds the JSONL records. 
+**Crucially, do not start from scratch.** Read the template located at `templates/computed_track_template.py`.
+The template contains the necessary boilerplate for:
+- Generating deterministic UUIDs for idempotency.
+- Extracting and batch-creating tags via the `fulcra-api tag create` command.
+- Safely caching and matching tags case-insensitively.
+
+Copy the template, fill in the custom parsing logic in the designated `# TODO:` section (handling timestamps, notes, and the extracted tag name), and save it to the local workspace. 
+*Tip: If you need an example of a fully implemented script, see `examples/spotify_artists.py`.*
+
+### 4. Execute and Ingest
+1. Run your generated script to parse the files, fetch/create the tags, and output the `output_records.jsonl` file. 
+2. Batch ingest the records to Fulcra. Since datasets are often large, run this in the background with notifications enabled:
+```bash
+uv tool run fulcra-api record <BASE_TYPE>/<SCHEMA_ID> -f output_records.jsonl
+```
+
+### 5. Handoff
+Once the background upload begins, notify the user that their data is being processed and let them know they will soon be able to view their customized, categorized data directly on their timeline.
