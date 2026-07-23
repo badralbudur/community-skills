@@ -1,15 +1,15 @@
 ---
-name: computed-data-tracks
-description: "Generates custom Python scripts to parse raw data exports and ingest them as computed Fulcra Annotation tracks, dynamically tagging records by a specific data dimension (e.g., Artists, Genres, Categories)."
+name: computed-data-types
+description: "Generates custom Python scripts to parse raw data exports and ingest them as computed Fulcra data types, dynamically tagging records by a specific data dimension (e.g., Artists, Genres, Categories)."
 homepage: "https://github.com/fulcradynamics/community-skills"
 license: "MIT"
 user-invocable: true
 metadata: { "openclaw": { "emoji": "🛠️" } }
 ---
 
-# Computed Data Tracks Generator
+# Computed Data Types Generator
 
-This skill enables agents to act as personal data engineers. Instead of running a static script, you will generate a custom Python parser on the fly to extract a specific dimension (e.g., Spotify Artists, Netflix Genres, Amazon Categories) from a user's raw data export and upload it to Fulcra as a highly-queryable custom Annotation track.
+This skill enables agents to act as personal data engineers. Instead of running a static script, you will generate a custom Python parser on the fly to extract a specific dimension (e.g., Spotify Artists, Netflix Genres, Amazon Categories) from a user's raw data export and upload it to Fulcra as a highly-queryable custom data type.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ This skill enables agents to act as personal data engineers. Instead of running 
 
 This skill is an advanced extension of the core ingestion pipeline. You MUST load the `fulcra-ingest` skill (via `skill_view(name="fulcra-ingest")`) to access its reference files:
 - Use `references/fulcra-ingest-cli.md` for the exact syntax for `data-type create`, `tag create`, and `record` operations.
-- Use `references/fulcra-ingest-source-mapping.md` to ensure you properly register the new computed track in the user's `source_map.md` and log it in the `ingest_log.md`.
+- Use `references/fulcra-ingest-source-mapping.md` to ensure you properly register the new computed type in the user's `source_map.md` and log it in the `ingest_log.md`.
 
 ## The Workflow
 
@@ -35,7 +35,7 @@ Capture the returned JSON schema ID (e.g., `com.fulcradynamics.annotation...`).
 
 ### 3. Generate the Custom Processing Script
 You must write a custom Python script that parses the user's files and builds the JSONL records. 
-**Crucially, do not start from scratch.** Read the template located at `templates/computed_track_template.py`.
+**Crucially, do not start from scratch.** Read the template located at `templates/computed_type_template.py`.
 The template contains the necessary boilerplate for:
 - Generating deterministic UUIDs for idempotency.
 - Extracting and batch-creating tags via the `fulcra-api tag create` command.
