@@ -1,5 +1,5 @@
 ---
-name: team-progress-dashboard
+name: project-dashboard
 description: "Builds a management dashboard for an agent-teams workspace, showing progress, logs, a generated summary, timeline/milestone charts, and a word map of agent activities."
 homepage: "https://github.com/fulcradynamics/community-skills"
 license: "MIT"
@@ -7,7 +7,7 @@ user-invocable: true
 metadata: { "openclaw": { "emoji": "📈" } }
 ---
 
-# Team Progress Dashboard
+# Project Dashboard
 
 This skill generates a highly visual, manager-oriented dashboard to track the work of an Agent Team (built around the `fulcra-agent-teams` structure). It leverages the paradigms established in `fulcra-dashboard`—specifically a lightweight, build-less static triad (HTML, Alpine.js, Vanilla CSS)—and introduces specific management-oriented visualizations.
 
