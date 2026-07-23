@@ -29,7 +29,7 @@ uv tool run fulcra-api data-type create MomentAnnotation "Spotify Artists" --des
 Capture the returned JSON schema ID (e.g., `com.fulcradynamics.annotation...`).
 
 ### 2. Processing and Tagging
-Execute the provided Python script `scripts/process_spotify_artists.py` against the user's Spotify JSON files. 
+Execute the provided Python script `scripts/process_spotify_artists.py` against the user's Spotify JSON files. The script will use `agent.orchestrator` as the default agent identifier in the source lineage, but you may update it to reflect your specific agent environment before running.
 
 This script:
 - Parses the streaming history to extract all unique artist names.

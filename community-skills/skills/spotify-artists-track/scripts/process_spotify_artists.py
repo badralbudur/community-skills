@@ -15,7 +15,7 @@ def generate_deterministic_uuid(fields):
 def process_spotify_files(files_to_process, output_file):
     source_identifier = "com.spotify.computed_artists"
     remote_path = "local_upload" # Fallback if remote path isn't known
-    agent_id = "agent.hermes"
+    agent_id = "agent.orchestrator"
     sources = [source_identifier, remote_path, agent_id]
 
     print("Fetching all existing tags from Fulcra...", file=sys.stderr)
