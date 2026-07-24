@@ -31,11 +31,11 @@ This is an intent-driven playbook, not a rigid script. Move fluidly between thes
   - Create a `.gitignore` (ignore `venv`, `.env`, `*.bundle`, etc.).
   - `git add . && git commit -m "chore: init prototype"`
 
-### 2. Risk Verification (The Spike)
-- **Identify the Core Risk:** What is the one thing that will cause this idea to fail if it doesn't work? (e.g., "Does the third-party API allow this type of sync?", "Can we accurately parse the data payload?").
-- **Build the Spike:** Write a focused script to test exactly that risk. Use real Fulcra data (or create the required custom data type).
+### 2. Risk Verification (The Spikes)
+- **Identify Core Risks:** What are the unknowns that could cause this idea to fail? List them in `plan.md` and rank them from highest risk to lowest.
+- **Spike Sequentially:** Tackle risks *one at a time*. Do not try to test multiple unknowns in a single script. Write a focused script to test the #1 risk using real Fulcra data.
 - **Log the Result:** Document the outcome in `verification.md`. Did it work? What did we learn?
-- **Commit:** `git add . && git commit -m "feat: verify [risk name]"`
+- **Commit & Repeat:** `git add . && git commit -m "feat: verify [risk name]"`. Then move to the next risk until the core unknowns are retired.
 
 ### 3. Iteration & Build (The Glue)
 - Once the core risks are verified, start gluing the pieces together (e.g., turning a standalone script into a long-running service).
