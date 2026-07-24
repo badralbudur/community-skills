@@ -9,11 +9,22 @@ metadata: { "openclaw": { "emoji": "📈" } }
 
 # Project Dashboard
 
-This skill generates a highly visual, manager-oriented dashboard to track the work of an Agent Team (built around the `fulcra-agent-teams` structure). It leverages the paradigms established in `fulcra-dashboard`—specifically a lightweight, build-less static triad (HTML, Alpine.js, Vanilla CSS)—and introduces specific management-oriented visualizations.
+This skill generates a highly visual, manager-oriented dashboard to track the work of an Agent Team (built around the `fulcra-agent-teams` structure). It leverages the paradigms established in `fulcra-dashboard`—specifically a lightweight, build-less static triad (HTML, Alpine.js, Vanilla CSS)—as the primary delivery vehicle, and introduces specific management-oriented visualizations.
 
 ## Core Objective
 
 Provide a "View" for a human manager that conveys what an agent team has been working on, how far along the project is, and what milestones are approaching.
+
+## Reliable Delivery
+
+The primary and preferred method for delivering this view is by leveraging the `fulcra-dashboard` skill to generate a robust HTML application. However, delivering a useful management view is more important than using a specific technology. If the `fulcra-dashboard` skill is not a viable option depending on the agent's environment or the user's constraints, you must seamlessly fall back to other viable delivery mechanisms. 
+
+Alternative delivery options include (but are not limited to):
+- **Prefab (`https://gofastmcp.com/apps/prefab`):** Using an external rapid-UI generator if configured.
+- **Custom HTML/Image Generation:** Generating a simpler bespoke HTML file or using Python (e.g., `matplotlib`) to render a static image chart summarizing the data.
+- **ASCII Charts & Markdown:** If all else fails or if the user requests a quick inline update, render the progress and timelines directly in the chat using Markdown tables and ASCII visualizations.
+
+Always prioritize reliable delivery of the insights over the complexity of the artifact.
 
 ## Required Dashboard Components
 
