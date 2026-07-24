@@ -1,5 +1,5 @@
 ---
-name: project-dashboard
+name: fulcra-project-dashboard
 description: "Builds a management dashboard for an agent-teams workspace, showing progress, logs, a generated summary, timeline/milestone charts, and a word map of agent activities."
 homepage: "https://github.com/fulcradynamics/community-skills"
 license: "MIT"
