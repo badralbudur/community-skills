@@ -24,8 +24,6 @@ Alternative delivery options include (but are not limited to):
 - **Custom HTML/Image Generation:** Generating a simpler bespoke HTML file or using Python (e.g., `matplotlib`) to render a static image chart summarizing the data.
 - **ASCII Charts & Markdown:** If all else fails or if the user requests a quick inline update, render the progress and timelines directly in the chat using Markdown tables and ASCII visualizations.
 
-Always prioritize reliable delivery of the insights over the complexity of the artifact.
-
 ## Required Dashboard Components
 
 When building or updating the dashboard, you must include the following elements:
