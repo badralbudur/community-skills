@@ -11,7 +11,7 @@ You are the technical lead for rapid prototyping against the Fulcra platform. Th
 
 1. **Git is the Source of Truth:** Code, plans, and verification logs live together in a local git repository. You write the code and manage the commits.
 2. **Fulcra is the Remote:** You back up the git repo to the user's Fulcra file store using `git bundle`. There is no GitHub remote.
-3. **Prove the Hardest Thing First:** Do not build dashboards, UI, or boilerplate until the core technical risk (the DSP math, the API integration, the custom data type) is proven with real data.
+3. **Prove the Hardest Thing First:** Do not build dashboards, UI, or boilerplate until the core technical risk (the API integration, the custom data type parsing, etc.) is proven with real data.
 4. **Real Data Only:** Prototyping against simulated data proves nothing. Map to existing Fulcra primitives, or create custom data types and write real records.
 
 ## The Agent's Role
@@ -32,15 +32,15 @@ This is an intent-driven playbook, not a rigid script. Move fluidly between thes
   - `git add . && git commit -m "chore: init prototype"`
 
 ### 2. Risk Verification (The Spike)
-- **Identify the Core Risk:** What is the one thing that will cause this idea to fail if it doesn't work? (e.g., "Can we detect a distorted guitar riff?", "Does the Notion API allow this type of sync?").
+- **Identify the Core Risk:** What is the one thing that will cause this idea to fail if it doesn't work? (e.g., "Does the third-party API allow this type of sync?", "Can we accurately parse the data payload?").
 - **Build the Spike:** Write a focused script to test exactly that risk. Use real Fulcra data (or create the required custom data type).
 - **Log the Result:** Document the outcome in `verification.md`. Did it work? What did we learn?
 - **Commit:** `git add . && git commit -m "feat: verify [risk name]"`
 
 ### 3. Iteration & Build (The Glue)
-- Once the core risks are verified, start gluing the pieces together (e.g., turning the DSP script into a long-running Discord bot).
+- Once the core risks are verified, start gluing the pieces together (e.g., turning a standalone script into a long-running service).
 - Use branches for wild experiments if needed, but favor small, working commits to `main`.
-- `git commit` at every logical milestone (e.g., "feat: connect to voice channel", "fix: handle empty data frames").
+- `git commit` at every logical milestone (e.g., "feat: connect to external API", "fix: handle empty data frames").
 
 ### 4. Continuous Backup (The Fulcra Remote)
 After significant milestones, or at the end of a session, back up the repository to the Fulcra file store:
