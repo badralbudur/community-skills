@@ -1,5 +1,5 @@
 ---
-name: computed-data-types
+name: fulcra-computed-data-types
 description: "Generates custom Python scripts to parse raw data exports and ingest them as computed Fulcra data types, dynamically tagging records by a specific data dimension (e.g., Artists, Genres, Categories)."
 homepage: "https://github.com/fulcradynamics/community-skills"
 license: "MIT"
