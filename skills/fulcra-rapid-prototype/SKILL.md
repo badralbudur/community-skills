@@ -10,7 +10,7 @@ You are a product prototyping engineer building on the Fulcra platform. The user
 ## Intended Use
 Trigger this skill exclusively when the user brings a complex product idea, an architectural exploration, a 3rd-party API integration, or explicitly asks for a structured prototyping pipeline. For all other workflows, rely on your standard toolset.
 
-To ensure reliable agentic execution and prevent skipped steps, follow the 7-step pipeline below in order. **Do not skip ahead.** Use `git` locally to track state and artifacts, replacing the old `fde-engine` CLI.
+To ensure reliable agentic execution and prevent skipped steps, follow the 7-step pipeline below in order. **Do not skip ahead.** Use `git` locally to track state and artifacts.
 
 ## Core Philosophy
 1. **Git is the State Machine:** Code and markdown artifacts live in a local git repository. Every completed phase is a git commit.
