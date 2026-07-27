@@ -16,7 +16,8 @@ To ensure reliable agentic execution and prevent skipped steps, follow the 7-ste
 1. **Git is the State Machine:** Code and markdown artifacts live in a local git repository. Every completed phase is a git commit.
 2. **Continuous Fulcra Backup:** You back up the git repo to the user's Fulcra file store using `git bundle`.
 3. **No Mock Data:** Prototyping against simulated data proves nothing. Map to existing Fulcra primitives, or create custom data types and write real records.
-4. **User Gates:** Do not proceed past Architecture or Prototype phases without explicit user approval of the markdown artifacts.
+4. **Strict Portability (No Local Cache):** Do NOT use Hermes local memory, `~/.hermes/cache/`, or local ephemeral paths for prototype assets. All spike scripts MUST use the `fulcra-api` CLI or SDK to push/pull required files from the user's Fulcra account, proving the architecture works portably.
+5. **User Gates:** Do not proceed past Architecture or Prototype phases without explicit user approval of the markdown artifacts.
 
 ## The 7-Step Pipeline
 
