@@ -18,6 +18,7 @@ To ensure reliable agentic execution and prevent skipped steps, follow the 7-ste
 3. **No Mock Data:** Prototyping against simulated data proves nothing. Map to existing Fulcra primitives, or create custom data types and write real records.
 4. **Strict Portability (No Local Cache):** Do NOT use Hermes local memory, `~/.hermes/cache/`, or local ephemeral paths for prototype assets. All spike scripts MUST use the `fulcra-api` CLI or SDK to push/pull required files from the user's Fulcra account, proving the architecture works portably.
 5. **User Gates:** Do not proceed past Architecture or Prototype phases without explicit user approval of the markdown artifacts.
+6. **Decision Journaling:** Maintain a `journal.md` capturing the conversational context, trade-offs, and dead-ends of the session before bundling, ensuring full context portability.
 
 ## The 7-Step Pipeline
 
