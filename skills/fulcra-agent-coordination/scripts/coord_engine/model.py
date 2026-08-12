@@ -86,7 +86,7 @@ def row_from_frontmatter(
 ) -> dict[str, Any]:
     """Project parsed frontmatter into a task row, backfilling defaults.
 
-    Bare-``fulcra-agent-teams`` tasks may lack coord's extension keys; missing
+    Bare-``fulcra-workspaces`` tasks may lack coord's extension keys; missing
     ``status``/``priority``/``id``/``title`` are backfilled so such tasks are
     first-class (mixed-fleet tolerance). ``title`` and
     ``description`` are capped via :func:`cap_summary_text` — the row is an
