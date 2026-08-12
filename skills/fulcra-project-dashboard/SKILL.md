@@ -9,7 +9,7 @@ metadata: { "openclaw": { "emoji": "📈" } }
 
 # Project Dashboard
 
-This skill generates a highly visual, manager-oriented dashboard to track the work of an Agent Team (built around the `fulcra-workspaces` structure). It leverages the paradigms established in `fulcra-dashboard`—specifically a lightweight, build-less static triad (HTML, Alpine.js, Vanilla CSS)—as the primary delivery vehicle, and introduces specific management-oriented visualizations.
+This skill generates a highly visual, manager-oriented dashboard to track the work of an Agent Team (built around the `fulcra-workspaces` skill (fulcradynamics/agent-skills) structure). It leverages the paradigms established in the `fulcra-dashboard` skill (fulcradynamics/agent-skills)—specifically a lightweight, build-less static triad (HTML, Alpine.js, Vanilla CSS)—as the primary delivery vehicle, and introduces specific management-oriented visualizations.
 
 ## Core Objective
 
@@ -17,7 +17,7 @@ Provide a "View" for a human manager that conveys what an agent team has been wo
 
 ## Reliable Delivery
 
-The primary and preferred method for delivering this view is by leveraging the `fulcra-dashboard` skill to generate a robust HTML application. However, delivering a useful management view is more important than using a specific technology. If the `fulcra-dashboard` skill is not a viable option depending on the agent's environment or the user's constraints, you must seamlessly fall back to other viable delivery mechanisms.
+The primary and preferred method for delivering this view is by leveraging the `fulcra-dashboard` skill (fulcradynamics/agent-skills) to generate a robust HTML application. However, delivering a useful management view is more important than using a specific technology. If the `fulcra-dashboard` skill is not a viable option depending on the agent's environment or the user's constraints, you must seamlessly fall back to other viable delivery mechanisms.
 
 Alternative delivery options include (but are not limited to):
 
@@ -56,7 +56,7 @@ When building or updating the dashboard, you must include the following elements
    - **Sync Team State:** Before generating or updating the dashboard, you must fetch the latest changes to the team files (e.g., via `git pull` or syncing the workspace) to ensure you are reporting on the most up-to-date progress.
    - Read local team progress files.
    - Run `uv tool run fulcra-api catalog` to locate and extract relevant historical annotations for the workspace.
-   - Compile this data into clean `.jsonl` or `.json` files inside a `public/` directory, following the `fulcra-dashboard` data separation rules.
+   - Compile this data into clean `.jsonl` or `.json` files inside a `public/` directory, following the `fulcra-dashboard` skill (fulcradynamics/agent-skills) data separation rules.
 
 2. **Scaffolding the UI:**
    - Use a clean HTML template initialized with Alpine.js and Vanilla CSS.

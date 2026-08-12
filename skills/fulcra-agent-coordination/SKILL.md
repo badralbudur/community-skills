@@ -9,7 +9,7 @@ metadata: { "openclaw": { "emoji": "🧭" } }
 
 # Fulcra Agent Coordination
 
-The coordination layer over [`fulcra-workspaces`](https://github.com/fulcradynamics/agent-skills). Teams
+The coordination layer over the `fulcra-workspaces` skill (fulcradynamics/agent-skills). Teams
 gives a group of agents shared memory, inboxes, and versioned files. This skill adds what teams
 deliberately leaves out: **presence** (who is alive right now), **roles** (durable functions held by lease,
 not by session), **continuity** (structured snapshots and a deterministic resume brief), **review** (an
