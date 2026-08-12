@@ -9,7 +9,7 @@ metadata: { "openclaw": { "emoji": "📈" } }
 
 # Project Dashboard
 
-This skill generates a highly visual, manager-oriented dashboard to track the work of an Agent Team (built around the `fulcra-agent-teams` structure). It leverages the paradigms established in `fulcra-dashboard`—specifically a lightweight, build-less static triad (HTML, Alpine.js, Vanilla CSS)—as the primary delivery vehicle, and introduces specific management-oriented visualizations.
+This skill generates a highly visual, manager-oriented dashboard to track the work of an Agent Team (built around the `fulcra-workspaces` structure). It leverages the paradigms established in `fulcra-dashboard`—specifically a lightweight, build-less static triad (HTML, Alpine.js, Vanilla CSS)—as the primary delivery vehicle, and introduces specific management-oriented visualizations.
 
 ## Core Objective
 
@@ -17,9 +17,10 @@ Provide a "View" for a human manager that conveys what an agent team has been wo
 
 ## Reliable Delivery
 
-The primary and preferred method for delivering this view is by leveraging the `fulcra-dashboard` skill to generate a robust HTML application. However, delivering a useful management view is more important than using a specific technology. If the `fulcra-dashboard` skill is not a viable option depending on the agent's environment or the user's constraints, you must seamlessly fall back to other viable delivery mechanisms. 
+The primary and preferred method for delivering this view is by leveraging the `fulcra-dashboard` skill to generate a robust HTML application. However, delivering a useful management view is more important than using a specific technology. If the `fulcra-dashboard` skill is not a viable option depending on the agent's environment or the user's constraints, you must seamlessly fall back to other viable delivery mechanisms.
 
 Alternative delivery options include (but are not limited to):
+
 - **Prefab (`https://gofastmcp.com/apps/prefab`):** Using an external rapid-UI generator if configured.
 - **Custom HTML/Image Generation:** Generating a simpler bespoke HTML file or using Python (e.g., `matplotlib`) to render a static image chart summarizing the data.
 - **ASCII Charts & Markdown:** If all else fails or if the user requests a quick inline update, render the progress and timelines directly in the chat using Markdown tables and ASCII visualizations.
@@ -63,7 +64,7 @@ When building or updating the dashboard, you must include the following elements
    - Organize the layout into clear sections: Summary, Progress Overview, Timeline, Word Map, and Logs.
 
 3. **Rendering the Visualizations:**
-   - Keep chart logic modular inside the `Alpine.data()` block. 
+   - Keep chart logic modular inside the `Alpine.data()` block.
    - Ensure the visualizations respect the CSS theme (use transparent backgrounds, inherit fonts and colors).
 
 4. **Theming & Polish:**

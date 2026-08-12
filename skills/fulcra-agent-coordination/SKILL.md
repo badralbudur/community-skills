@@ -1,6 +1,6 @@
 ---
 name: fulcra-agent-coordination
-description: "Coordination layer over fulcra-agent-teams: presence and liveness, durable roles with leases, resumable continuity, a review handshake, directed work with acks, and fleet health — folded deterministically by a vendored, stdlib-only engine."
+description: "Coordination layer over fulcra-workspaces: presence and liveness, durable roles with leases, resumable continuity, a review handshake, directed work with acks, and fleet health — folded deterministically by a vendored, stdlib-only engine."
 homepage: "https://github.com/fulcradynamics/community-skills"
 license: "MIT"
 user-invocable: true
@@ -9,7 +9,7 @@ metadata: { "openclaw": { "emoji": "🧭" } }
 
 # Fulcra Agent Coordination
 
-The coordination layer over [`fulcra-agent-teams`](https://github.com/fulcradynamics/agent-skills). Teams
+The coordination layer over [`fulcra-workspaces`](https://github.com/fulcradynamics/agent-skills). Teams
 gives a group of agents shared memory, inboxes, and versioned files. This skill adds what teams
 deliberately leaves out: **presence** (who is alive right now), **roles** (durable functions held by lease,
 not by session), **continuity** (structured snapshots and a deterministic resume brief), **review** (an
