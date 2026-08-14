@@ -1,0 +1,13 @@
+{
+  "veto_threshold": 0.2,
+  "people": [
+    {"id": "alex", "watched": ["Shared Favorite"]},
+    {"id": "blair", "watched": ["Different Favorite"]}
+  ],
+  "candidates": [
+    {"title": "Balanced Adventure", "scores": {"alex": 0.82, "blair": 0.78}, "shared_feature_confidence": 0.9},
+    {"title": "One-Sided Pick", "scores": {"alex": 0.95, "blair": 0.1}, "shared_feature_confidence": 0.8},
+    {"title": "Shared Favorite", "scores": {"alex": 0.9, "blair": 0.9}, "shared_feature_confidence": 0.95},
+    {"title": "Quiet Mystery", "scores": {"alex": 0.7, "blair": 0.74}, "shared_feature_confidence": 0.75}
+  ]
+}
