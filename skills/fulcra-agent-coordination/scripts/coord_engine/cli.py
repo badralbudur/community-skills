@@ -68,14 +68,14 @@ def _known_sender(args: argparse.Namespace) -> Optional[str]:
     """The sender identity a reply would be addressed to, or None when only the
     anonymous host fallback is available. `_create_directive` records ownership as
     ``--from`` or ``FULCRA_COORD_AGENT`` (else ``coord-reconcile:<host>``); the
-    breadcrumb points others at ``listen --agent <sender>``, so we print it only
-    when the sender is a real identity someone actually listens as — never the
+    breadcrumb points others at ``inbox --agent <sender>``, so we print it only
+    when the sender is a real identity an agent actually uses — never the
     bare host tag."""
     return getattr(args, "sender", None) or os.environ.get("FULCRA_COORD_AGENT")
 
 
 def _replies_breadcrumb(team: str, sender: str) -> str:
-    return f"replies: coord-engine listen {team} --agent {sender}"
+    return f"replies: coord-engine inbox {team} --agent {sender}"
 
 
 #: Read-cap for the freshness overlay: at most this many absent-from-index docs
@@ -96,7 +96,7 @@ def _overlay_cap() -> int:
 #: READ COUNT, not TIME: under partial degradation (listing succeeds, each doc
 #: read runs to the transport's subprocess timeout) 16 absent names could mean
 #: minutes of serial timeouts inside EVERY canonical surface read — inbox/
-#: needs-me/listen have no other budget on this path (the briefing budget opens
+#: needs-me/inbox have no other budget on this path (the briefing budget opens
 #: only AFTER _load_rows). That latency is the hang class this branch kills;
 #: the overlay carries its own deadline so a watcher's tick can never starve on
 #: it. Fast failures (a doc deleted between list and read returns quickly) keep
@@ -115,7 +115,7 @@ def _fresh_overlay_rows(
 ) -> tuple[list[dict[str, Any]], bool, str]:
     """Freshness overlay.
 
-    ``inbox``/``listen``/every canonical surface read the reconcile-built summaries
+    ``inbox``/``needs-me``/every canonical surface read the reconcile-built summaries
     index, so a task/directive doc written BETWEEN reconciles is invisible to all of
     them until the next heartbeat rebuild — a watcher polling only the canonical
     surface can miss fresh work for up to a full reconcile period. When the index is
@@ -223,7 +223,7 @@ def _load_rows_status(transport: Any, team: str) -> tuple[list[dict[str, Any]], 
     ``read`` returning None is ambiguous (absent vs transport-down),
     so a None is disambiguated with one parent listing: ``list_dir`` RAISES on a
     transport failure and its entry names distinguish missing from present-but-
-    unreadable. This is what lets `listen` surface a summaries
+    unreadable. This is what lets one-shot queue reads surface a summaries
     failure instead of folding it to a silent [] indistinguishable from empty."""
     path = rec.summaries_path(team)
     try:
@@ -603,6 +603,7 @@ def cmd_task_start(args: argparse.Namespace, transport: Any) -> int:
             args.title, now=_iso(_now()), workstream=args.workstream, status=args.status,
             priority=args.priority, owner=_host(), assignee=args.assignee,
             summary=args.summary or "", next_action=args.next, kind=args.kind,
+            evidence=args.evidence,
         )
     except tasks.TaskError as e:
         print(f"task start failed: {e}", file=sys.stderr)
@@ -653,11 +654,24 @@ def cmd_task_block(args: argparse.Namespace, transport: Any) -> int:
     if args.blocked_on and args.on_user:
         print("task block failed: pass --blocked-on OR --on-user, not both", file=sys.stderr)
         return 1
-    kw = {"status": "blocked", "blocked_on": args.on_user or args.blocked_on}
+    if not args.unlock and not args.on_user:
+        print("task block failed: --unlock <what specifically unblocks this> "
+              "is required", file=sys.stderr)
+        return 1
+    blocked_on = f"user:{args.on_user}" if args.on_user else args.blocked_on
+    unlock = args.unlock or f"answer from {args.on_user}"
+    kw = {"status": "blocked", "blocked_on": blocked_on, "unlock": unlock}
     if args.on_user:
         kw["assignee"] = _human()
         kw["add_tags"] = ["needs:human"]
     return _task_apply(args, transport, **kw)
+
+
+def cmd_task_supersede(args: argparse.Namespace, transport: Any) -> int:
+    reason = args.reason or f"work re-dispatched as {args.by}"
+    return _task_apply(
+        args, transport, status="done", superseded_by=args.by,
+        evidence=f"superseded by {args.by} ({reason})")
 
 
 def cmd_task_pause(args: argparse.Namespace, transport: Any) -> int:
@@ -809,7 +823,7 @@ DEFAULT_REVIEW_FOLD_BUDGET = 45.0
 #: COORD_REVIEW_FOLD_BUDGET (sooner wins).
 DEFAULT_BRIEFING_BUDGET = 60.0
 #: Cumulative deadline (seconds) for ONE role-resolution pass (`_held_roles_for_rows`)
-#: — the fold `briefing` / `inbox` / `needs-me` / `listen` all run, i.e. every agent,
+#: — the fold `briefing` / `inbox` / `needs-me` all run, i.e. every agent,
 #: every tick. Its cost is 1 + sum(2 + lease_shards) over the roles the open work
 #: references (see `_held_roles_for_rows`), and lease shards accumulate per claiming
 #: agent forever (only `roles release` prunes one), so an unbudgeted pass could spend
@@ -817,14 +831,6 @@ DEFAULT_BRIEFING_BUDGET = 60.0
 #: path renders anything. 20s is a generous ~25 ops at the measured ~0.8s/op — far
 #: past the 4-7 a real team pays — while still bounding a degraded transport.
 DEFAULT_ROLE_FOLD_BUDGET = 20.0
-#: Per-tick bound (seconds) for the listener's dir-only review-slug classification
-#: pass. That set is PERMANENT and growing (soft deletes leave every review dir
-#: forever), so an unbudgeted pass could spend N x transport-timeout on a degraded
-#: tick, on the watcher whose tick latency is load-bearing. 10s is a bounded
-#: fraction of the default 60s poll interval.
-DEFAULT_LISTEN_CLASSIFY_BUDGET = 10.0
-
-
 def _settled_marker_path(team: str, slug: str) -> str:
     return _verdicts_prefix(team, slug) + SETTLED_MARKER
 
@@ -852,13 +858,6 @@ def _role_fold_budget() -> float:
     briefing/needs-me add-on stack opens its budget (the held set is an input to the
     inbox fold, not an add-on section), so it cannot spend that one."""
     return config.env_float("COORD_ROLE_FOLD_BUDGET", DEFAULT_ROLE_FOLD_BUDGET)
-
-
-def _listen_classify_budget() -> float:
-    """Per-tick bound (seconds) for the listener's dir-only review-slug
-    classification pass. Env ``COORD_LISTEN_CLASSIFY_BUDGET`` (see the
-    DEFAULT_LISTEN_CLASSIFY_BUDGET rationale)."""
-    return config.env_float("COORD_LISTEN_CLASSIFY_BUDGET", DEFAULT_LISTEN_CLASSIFY_BUDGET)
 
 
 def _write_settled_marker(transport: Any, team: str, slug: str, *, now: str) -> None:
@@ -1142,7 +1141,7 @@ def _role_fresh_holders(
 # A directive assigned to a role is directed at whoever holds a fresh lease on it,
 # which is the reason role-based identity exists at all: work addressed to a role
 # must outlive the session that was holding it. So every read fold that answers
-# "what needs me" — `briefing`, `inbox`, `needs-me`, and `listen` — must fold the
+# "what needs me" — `briefing`, `inbox`, `needs-me`, and `queue` — must fold the
 # holder's role inboxes, not just their identity inbox; otherwise a role-addressed
 # `tell` returns 0 and silently lands in a fold nobody reads.
 #
@@ -1181,7 +1180,7 @@ def _held_roles_for_rows(
     which of them are roles at all — so the literal-agent-id majority costs ZERO
     reads, and only genuine roles pay. A team with no role-addressed open work pays
     nothing. Self / ``*`` / ``@backlog`` / path-shaped assignees are skipped without
-    a read. ``skip_slugs`` lets `listen` narrow further to UNSEEN directives (an
+    a read. ``skip_slugs`` lets queue readers narrow further to UNSEEN directives (an
     already-fired id needs no route).
 
     **The honest op bound.** A pass costs::
@@ -1218,7 +1217,7 @@ def _held_roles_for_rows(
 
     The prefilter is PER PASS, never persistent: leases change, and a name later
     registered as a role must route on the very next fold (the staleness hole that
-    got a persistent negative cache rejected for `listen` — see there).
+    got a persistent negative cache rejected for queue reads — see there).
 
     ``unresolved`` is FAIL-CLOSED and load-bearing: a role whose lease state is
     UNKNOWN (see ``_role_fresh_holders``) is neither held nor not-held. Callers
@@ -1573,10 +1572,10 @@ def _print_review_success(
     for r in required:
         print(f"  reviewer {r} -> file verdict at {_verdicts_prefix(team, slug)}{r}.md")
     # Point the requester at the await primitive for the verdict wait (they poll
-    # `review status`; `listen` is the same arm-a-listener discipline every ask uses).
+    # `review status`; queue is the same explicit read discipline every ask uses).
     sender = _known_sender(args)
     if sender:
-        print(f"await verdicts: coord-engine listen {team} --agent {sender}")
+        print(f"await verdicts: coord-engine inbox {team} --agent {sender}")
 
 
 def cmd_review_request(args: argparse.Namespace, transport: Any) -> int:
@@ -1680,10 +1679,10 @@ def cmd_review_request(args: argparse.Namespace, transport: Any) -> int:
     transport.delete(_settled_marker_path(team, slug))
     # Atomic notification: with the doc durably landed, deliver ONE directive per
     # required reviewer through the canonical hash-slug directive path, so a
-    # verb-opened review FIRES the reviewer's inbox/listen — this is what removes
+    # verb-opened review appears in the reviewer's inbox/queue — this is what removes
     # the reason agents hand-send review tells (which historically produced
     # orphaned reviews: a directive with no verdict target) and makes
-    # the listener's `await verdicts` breadcrumb genuine. Same write-verification discipline
+    # the requester's `await verdicts` breadcrumb is genuine. Same write-verification discipline
     # as the doc: any reviewer-directive fail is reported LOUD naming exactly what
     # landed and what did not (partial is never silent), and the requester's retry
     # re-enters the idempotent-recovery path above to fill the gaps.
@@ -1989,7 +1988,7 @@ def _create_directive(args: argparse.Namespace, transport: Any, *, assignee: str
     rc = _write_directive(transport, args, slug=slug, content=content,
                           payload=payload, assignee=assignee, not_before=not_before)
     # On a delivered ask (not a backlog capture — @backlog awaits no reply), point
-    # the sender at the reply leg: the return of `respond` surfaces in their listen.
+    # the sender at the reply leg: the return of `respond` surfaces in their queue.
     if rc == 0 and assignee != directives.BACKLOG:
         sender = _known_sender(args)
         if sender:
@@ -2200,7 +2199,7 @@ def _directed_inbox(transport: Any, team: str, agent: str,
     """The open-directive fold over ALREADY-LOADED ``rows`` — directives assigned
     to ``agent``, ``*``, or a role in ``held_roles`` (role routing), with the same
     ack + read-your-write gating `inbox` applies. Split out from
-    ``_inbox_rows_status`` so `listen` can resolve held roles from the rows FIRST
+    ``_inbox_rows_status`` so queue reads can resolve held roles from the rows FIRST
     (bounding the lease reads to role-shaped assignees on unseen directives) and
     then fold once, without re-reading the summaries index."""
     now = _iso(_now())
@@ -2226,11 +2225,11 @@ def _inbox_rows_status(transport: Any, team: str, agent: str, *,
     """The open-directive fold `inbox` surfaces for `agent` — role-routed
     directives included — plus the readability of the underlying summaries fold:
     ``ok`` False (with a ``reason``) when the index/listing is UNKNOWN — see the
-    public-read failure contract at ``_read_degraded_row``. Extracted so `listen`
+    public-read failure contract at ``_read_degraded_row``. Extracted so queue
     awaits the SAME source `inbox` shows — one inbox computation, no second
     implementation to drift. Never raises: an unreadable summaries read folds to
     an empty list, but with ``ok=False`` and a ``reason`` so EVERY caller (inbox,
-    listen, briefing) surfaces the degradation as the loud marker rather than
+    reads and briefing surface the degradation as the loud marker rather than
     mistaking UNKNOWN for an empty inbox — the silent clean-``[]`` that would
     suppress a live unacked directive.
 
@@ -2307,511 +2306,9 @@ def cmd_respond(args: argparse.Namespace, transport: Any) -> int:
         print(f"responded {args.name}: {args.outcome} (closed)")
     except tasks.TaskError as e:
         print(f"responded {args.name}: {args.outcome} (response recorded; not closed: {e})")
-    # The reply leg: this shard is what the directive's owner sees on their listen.
-    print("response recorded — the owner's listen surfaces it")
+    # The reply leg: this shard is what the directive owner's inbox surfaces.
+    print("response recorded — the owner's inbox surfaces it")
     return 0
-
-
-# --- listen: the await leg of `tell` ---------------------------------------
-#
-# The bus had send verbs (tell/broadcast/remind) and `respond`, but nothing that
-# SURFACED either new inbox directives or the responses that come back to a
-# directive's owner — so `respond` wrote shards no fold delivered, and the reply
-# leg of `tell` did not exist. Three agents independently hand-rolled watchers
-# around `inbox --json`; `listen` ports that id-diff into the engine so the
-# lifecycle owns listening. Three event sources, each id-diff'd against a state
-# file, per tick:
-#   1. new inbox directives for the agent (the SAME fold `inbox` shows).
-#   2. new responses to directives the agent OWNS (the reply leg).
-#   3. new verdicts on reviews the agent REQUESTED (`requested_by == agent`) —
-#      the await leg of `review request`, now that a verb-opened review notifies
-#      its reviewers atomically (so the `await verdicts` breadcrumb is genuine).
-#
-# Five failure SOURCES are tracked independently — inbox (summaries index),
-# responses (the responses subtree transport), orphans (a response whose owning
-# directive doc won't resolve), verdicts (the review root / a review doc /
-# a verdict shard unreadable), and roles (a role-lease listing unreadable while
-# resolving role-routed directives). Each is its own degraded streak.
-#
-# Disciplines (each an invariant the listener state must hold; state is ADD-ONLY):
-#   * No false advance — a failed/None read during a tick must NOT mark unknown
-#     ids as seen. State is a UNION of affirmatively-processed ids, so a degraded
-#     read contributes nothing and recovery re-surfaces the still-pending id.
-#   * Fail visible, no flooding — a transport failure emits `LISTEN DEGRADED:`
-#     ONCE per consecutive-failure streak, PER SOURCE (the streak flags persist IN
-#     the state file, so a scheduler re-running `--once` does not re-alarm every
-#     tick). Per-source is load-bearing: a single shared flag would let a chronic
-#     degradation on one source pin it TRUE forever and silence a NEW, distinct
-#     outage on another. Each source alerts once per ITS OWN streak and resets on
-#     ITS OWN recovery. It goes to STDERR so `--json` stdout stays a clean
-#     one-object-per-line event stream for filter-free streaming consumers.
-#     A permanently-absent owner/requester doc is handled a level BELOW the streak:
-#     it is emit-once-cached PER SLUG (`flagged_orphan_responses`/`_verdicts`, like
-#     the dir-only `orphan_slugs`) and skipped silently thereafter, so it never even
-#     reaches its source's streak — a fail-closed watcher (persistent DEGRADED ==
-#     fatal) is not murdered by a doc that will never return, while a genuine
-#     transport outage on that same source still fails loud.
-#   * Quiet ticks print NOTHING to stdout (so a monitor is never flooded) — only
-#     `--verbose` emits a heartbeat, and only to stderr.
-#   * Bounded cost — one list_dir of _coord/responses/ + per-slug work ONLY for
-#     slugs the agent owns; a slug's ownership is read once (from its task doc)
-#     and cached in state, so not-owned / broadcast slugs cost nothing after the
-#     first classification and the scan is never proportional to total history.
-
-
-# The independent degraded streaks. Each source alarms once per its own streak.
-# `roles` (role-lease resolution for role-routed directives) is its own source:
-# folding it into `inbox` would let a chronic role degradation pin that streak
-# and mask a fresh summaries outage — the independent-streak invariant. Legacy
-# state files lack the key; _coerce_degraded defaults it False (free migration).
-_LISTEN_SOURCES = ("inbox", "responses", "orphans", "verdicts", "roles")
-
-
-def _coerce_degraded(value: Any) -> dict[str, bool]:
-    """Normalize the persisted ``degraded`` field to the per-source dict. A legacy
-    single bool (pre per-source schema) migrates to the same value on EVERY source:
-    an in-progress streak stays suppressed across the upgrade (no spurious re-alarm)
-    and a clean state stays clean — either way each source then alarms/resets on its
-    own going forward."""
-    if isinstance(value, dict):
-        return {s: bool(value.get(s)) for s in _LISTEN_SOURCES}
-    return {s: bool(value) for s in _LISTEN_SOURCES}
-
-
-def _listen_state_dir() -> pathlib.Path:
-    return pathlib.Path(os.environ.get("COORD_LISTENER_STATE")
-                        or (pathlib.Path.home() / ".cache" / "coord-engine"))
-
-
-def _listen_state_path(team: str, agent: str) -> pathlib.Path:
-    # agent_key is injective (distinct agents never share a state file); team is
-    # slugified for a filesystem-safe name.
-    return _listen_state_dir() / f"listen-{tasks.slugify(team) or 'team'}-{tasks.agent_key(agent)}.json"
-
-
-def _load_listen_state(path: pathlib.Path) -> dict[str, Any]:
-    """Load the one-doc state, tolerating a missing/corrupt/foreign file (fresh
-    default). Never raises — a tick never fails on its own bookkeeping."""
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        data = {}
-    if not isinstance(data, dict):
-        data = {}
-    return {
-        "inbox_ids": list(data.get("inbox_ids") or []),
-        "response_keys": list(data.get("response_keys") or []),
-        "slug_owned": dict(data.get("slug_owned") or {}),
-        # Source 3 (verdicts) bookkeeping — legacy state files lack these keys;
-        # they default empty, so an upgrade re-surfaces nothing spuriously.
-        "verdict_keys": list(data.get("verdict_keys") or []),
-        "review_requested": dict(data.get("review_requested") or {}),
-        "settled_reviews": list(data.get("settled_reviews") or []),
-        # Orphan review dirs already reported (verdicts dir, no doc) — cached so
-        # each is surfaced ONCE; legacy files lack the key and default empty.
-        "orphan_slugs": list(data.get("orphan_slugs") or []),
-        # Emit-once caches for a PERMANENTLY-absent owner/requester doc at the
-        # responses / verdicts sources — a slug whose directive|review doc reads
-        # None has its degrade emitted ONCE, then is skipped silently (a fail-closed
-        # watcher treats persistent DEGRADED as fatal). Distinct from orphan_slugs,
-        # which caches emitted-orphan EVENTS; these cache emitted-DEGRADE slugs.
-        # Legacy files lack the keys and default empty.
-        "flagged_orphan_responses": list(data.get("flagged_orphan_responses") or []),
-        "flagged_orphan_verdicts": list(data.get("flagged_orphan_verdicts") or []),
-        "degraded": _coerce_degraded(data.get("degraded")),
-    }
-
-
-def _save_listen_state(path: pathlib.Path, state: dict[str, Any]) -> None:
-    # Best-effort: a state-write failure must never crash a tick. Worst case of a
-    # lost write is one re-notify on the next run, never a missed event.
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(state, sort_keys=True), encoding="utf-8")
-    except OSError as e:
-        _log.warning("listen state write failed", path=str(path), error=str(e))
-
-
-def _listen_tick(transport: Any, team: str, agent: str,
-                 state: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, list[str]]]:
-    """One listen pass. Returns ``(events, failures)`` where ``failures`` maps each
-    degraded SOURCE (see ``_LISTEN_SOURCES``) to its messages, and
-    mutates ``state`` with ONLY affirmatively-processed ids (add-only — see the
-    section note): a failed read/list adds nothing, so it can never mark unknown
-    data as seen."""
-    events: list[dict[str, Any]] = []
-    failures: dict[str, list[str]] = {}
-
-    def _fail(source: str, msg: str) -> None:
-        failures.setdefault(source, []).append(msg)
-
-    inbox_ids = set(state["inbox_ids"])
-    response_keys = set(state["response_keys"])
-    slug_owned: dict[str, Any] = dict(state["slug_owned"])
-    # Emit-once caches: slugs whose owner/requester doc read None and have already
-    # had their degrade emitted. Skipped SILENTLY thereafter so a fail-closed
-    # watcher (persistent DEGRADED == fatal) survives a permanently-missing doc;
-    # recovery (doc reads non-None) discards the slug to re-arm fail-loud. Mirrors
-    # the `orphan_slugs` emit-once cache the dir-only review scan uses below.
-    flagged_orphan_responses = set(state.get("flagged_orphan_responses") or [])
-    flagged_orphan_verdicts = set(state.get("flagged_orphan_verdicts") or [])
-
-    # Source 1 — new inbox directives (the SAME fold `inbox` surfaces), PLUS
-    # directives routed to a fresh-lease ROLE this agent holds. An unreadable
-    # summaries index is degraded, NOT a legitimately-empty inbox.
-    now_iso = _iso(_now())
-    rows, inbox_ok, inbox_reason = _load_rows_status(transport, team)
-    if not inbox_ok:
-        # The reason attributes WHICH leg failed (summaries index vs the freshness
-        # overlay — different outages, same inbox source/streak).
-        _fail("inbox", inbox_reason or "summaries index unreadable")
-    # Role expansion — the shared resolver (`_held_roles_for_rows`, which owns the
-    # candidate bound and the fail-closed contract), narrowed HERE to UNSEEN
-    # directives: an already-fired id needs no route, so a steady-state tick pays
-    # zero role reads. Not persistent state — leases change, so the resolution is
-    # per tick. HONEST BOUND: a directive assigned to ANOTHER literal agent never
-    # enters this agent's inbox_ids, so its assignee is re-probed every tick — but
-    # the resolver's roles/ listing settles it for free, so the re-probe costs no
-    # reads. A persistent negative "not-a-role" cache was considered and REJECTED:
-    # read() can't distinguish absent from failed, and a name later registered as a
-    # role would be silently unroutable forever (a staleness hole worse than the
-    # read cost); the per-pass listing is that invalidation, done fresh every tick.
-    # id-diff is unchanged (the directive slug is the id regardless of
-    # the route), so a new role holder sees a directive iff its id is unseen in
-    # THEIR OWN state file (state is per-agent) — the holder-change semantics fall
-    # out.
-    held_roles, unresolved_roles = _held_roles_for_rows(
-        transport, team, agent, rows, now=now_iso, skip_slugs=inbox_ids)
-    for role in sorted(unresolved_roles):
-        # Fail-closed: the lease read is UNKNOWN. Degrade VISIBLY (the agent may
-        # miss role-routed work) on the DEDICATED `roles` source — never crash,
-        # never treat unknown as "not a holder" silently. Its own source is
-        # load-bearing: a chronic role degradation must not pin the inbox streak
-        # and mask a fresh summaries outage.
-        _fail("roles", f"role lease unknown for {role}")
-    inbox = _directed_inbox(transport, team, agent, rows,
-                            held_roles=held_roles or None)
-    for r in inbox:
-        slug = str(r.get("name") or "")
-        if not slug or slug in inbox_ids:
-            continue
-        events.append({"type": "directive", "slug": slug,
-                       "owner": str(r.get("owner") or "?"),
-                       "title": str(r.get("title") or slug)})
-        inbox_ids.add(slug)
-
-    # Source 2 — new responses to directives THIS agent owns. One list_dir of the
-    # responses root; per-slug work only for owned slugs, ownership cached.
-    prefix = _responses_prefix(team)
-    try:
-        entries = transport.list_dir(prefix)
-    except TransportError as e:
-        _fail("responses", f"responses listing unreadable ({e})")
-        entries = None
-    for e in entries or []:
-        raw = e.get("name") or ""
-        if not (e.get("is_dir") or raw.endswith("/")):
-            continue  # only slug dirs live here
-        slug = raw.rstrip("/")
-        if not slug:
-            continue
-        owned = slug_owned.get(slug)
-        if owned is None:
-            doc = transport.read(_task_path(team, slug))
-            if doc is None:
-                # Ambiguous: a transient read failure OR a permanent orphan whose
-                # directive doc is gone (a settled/archived/tombstoned directive).
-                # Ownership is UNKNOWN either way, so we do NOT cache and do NOT
-                # advance — unknown != seen, retry next tick. EMIT-ONCE per slug:
-                # a fail-closed watcher treats persistent DEGRADED as fatal, so a
-                # permanently-missing doc must not re-degrade every tick and murder
-                # it. First occurrence fails loud on the `orphans` source; the slug
-                # is then skipped silently until it recovers, so it never pins the
-                # source either. Other sources still fail-loud on their own
-                # transport failures, so a genuine outage is never masked — first
-                # occurrence + recovery visibility is retained.
-                if slug not in flagged_orphan_responses:
-                    _fail("orphans", f"owner unresolved for {slug}")
-                    flagged_orphan_responses.add(slug)
-                continue
-            fm = okf.parse_frontmatter(doc) or {}
-            owner = str(fm.get("owner") or "").strip()
-            owned = owner == agent  # owner is the directive's SENDER; broadcast/absent -> not owned
-            slug_owned[slug] = owned  # definitive classification: cache it
-            flagged_orphan_responses.discard(slug)  # recovered -> re-arm fail-loud
-        if not owned:
-            continue  # responses to other-owner / broadcast directives are noise
-        try:
-            stamps = transport.list_dir(prefix + slug + "/")
-        except TransportError as ex:
-            _fail("responses", f"response dir {slug} unreadable ({ex})")
-            continue
-        for se in stamps:
-            sname = se.get("name") or ""
-            if se.get("is_dir") or not sname.endswith(".md"):
-                continue
-            key = f"{slug}/{sname[:-3]}"
-            if key in response_keys:
-                continue
-            shard = transport.read(prefix + slug + "/" + sname)
-            if shard is None:
-                # unread shard -> unknown, do NOT advance over it (retry next tick)
-                _fail("responses", f"response {key} unreadable")
-                continue
-            rfm = okf.parse_frontmatter(shard) or {}
-            events.append({"type": "response", "slug": slug,
-                           "agent": str(rfm.get("agent") or "?"),
-                           "outcome": str(rfm.get("outcome") or "?")})
-            response_keys.add(key)
-
-    # Source 3 — new verdicts on reviews THIS agent REQUESTED. One list_dir of
-    # the review root; per-NEW-slug the review doc is read once and the requester
-    # (`requested_by`) cached; verdict dirs are listed ONLY for my still-unsettled
-    # slugs. A `.settled` listing first EMITS every unseen shard + one terminal
-    # SETTLED event, then drops the slug so it is never listed again (the review
-    # is immutable once settled). Its OWN degraded source `verdicts`.
-    review_requested: dict[str, Any] = dict(state.get("review_requested") or {})
-    verdict_keys = set(state.get("verdict_keys") or [])
-    settled_reviews = set(state.get("settled_reviews") or [])
-    review_prefix = f"team/{team}/review/"
-    try:
-        rentries = transport.list_dir(review_prefix)
-    except TransportError as e:
-        _fail("verdicts", f"review listing unreadable ({e})")
-        rentries = None
-    for e in rentries or []:
-        name = e.get("name") or ""
-        # The review DOCS are the `.md` entries; `{slug}/` dirs hold the verdicts.
-        if e.get("is_dir") or not name.endswith(".md"):
-            continue
-        slug = name[:-3]
-        if not slug or slug in settled_reviews:
-            continue  # settled -> immutable, never list its verdicts again
-        requested = review_requested.get(slug)
-        if requested is None:
-            doc = transport.read(_review_doc_path(team, slug))
-            if doc is None:
-                # Ordinarily the slug came from the listing so the doc exists and a
-                # None read is a transient transport failure — but a settled/archived
-                # review can leave its `<slug>/` verdicts subtree listed with the
-                # `<slug>.md` doc gone, a PERMANENT None. Requester UNKNOWN either
-                # way: do NOT cache and do NOT advance (no-false-advance), retry next
-                # tick. EMIT-ONCE per slug: a fail-closed watcher treats persistent
-                # DEGRADED as fatal, so a permanently-missing doc must not re-degrade
-                # every tick. First occurrence fails loud on `verdicts`; the slug is
-                # skipped silently thereafter, never pinning the source. Other
-                # sources still fail-loud on their own transport failures, so a real
-                # outage is never masked. Recovery below re-arms the slug.
-                if slug not in flagged_orphan_verdicts:
-                    _fail("verdicts", f"requester unresolved for {slug}")
-                    flagged_orphan_verdicts.add(slug)
-                continue
-            fm = okf.parse_frontmatter(doc) or {}
-            requested = str(fm.get("requested_by") or "").strip() == agent
-            review_requested[slug] = requested  # definitive classification: cache
-            flagged_orphan_verdicts.discard(slug)  # recovered -> re-arm fail-loud
-        if not requested:
-            continue  # someone else's review -> noise
-        try:
-            ventries = transport.list_dir(_verdicts_prefix(team, slug))
-        except TransportError as ex:
-            _fail("verdicts", f"verdicts dir {slug} unreadable ({ex})")
-            continue
-        settling = any((x.get("name") or "") == SETTLED_MARKER for x in ventries)
-        # Emit every UNSEEN shard BEFORE any settle-drop. The settling tick is
-        # the DOMINANT flow, not an edge: a single approve settles the review and
-        # the reviewer settles it themselves (`review status` right after filing,
-        # per doctrine), so the final — often only — verdict shard and `.settled`
-        # co-exist by the requester's next tick. Dropping the slug first would
-        # swallow that verdict and make the `await verdicts:` breadcrumb false.
-        # Cost stays bounded: only unseen shards are read, once per slug lifetime.
-        unread = False
-        for ve in ventries:
-            vname = ve.get("name") or ""
-            if ve.get("is_dir") or not vname.endswith(".md"):
-                continue  # `.settled` and dirs are not verdict shards
-            vkey = f"{slug}/{vname[:-3]}"
-            if vkey in verdict_keys:
-                continue
-            shard = transport.read(_verdicts_prefix(team, slug) + vname)
-            if shard is None:
-                # listed file unreadable -> unknown, do NOT advance (retry)
-                _fail("verdicts", f"verdict {vkey} unreadable")
-                unread = True
-                continue
-            vfm = okf.parse_frontmatter(shard) or {}
-            events.append({"type": "verdict", "slug": slug,
-                           "reviewer": vname[:-3],
-                           "verdict": str(vfm.get("verdict") or "?")})
-            verdict_keys.add(vkey)
-        if settling and not unread:
-            # Terminal-settled AND every shard affirmatively seen: emit the one
-            # terminal SETTLED event (so the requester learns the outcome even
-            # when all shards were seen on earlier ticks), then drop the slug —
-            # zero verdict-dir listings hereafter. The marker only ever caches
-            # terminal-APPROVED (`_write_settled_marker`), so the state is known
-            # without reading it. An unreadable shard keeps the slug ACTIVE
-            # (degraded already flagged): settling must not swallow an
-            # unreadable final verdict — it emits on recovery, then drops.
-            events.append({"type": "settled", "slug": slug,
-                           "state": review.APPROVED})
-            settled_reviews.add(slug)
-
-    # Dir-only review slugs: a `<slug>/` dir with no `<slug>.md` doc is skipped by
-    # the doc-keyed scan above. Classify each via the tombstone three-way (one
-    # verdicts listing apiece): a dir with real verdict shards is an ORPHAN —
-    # surface it ONCE (cached in `orphan_slugs`) so a listener learns the slug
-    # exists (repair stays human/maintainer, never auto-delete); an EMPTY dir (no
-    # shards, or only a stale `.settled` marker) is a soft-delete TOMBSTONE carrying
-    # zero information — skip it silently and NEVER cache it; a verdicts listing
-    # that RAISES is UNKNOWN — fail closed, degrade the `verdicts` source visibly
-    # and do not cache (never assume tombstone on transport failure). Skipped
-    # entirely when the review listing failed (rentries is None): an unreadable
-    # root is UNKNOWN, not an absence of docs.
-    #
-    # Budgeted: unlike the source's other listings — bounded by
-    # MY-unsettled-slugs, a small shrinking set — the dir-only set is PERMANENT
-    # and growing (soft deletes), so an unbudgeted pass spends up to
-    # N x transport-timeout on a degraded tick, on the listener whose tick
-    # latency is load-bearing. The pass runs under ``_listen_classify_budget()``
-    # (default 10s, env COORD_LISTEN_CLASSIFY_BUDGET), checked before each
-    # classification listing (equivalently after the previous one — adjacent
-    # iterations — so an overrunning listing is detected immediately; overshoot
-    # is bounded by ONE listing, whose completed result is definitive and kept).
-    # On exhaustion: degrade the `verdicts` source (its existing streak), cache
-    # NOTHING for the unvisited slugs (unknown != classified — no false
-    # orphan/tombstone knowledge may persist), and stop — the next tick retries.
-    orphan_slugs = set(state.get("orphan_slugs") or [])
-    if rentries is not None:
-        doc_names = {(e.get("name") or "")[:-3] for e in rentries
-                     if not e.get("is_dir") and (e.get("name") or "").endswith(".md")}
-        classify_dl = Deadline.open(_listen_classify_budget())
-        for e in rentries:
-            if not e.get("is_dir"):
-                continue
-            oslug = (e.get("name") or "").rstrip("/")
-            if not oslug or oslug in doc_names or oslug in orphan_slugs:
-                continue
-            if classify_dl.expired():
-                _fail("verdicts", "dir classification budget spent — "
-                      "unclassified review dirs remain, retried next tick")
-                break
-            kind = _classify_orphan_dir(transport, team, oslug)
-            if kind == "orphan":
-                events.append({"type": "orphan", "slug": oslug})
-                orphan_slugs.add(oslug)
-            elif kind == "unknown":
-                _fail("verdicts", f"orphan dir {oslug} unclassifiable "
-                      f"(verdicts listing unreadable)")
-            # tombstone -> silently skipped, never cached
-
-    state["inbox_ids"] = sorted(inbox_ids)
-    state["response_keys"] = sorted(response_keys)
-    state["slug_owned"] = slug_owned
-    state["verdict_keys"] = sorted(verdict_keys)
-    state["review_requested"] = review_requested
-    state["settled_reviews"] = sorted(settled_reviews)
-    state["orphan_slugs"] = sorted(orphan_slugs)
-    state["flagged_orphan_responses"] = sorted(flagged_orphan_responses)
-    state["flagged_orphan_verdicts"] = sorted(flagged_orphan_verdicts)
-    return events, failures
-
-
-def _format_listen_event(ev: dict[str, Any]) -> str:
-    if ev["type"] == "directive":
-        return f"DIRECTIVE {ev['slug']} (from {ev['owner']}): {ev['title'][:80]}"
-    if ev["type"] == "verdict":
-        return f"VERDICT {ev['slug']} by {ev['reviewer']}: {ev['verdict']}"
-    if ev["type"] == "settled":
-        return f"SETTLED {ev['slug']}: {ev['state']}"
-    if ev["type"] == "orphan":
-        return f"ORPHAN {ev['slug']} (verdicts dir, no review doc — needs repair)"
-    return f"RESPONSE {ev['slug']} by {ev['agent']}: {ev['outcome']}"
-
-
-def _run_listen_tick(transport: Any, team: str, agent: str, state: dict[str, Any],
-                     *, json_mode: bool, verbose: bool) -> tuple[list, dict[str, list[str]]]:
-    events, failures = _listen_tick(transport, team, agent, state)
-    for ev in events:
-        print(json.dumps(ev) if json_mode else _format_listen_event(ev))
-    sys.stdout.flush()
-
-    # Per-source streaks: each source alarms ONCE per its own consecutive-failure
-    # streak (the flags persist in state across `--once` runs) and resets on its
-    # own recovery — a pinned orphan can't swallow a new inbox/responses outage.
-    degraded = _coerce_degraded(state.get("degraded"))  # defensive: tolerate legacy bool
-    state["degraded"] = degraded
-    newly: list[str] = []
-    for source in _LISTEN_SOURCES:
-        msgs = failures.get(source)
-        if msgs:
-            if not degraded[source]:  # this source just entered a failure streak
-                newly.append("; ".join(msgs))
-                degraded[source] = True
-        else:
-            degraded[source] = False  # clean this tick -> streak reset for this source
-    if newly:
-        print(f"LISTEN DEGRADED: {'; '.join(newly)}", file=sys.stderr)
-    elif verbose and not events and not failures:
-        print(f"listen: quiet ({len(state['inbox_ids'])} inbox, "
-              f"{len(state['response_keys'])} responses, "
-              f"{len(state.get('verdict_keys') or [])} verdicts seen)", file=sys.stderr)
-    sys.stderr.flush()
-    return events, failures
-
-
-def cmd_listen(args: argparse.Namespace, transport: Any) -> int:
-    agent = args.agent or _host()
-    state_path = _listen_state_path(args.team, agent)
-    if getattr(args, "state_path", False):
-        # Resolver for listener-tick.sh's one-time `.items` -> listen-state
-        # migration: the slugify/agent_key naming lives here, so the shell asks the
-        # engine rather than reimplementing it. Print and exit; no tick, no writes.
-        print(str(state_path))
-        return 0
-    state = _load_listen_state(state_path)
-    json_mode = bool(getattr(args, "json", False))
-    verbose = bool(getattr(args, "verbose", False))
-
-    def tick() -> dict[str, list[str]]:
-        _events, failures = _run_listen_tick(
-            transport, args.team, agent, state,
-            json_mode=json_mode, verbose=verbose)
-        _save_listen_state(state_path, state)
-        return failures
-
-    if args.once:
-        failures = tick()
-        # A captured transport failure is data, not an exception.  Keep the
-        # pulse-once stderr contract in _run_listen_tick, but return a stable
-        # machine-readable status on *every* one-shot tick so schedulers do not
-        # mistake a suppressed second pulse for recovery.
-        return 3 if failures else 0
-    interval = args.interval if args.interval and args.interval > 0 else 60
-    try:
-        while True:
-            # Per-tick guard: `listen` is the load-bearing watcher (its tick latency
-            # is the reply leg of `tell`/`respond`/`review`). An UNMODELED exception
-            # in one tick must degrade THAT tick, never kill the daemon — a
-            # transient bug would otherwise silence the whole watcher. Log to stderr
-            # in the `LISTEN DEGRADED:` register, keep the streak state, continue.
-            # `--once` deliberately stays UNguarded above: a one-shot run surfaces
-            # its failure (rc 1 via main's envelope) to whatever scheduled it.
-            try:
-                tick()
-            except KeyboardInterrupt:
-                raise
-            except Exception as e:
-                _log.error("listen tick failed (daemon continues)",
-                           team=args.team, agent=agent,
-                           error=f"{type(e).__name__}: {e}")
-                print(f"LISTEN DEGRADED: tick raised {type(e).__name__}: {e} — "
-                      f"daemon continues, next tick in {interval}s", file=sys.stderr)
-            time.sleep(interval)
-    except KeyboardInterrupt:
-        if verbose:
-            print("listen: stopped", file=sys.stderr)
-        return 0
 
 
 # --- continuity: role checkpoints, park, briefing ---
@@ -3711,14 +3208,6 @@ def build_parser() -> argparse.ArgumentParser:
     ib.add_argument("team"); ib.add_argument("--agent", "-a"); ib.add_argument("--ack")
     ib.add_argument("--all", action="store_true", help="include @backlog"); add_json(ib)
     ib.set_defaults(func=cmd_inbox)
-    ls = sub.add_parser("listen", help="await new directives + responses to directives you own (the reply leg of tell)")
-    ls.add_argument("team"); ls.add_argument("--agent", "-a")
-    ls.add_argument("--interval", type=int, default=60, help="loop poll seconds (default 60; ignored with --once)")
-    ls.add_argument("--once", action="store_true", help="one tick then exit — 0 clean or nothing-new, 3 if the tick captured degradation")
-    ls.add_argument("--verbose", action="store_true", help="heartbeat quiet ticks to stderr")
-    ls.add_argument("--state-path", action="store_true", dest="state_path",
-                    help=argparse.SUPPRESS)  # print resolved state file path, no tick
-    add_json(ls); ls.set_defaults(func=cmd_listen)
     hl = sub.add_parser("health", help="fleet health: which hosts reconcile this team (fulcra-agent-health)")
     hl.add_argument("team"); add_json(hl)
     hl.set_defaults(func=cmd_health)
@@ -3768,7 +3257,8 @@ def build_parser() -> argparse.ArgumentParser:
     tst.add_argument("--workstream", "-w"); tst.add_argument("--status", default="proposed")
     tst.add_argument("--priority", "-p", default="P2"); tst.add_argument("--assignee")
     tst.add_argument("--summary", "-s"); tst.add_argument("--next", "-n")
-    tst.add_argument("--kind", "-k"); tst.add_argument("--force", action="store_true")
+    tst.add_argument("--kind", "-k"); tst.add_argument("--evidence", "-e")
+    tst.add_argument("--force", action="store_true")
     tst.set_defaults(func=cmd_task_start)
     tup = tksub.add_parser("update", help="update a task (enforces the status machine)")
     tup.add_argument("team"); tup.add_argument("name")
@@ -3783,6 +3273,7 @@ def build_parser() -> argparse.ArgumentParser:
     tbl.add_argument("team"); tbl.add_argument("name")
     tbl.add_argument("--blocked-on", dest="blocked_on")
     tbl.add_argument("--on-user", dest="on_user", help="human-facing ask; assigns to FULCRA_COORD_HUMAN/human + tags needs:human")
+    tbl.add_argument("--unlock", help="REQUIRED: what specifically unblocks this")
     tbl.set_defaults(func=cmd_task_block, verb="block")
     tpa = tksub.add_parser("pause", help="pause to waiting (requires --next)")
     tpa.add_argument("team"); tpa.add_argument("name"); tpa.add_argument("--next", "-n", required=True)
@@ -3796,6 +3287,11 @@ def build_parser() -> argparse.ArgumentParser:
     tas = tksub.add_parser("assign", help="set/redirect assignee")
     tas.add_argument("team"); tas.add_argument("name"); tas.add_argument("assignee")
     tas.set_defaults(func=cmd_task_assign, verb="assign")
+    tsp = tksub.add_parser("supersede", help="close live work and name its successor")
+    tsp.add_argument("team"); tsp.add_argument("name")
+    tsp.add_argument("--by", required=True, help="successor task slug or artifact")
+    tsp.add_argument("--reason", "-r")
+    tsp.set_defaults(func=cmd_task_supersede, verb="supersede")
 
     rv = sub.add_parser("review", help="review verdict tally (fulcra-agent-review)")
     rvsub = rv.add_subparsers(dest="review_command", required=True)

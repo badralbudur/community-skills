@@ -15,6 +15,7 @@ from . import okf
 from .model import (
     DEFAULT_PRIORITY,
     DEFAULT_STATUS,
+    TERMINAL_STATUSES,
     VALID_PRIORITIES,
     VALID_STATUSES,
     is_valid_transition,
@@ -62,6 +63,7 @@ def new_task_doc(
     kind: Optional[str] = None,
     not_before: Optional[str] = None,
     slug: Optional[str] = None,
+    evidence: Optional[str] = None,
 ) -> tuple[str, str]:
     """Return ``(slug, content)`` for a new OKF Task doc. Raises on bad enums.
 
@@ -74,6 +76,9 @@ def new_task_doc(
         raise TaskError(f"invalid status {status!r}")
     if priority not in VALID_PRIORITIES:
         raise TaskError(f"invalid priority {priority!r}")
+    if status in TERMINAL_STATUSES and not (evidence or "").strip():
+        label = "reason" if status == "abandoned" else "evidence"
+        raise TaskError(f"a doc created as {status} requires {label}")
     slug = slug or slugify(title)
     tags = []
     if workstream:
@@ -86,7 +91,11 @@ def new_task_doc(
         "owner": owner, "assignee": assignee, "next_action": next_action,
         "not_before": not_before,
     }
-    return slug, okf.render_frontmatter(fm) + f"\n\n# {title}\n"
+    body = f"\n\n# {title}\n"
+    if status in TERMINAL_STATUSES:
+        label = "reason" if status == "abandoned" else "evidence"
+        body += f"\n- {now}: created {status} ({label}: {evidence})\n"
+    return slug, okf.render_frontmatter(fm) + body
 
 
 def apply_update(
@@ -103,6 +112,8 @@ def apply_update(
     add_tags: Optional[list[str]] = None,
     checkpoint_ref: Optional[str] = None,
     remove_tags: Optional[list[str]] = None,
+    unlock: Optional[str] = None,
+    superseded_by: Optional[str] = None,
 ) -> str:
     """Read-modify-write a task doc, enforcing the status machine. Raises
     ``TaskError`` on a missing doc, unparseable frontmatter, or illegal transition."""
@@ -112,11 +123,15 @@ def apply_update(
     split = okf.split_frontmatter(existing or "")
     body = split[1] if split else ""
     old_status = fm.get("status") or DEFAULT_STATUS
+    if superseded_by and old_status in TERMINAL_STATUSES:
+        raise TaskError(f"cannot supersede a terminal task (status {old_status})")
     if status is not None:
         if status not in VALID_STATUSES:
             raise TaskError(f"invalid status {status!r}")
         if not is_valid_transition(old_status, status):
-            raise TaskError(f"illegal transition {old_status} -> {status}")
+            live = {"proposed", "active", "waiting", "blocked"}
+            if not (status == "done" and superseded_by and old_status in live):
+                raise TaskError(f"illegal transition {old_status} -> {status}")
         # Enforce "done requires evidence" HERE so it holds through every entry
         # point (`task update --status done`, not only `task done`).
         if status == "done" and not evidence:
@@ -134,6 +149,10 @@ def apply_update(
         fm["assignee"] = assignee
     if blocked_on is not None:
         fm["blocked_on"] = blocked_on
+    if unlock is not None:
+        fm["unlock"] = unlock
+    if superseded_by is not None:
+        fm["superseded_by"] = superseded_by
     if checkpoint_ref is not None:
         fm["checkpoint_ref"] = checkpoint_ref
     if add_tags:
@@ -161,7 +180,7 @@ def apply_answer(existing: Optional[str], *, now: str, answer: str,
     """The operator return-leg (fulcra-agent-operator): validate the task is a
     waiting-for-operator ask, then in ONE write: record the answer, unblock
     (blocked -> active), hand the task back to its OWNER (so it lands in their
-    inbox and their listener fires), and strip the needs:human marker.
+    inbox and their next queue read surfaces it), and strip the needs:human marker.
     Returns (new_doc, owner). Raises TaskError on a non-ask or missing owner."""
     if not answer or not answer.strip():
         raise TaskError("answer requires text")

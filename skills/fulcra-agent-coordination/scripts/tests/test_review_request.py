@@ -679,7 +679,7 @@ def test_request_write_timeout_fails_loud(capsys):
 def test_request_notifies_each_required_reviewer(capsys):
     # Atomicity: the doc lands and every required reviewer gets a directive
     # through the canonical task path, so a verb-opened review fires the
-    # reviewer's inbox/listen instead of relying on a hand-sent tell.
+    # reviewer's inbox/queue instead of relying on a hand-sent tell.
     t = FakeTransport()
     assert cli.main(["review", "request", "r", "pr-note", "--of", "PR#7",
                      "--reviewer", "alice", "--reviewer", "bob",
