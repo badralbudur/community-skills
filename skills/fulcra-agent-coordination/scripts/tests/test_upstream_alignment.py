@@ -1,5 +1,7 @@
 import importlib.util
+import hashlib
 import json
+import re
 from pathlib import Path
 
 
@@ -61,10 +63,25 @@ def test_checker_classifies_every_upstream_module_and_reports_drift(tmp_path):
 
 def test_public_alignment_files_contain_no_private_topology():
     text = MANIFEST.read_text() + (SKILL / "ALIGNMENT.md").read_text()
-    for forbidden in (
-        "Ashs-MBP",
-        "codex-coord-inbox",
-        "coord-fable-worker",
-        "Daytona",
-    ):
-        assert forbidden not in text
+    hashed_private_tokens = (
+        (8, "0e9e316982776056e8be5ffd43ed10f8cd16a6daa74177ec265f047c70bfd4cc"),
+        (18, "5ec1b025884da59658638bb249c4def570432435ce6fa44b0096dbd187d179ac"),
+        (17, "08f165568f3fa937dd7cbd2b60a61534bb8629df9829b916587bbeb2e040fa2b"),
+        (7, "fbca3a097c1c8b690cbcccf3a1d463558817e32d5761cd4c6b923709cefef438"),
+    )
+    for length, forbidden_digest in hashed_private_tokens:
+        observed = {
+            hashlib.sha256(text[start:start + length].encode()).hexdigest()
+            for start in range(max(0, len(text) - length + 1))
+        }
+        assert forbidden_digest not in observed
+
+    private_identity_shape = re.compile(
+        r"\b(?:codex|claude-code|openclaw):[A-Za-z0-9._-]+:[A-Za-z0-9._-]+\b"
+    )
+    machine_name_shape = re.compile(
+        r"\b[A-Za-z][A-Za-z0-9]*-(?:MBP|MacBook|Workstation|Desktop)"
+        r"(?:-[A-Za-z0-9]+)*\b"
+    )
+    assert private_identity_shape.search(text) is None
+    assert machine_name_shape.search(text) is None
