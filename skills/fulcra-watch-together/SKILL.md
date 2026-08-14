@@ -9,7 +9,7 @@ Build explainable recommendations that are fair to both participants. Treat view
 
 ## Dependencies & References
 
-This skill depends on the `fulcra-ingest` skill (fulcradynamics/agent-skills) and the `fulcra-analytics` skill (fulcradynamics/agent-skills).
+This skill depends on the `fulcra-ingest`, `fulcra-analytics`, and `fulcra-workspaces` skills (fulcradynamics/agent-skills).
 
 ## Workflow
 
@@ -18,7 +18,7 @@ This skill depends on the `fulcra-ingest` skill (fulcradynamics/agent-skills) an
 3. Never infer consent from a user ID, an existing relationship, or one participant's approval. Never use `--share-all`.
 4. Ingest each owner's export independently with `fulcra-ingest`. Prefer Netflix and Letterboxd for the MVP. Preserve provenance and match confidence.
 5. Have each owner create a narrow, preferably time-bounded share. Show the exact command before execution. Read collaborator records with `fulcra get-records <TYPE> <RANGE> --user-id <UUID>`.
-6. Keep raw histories and title-level feature vectors local. Do not write them to team spaces. Explain owner revocation with `fulcra share delete <SHARE_ID>` and recipient departure with `fulcra share leave <SHARE_ID>`.
+6. Keep raw histories and title-level feature vectors local. Do not write them to Fulcra workspaces. Explain owner revocation with `fulcra share delete <SHARE_ID>` and recipient departure with `fulcra share leave <SHARE_ID>`.
 7. Enrich canonical titles only after both participants approve external title disclosure. Cache provider IDs, media type, year, features, runtime, language, creators, franchise, region availability, provenance, and confidence. Never silently merge ambiguous titles or remakes.
 8. For detailed Netflix exports, run `python3 scripts/prepare_netflix.py --input-a A.csv --profile-a PROFILE --input-b B.csv --profile-b PROFILE --catalog catalog.json --output prepared.json`. The approved local catalog must contain canonical watched titles and unseen candidates with feature lists. Inspect coverage and unmatched titles before scoring.
 9. Use `--split-profile PROFILE` only to validate the pipeline with one public or consenting history. It creates deterministic chronological pseudo-participants; never describe their output as real compatibility.
