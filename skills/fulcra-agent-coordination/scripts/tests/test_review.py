@@ -44,3 +44,28 @@ def test_garbage_verdicts_ignored():
     t = review.tally([{"reviewer": "a"}, {"verdict": "approve"}, "nope", _v("b", "approve")])
     assert t["state"] == review.APPROVED
     assert t["approvals"] == ["b"]
+
+
+def test_head_verdict_filename_parsing_keeps_legacy_compatibility():
+    head = "a" * 40
+    assert review.parse_verdict_filename("alice.md") == ("alice", None)
+    assert review.parse_verdict_filename(f"{head}--alice.md", head=head) == (
+        "alice", None)
+    assert review.parse_verdict_filename(
+        f"{head}--alice--2026-08-14T12:00:00Z-deadbeef.md", head=head,
+    ) == ("alice", "2026-08-14T12:00:00Z")
+    assert review.parse_verdict_filename(f"{'b' * 40}--alice.md", head=head) is None
+
+
+def test_newest_append_only_verdict_wins_without_deleting_history():
+    kept, folded = review.fold_newest_per_reviewer([
+        {"reviewer": "alice", "name": "old", "sort_key": "2026-08-14T12:00:00Z",
+         "verdict": "changes"},
+        {"reviewer": "alice", "name": "new", "sort_key": "2026-08-14T12:01:00Z",
+         "verdict": "approve"},
+        {"reviewer": "bob", "name": "only", "sort_key": "2026-08-14T12:00:30Z",
+         "verdict": "approve"},
+    ])
+    assert folded == 1
+    assert [(row["reviewer"], row["verdict"]) for row in kept] == [
+        ("alice", "approve"), ("bob", "approve")]
