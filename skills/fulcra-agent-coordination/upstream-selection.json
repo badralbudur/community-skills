@@ -61,7 +61,9 @@
   "implemented_protocol_clauses": [
     "versioned-file-store-authority",
     "deterministic-derived-state-folds",
-    "typed-task-lifecycle-v1.6.10",
+    "typed-task-lifecycle-with-terminal-evidence",
+    "typed-human-blockers-with-unlock",
+    "live-task-supersession-with-terminal-immutability",
     "directed-work-with-acks",
     "presence-and-role-leases",
     "structured-continuity-v1.6.10",

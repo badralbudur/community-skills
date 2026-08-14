@@ -603,6 +603,7 @@ def cmd_task_start(args: argparse.Namespace, transport: Any) -> int:
             args.title, now=_iso(_now()), workstream=args.workstream, status=args.status,
             priority=args.priority, owner=_host(), assignee=args.assignee,
             summary=args.summary or "", next_action=args.next, kind=args.kind,
+            evidence=args.evidence,
         )
     except tasks.TaskError as e:
         print(f"task start failed: {e}", file=sys.stderr)
@@ -653,11 +654,24 @@ def cmd_task_block(args: argparse.Namespace, transport: Any) -> int:
     if args.blocked_on and args.on_user:
         print("task block failed: pass --blocked-on OR --on-user, not both", file=sys.stderr)
         return 1
-    kw = {"status": "blocked", "blocked_on": args.on_user or args.blocked_on}
+    if not args.unlock and not args.on_user:
+        print("task block failed: --unlock <what specifically unblocks this> "
+              "is required", file=sys.stderr)
+        return 1
+    blocked_on = f"user:{args.on_user}" if args.on_user else args.blocked_on
+    unlock = args.unlock or f"answer from {args.on_user}"
+    kw = {"status": "blocked", "blocked_on": blocked_on, "unlock": unlock}
     if args.on_user:
         kw["assignee"] = _human()
         kw["add_tags"] = ["needs:human"]
     return _task_apply(args, transport, **kw)
+
+
+def cmd_task_supersede(args: argparse.Namespace, transport: Any) -> int:
+    reason = args.reason or f"work re-dispatched as {args.by}"
+    return _task_apply(
+        args, transport, status="done", superseded_by=args.by,
+        evidence=f"superseded by {args.by} ({reason})")
 
 
 def cmd_task_pause(args: argparse.Namespace, transport: Any) -> int:
@@ -3243,7 +3257,8 @@ def build_parser() -> argparse.ArgumentParser:
     tst.add_argument("--workstream", "-w"); tst.add_argument("--status", default="proposed")
     tst.add_argument("--priority", "-p", default="P2"); tst.add_argument("--assignee")
     tst.add_argument("--summary", "-s"); tst.add_argument("--next", "-n")
-    tst.add_argument("--kind", "-k"); tst.add_argument("--force", action="store_true")
+    tst.add_argument("--kind", "-k"); tst.add_argument("--evidence", "-e")
+    tst.add_argument("--force", action="store_true")
     tst.set_defaults(func=cmd_task_start)
     tup = tksub.add_parser("update", help="update a task (enforces the status machine)")
     tup.add_argument("team"); tup.add_argument("name")
@@ -3258,6 +3273,7 @@ def build_parser() -> argparse.ArgumentParser:
     tbl.add_argument("team"); tbl.add_argument("name")
     tbl.add_argument("--blocked-on", dest="blocked_on")
     tbl.add_argument("--on-user", dest="on_user", help="human-facing ask; assigns to FULCRA_COORD_HUMAN/human + tags needs:human")
+    tbl.add_argument("--unlock", help="REQUIRED: what specifically unblocks this")
     tbl.set_defaults(func=cmd_task_block, verb="block")
     tpa = tksub.add_parser("pause", help="pause to waiting (requires --next)")
     tpa.add_argument("team"); tpa.add_argument("name"); tpa.add_argument("--next", "-n", required=True)
@@ -3271,6 +3287,11 @@ def build_parser() -> argparse.ArgumentParser:
     tas = tksub.add_parser("assign", help="set/redirect assignee")
     tas.add_argument("team"); tas.add_argument("name"); tas.add_argument("assignee")
     tas.set_defaults(func=cmd_task_assign, verb="assign")
+    tsp = tksub.add_parser("supersede", help="close live work and name its successor")
+    tsp.add_argument("team"); tsp.add_argument("name")
+    tsp.add_argument("--by", required=True, help="successor task slug or artifact")
+    tsp.add_argument("--reason", "-r")
+    tsp.set_defaults(func=cmd_task_supersede, verb="supersede")
 
     rv = sub.add_parser("review", help="review verdict tally (fulcra-agent-review)")
     rvsub = rv.add_subparsers(dest="review_command", required=True)

@@ -100,8 +100,8 @@ there. The engine computes state; it does not hold opinions about how you run a 
   (roster freshness, inbox lag, health's STALE flag) is bounded by what you pick.
 - **Which roles exist**, their `policy` (`shared`/`exclusive`), `sla_hours`, and maintainer. There is no
   built-in vocabulary and no default org chart.
-- **Whether an unattended operator loop runs** at all — draining inboxes, storing digests, sweeping
-  vacancies — or whether a human drives it.
+- **Whether unattended operator wakes run** at all — draining inboxes, storing digests, sweeping
+  vacancies — or whether a human drives those actions.
 - **What review gates** in your process, and whether required reviewers are roles or named agents.
 - **Snapshot cadence**, and whether sessions end with `continuity park` or a bare snapshot.
 
