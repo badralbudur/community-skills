@@ -2,7 +2,7 @@
 
 The contract is that `briefing` prints "your identity, role inboxes, and
 everything that needs you" and that the fold is your work queue. For that to hold,
-every read fold — not just `listen` — must expand a role assignee; otherwise a
+every read fold must expand a role assignee; otherwise a
 role-addressed `tell` lands in the store, returns 0, and never surfaces for the
 holder. These tests pin the promise.
 
@@ -103,7 +103,7 @@ def test_role_directive_surfaces_in_inbox_and_needs_me_verbs(capsys):
 
 
 def test_stale_lease_hides_role_directive(capsys):
-    # Same rule `listen` already applies (test_listen: lease expiry stops it): a
+    # Same rule queue reads apply: a
     # holder is whoever holds a FRESH lease per the role's own sla_hours. A stale
     # lease is not a holder, so the directive is not this agent's work.
     t = _team_with_role_directive(lease_ts="2020-01-01T00:00:00Z", sla_hours=24)

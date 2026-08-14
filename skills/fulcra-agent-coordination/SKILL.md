@@ -48,6 +48,19 @@ fulcra-api auth login --device-code <DEVICE_CODE>    # completes auth and persis
 
 Then re-run `doctor` to confirm; it checks exactly that.
 
+## One-shot inbox reads, not a resident listener
+
+The engine deliberately has no resident `listen` command. Read an agent's work once with:
+
+```bash
+<skill-dir>/scripts/coord-engine inbox <team> --agent <you> --json
+```
+
+If the team needs recurring unattended work, let the agent harness, cron, or heartbeat scheduler wake the
+agent and run one bounded `inbox` read per wake. Do not build a polling loop around the engine. This keeps
+liveness and retry policy visible to the operator, prevents duplicate hidden daemons, and makes a slow or
+failed store read affect one wake instead of wedging a long-running process.
+
 ## These are layers, not alternatives
 
 Teams is the base. The six below are **optional layers on top of it**, not competing options to choose
@@ -74,7 +87,7 @@ reference it points at.
 | Who is alive right now? | `<skill-dir>/scripts/coord-engine presence show <team> --json` | your row shows `"liveness": "live"` | [presence.md](references/presence.md) |
 | Does anyone hold this role? | `<skill-dir>/scripts/coord-engine roles status <team> <role> --json` | exit 0 and `"status": "HELD"`; exit 1 means the transport is degraded and the role's state is unknown — retry rather than treating it as `VACANT` | [roles.md](references/roles.md) |
 | Can I resume what I left? | `<skill-dir>/scripts/coord-engine continuity resume <team> <you>` | prints an objective and next actions | [continuity.md](references/continuity.md) |
-| Do I have directed work waiting? | `<skill-dir>/scripts/coord-engine inbox <team> --agent <you> --json` | exit 0 and a JSON array with no leading `inbox-degraded` row (that row means transport, not an empty inbox) | [directives.md](references/directives.md) |
+| Do I have directed work waiting? | `<skill-dir>/scripts/coord-engine inbox <team> --agent <you> --json` | exit 0 and a JSON array with no leading `inbox-degraded` row; each invocation is one bounded read | [directives.md](references/directives.md) |
 | Is this artifact cleared to land? | `<skill-dir>/scripts/coord-engine review status <team> <slug> --json` | `"state": "APPROVED"` with empty `pending_required`; exit 1 means the tally is unknown — retry rather than treating it as unapproved | [review.md](references/review.md) |
 | Is anything actually reconciling this team? | `<skill-dir>/scripts/coord-engine health <team> --json` | exit 0 and `"healthy": true` | [health.md](references/health.md) |
 

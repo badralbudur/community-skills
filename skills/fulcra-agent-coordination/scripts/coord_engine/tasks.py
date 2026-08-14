@@ -161,7 +161,7 @@ def apply_answer(existing: Optional[str], *, now: str, answer: str,
     """The operator return-leg (fulcra-agent-operator): validate the task is a
     waiting-for-operator ask, then in ONE write: record the answer, unblock
     (blocked -> active), hand the task back to its OWNER (so it lands in their
-    inbox and their listener fires), and strip the needs:human marker.
+    inbox and their next queue read surfaces it), and strip the needs:human marker.
     Returns (new_doc, owner). Raises TaskError on a non-ask or missing owner."""
     if not answer or not answer.strip():
         raise TaskError("answer requires text")

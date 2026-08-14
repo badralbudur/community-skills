@@ -71,12 +71,11 @@ def test_env_int_policy(monkeypatch):
 
 def test_budget_wrappers_default_when_env_absent(monkeypatch):
     for name in ("COORD_REVIEW_FOLD_BUDGET", "COORD_BRIEFING_BUDGET",
-                 "COORD_LISTEN_CLASSIFY_BUDGET", "COORD_OVERLAY_BUDGET",
+                 "COORD_OVERLAY_BUDGET",
                  "COORD_OVERLAY_CAP", "COORD_TRANSPORT_TIMEOUT"):
         monkeypatch.delenv(name, raising=False)
     assert cli._review_fold_budget() == cli.DEFAULT_REVIEW_FOLD_BUDGET
     assert cli._briefing_budget() == cli.DEFAULT_BRIEFING_BUDGET
-    assert cli._listen_classify_budget() == cli.DEFAULT_LISTEN_CLASSIFY_BUDGET
     assert cli._overlay_budget() == cli.DEFAULT_OVERLAY_BUDGET
     assert cli._overlay_cap() == cli.DEFAULT_OVERLAY_CAP
     assert tr._transport_timeout() == tr.DEFAULT_TRANSPORT_TIMEOUT
@@ -85,7 +84,6 @@ def test_budget_wrappers_default_when_env_absent(monkeypatch):
 @pytest.mark.parametrize("wrapper,env,default", [
     ("_review_fold_budget", "COORD_REVIEW_FOLD_BUDGET", "DEFAULT_REVIEW_FOLD_BUDGET"),
     ("_briefing_budget", "COORD_BRIEFING_BUDGET", "DEFAULT_BRIEFING_BUDGET"),
-    ("_listen_classify_budget", "COORD_LISTEN_CLASSIFY_BUDGET", "DEFAULT_LISTEN_CLASSIFY_BUDGET"),
     ("_overlay_budget", "COORD_OVERLAY_BUDGET", "DEFAULT_OVERLAY_BUDGET"),
 ])
 def test_budget_wrappers_honor_env_and_reject_bad(monkeypatch, wrapper, env, default):
