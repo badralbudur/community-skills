@@ -9,7 +9,7 @@ Build explainable recommendations that are fair to both participants. Treat view
 
 ## Dependencies & References
 
-This skill depends on the core `fulcra-ingest` and `fulcra-analytics` skills. You MUST load them via `skill_view(name="fulcra-ingest")` and `skill_view(name="fulcra-analytics")` before using their workflows or commands.
+This skill depends on the `fulcra-ingest` skill (fulcradynamics/agent-skills) and the `fulcra-analytics` skill (fulcradynamics/agent-skills).
 
 ## Workflow
 
