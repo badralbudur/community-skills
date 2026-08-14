@@ -24,6 +24,7 @@ def test_manifest_has_honest_snapshot_provenance_and_full_comparison_sha():
     assert manifest["snapshot"]["exact_upstream_commit"] is None
     assert "not recorded" in manifest["snapshot"]["provenance"].lower()
     comparison = manifest["comparison_upstream"]
+    assert comparison["repository"] == "https://github.com/ashfulcra/fulcra-tools"
     assert len(comparison["commit"]) == 40
     assert all(character in "0123456789abcdef" for character in comparison["commit"])
     assert comparison["engine_version"] == "1.11.0"

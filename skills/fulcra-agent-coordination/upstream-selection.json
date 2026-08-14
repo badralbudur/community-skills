@@ -7,7 +7,7 @@
     "provenance": "The 1.6.10 tree was adapted and product-neutralized when vendored; its exact upstream source commit was not recorded. Do not infer one from version alone."
   },
   "comparison_upstream": {
-    "repository": "https://github.com/fulcradynamics/fulcra-tools",
+    "repository": "https://github.com/ashfulcra/fulcra-tools",
     "commit": "facf745137fa64aa1133d5d02982ee6d24468cef",
     "engine_version": "1.11.0"
   },
