@@ -835,6 +835,18 @@ def _settled_marker_path(team: str, slug: str) -> str:
     return _verdicts_prefix(team, slug) + SETTLED_MARKER
 
 
+def _clear_settled_marker(transport: Any, team: str, slug: str) -> bool:
+    """Idempotently prove the fold cache absent, or fail closed."""
+    try:
+        names = {entry.get("name") for entry in
+                 transport.list_dir(_verdicts_prefix(team, slug))}
+    except TransportError:
+        return False
+    if SETTLED_MARKER not in names:
+        return True
+    return bool(transport.delete(_settled_marker_path(team, slug)))
+
+
 def _review_fold_budget() -> float:
     """Aggregate deadline for `_pending_reviews_for`, seconds. Env
     ``COORD_REVIEW_FOLD_BUDGET`` (see the DEFAULT_REVIEW_FOLD_BUDGET rationale)."""
@@ -1698,7 +1710,10 @@ def cmd_review_request(args: argparse.Namespace, transport: Any) -> int:
                 round_no = max(1, int(existing_fm.get("round") or 1)) + 1
             except (TypeError, ValueError):
                 round_no = 2
-            transport.delete(_settled_marker_path(team, slug))
+            if not _clear_settled_marker(transport, team, slug):
+                print("review request cannot clear the prior settled marker — "
+                      "the new round could remain hidden; retry", file=sys.stderr)
+                return 1
             advanced_fm = dict(existing_fm)
             advanced_fm.update({
                 "schema": "review-request/v2",
@@ -1731,7 +1746,10 @@ def cmd_review_request(args: argparse.Namespace, transport: Any) -> int:
         # — hash-path dedup re-verifies the ones that landed (rc 0 "already
         # delivered") and delivers the ones a prior partial failure dropped. This
         # is what makes a partial-delivery retry CONVERGE instead of dying here.
-        transport.delete(_settled_marker_path(team, slug))
+        if not _clear_settled_marker(transport, team, slug):
+            print("review request cannot clear the settled marker — reviewer "
+                  "obligations could remain hidden; retry", file=sys.stderr)
+            return 1
         delivered, failed = _deliver_all_review_directives(
             transport, team, slug, required, owner=owner, of=args.of,
             head=existing_head)

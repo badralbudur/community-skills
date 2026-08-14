@@ -117,6 +117,24 @@ def test_new_head_advances_same_slug_and_ignores_prior_head_verdict(capsys):
     assert result["pending_required"] == ["alice"]
 
 
+def test_new_head_refuses_to_advance_when_settled_marker_cannot_clear(capsys):
+    class DeleteFails(FakeTransport):
+        def delete(self, path):
+            return False
+
+    t = DeleteFails()
+    base = ["review", "request", "r", "pr-stuck", "--of", "PR#1",
+            "--reviewer", "alice", "--from", "requester"]
+    assert cli.main([*base, "--head", HEAD_A], transport=t) == 0
+    marker = "team/r/review/pr-stuck/verdicts/.settled"
+    t.put(marker, "---\nschema: review-settled/v1\nstate: APPROVED\n---\n")
+    capsys.readouterr()
+    assert cli.main([*base, "--head", HEAD_B], transport=t) == 1
+    assert "cannot clear" in capsys.readouterr().err
+    fm = okf.parse_frontmatter(t.read("team/r/review/pr-stuck.md"))
+    assert fm["head"] == HEAD_A
+
+
 def test_current_head_requires_matching_head_in_verdict_frontmatter(capsys):
     t = FakeTransport()
     assert cli.main(
