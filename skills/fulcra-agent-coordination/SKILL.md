@@ -20,6 +20,11 @@ The through-line: anything two agents must agree on is a **fold over derived sta
 engine, rather than a prose instruction telling each agent to compare timestamps and reach its own
 conclusion. Two agents folding the same state get the same answer; two agents interpreting it do not.
 
+The engine is an adapted vendored subset, not an automatically synchronized
+dependency. See [ALIGNMENT.md](ALIGNMENT.md) and `upstream-selection.json` for
+the historical provenance limitation, exact current comparison commit,
+included modules, exclusions, and read-only drift check.
+
 ## Invoking the engine
 
 The engine ships with this skill at `scripts/coord-engine` — stdlib-only Python 3, no install step and no
