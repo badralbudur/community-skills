@@ -7,6 +7,7 @@ here; the I/O wrapper + CLI live in ``cli.py``.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 APPROVED = "APPROVED"
@@ -15,6 +16,58 @@ PENDING = "PENDING"
 
 _APPROVE = {"approve", "approved", "lgtm"}
 _CHANGES = {"changes", "request-changes", "reject", "rejected"}
+_EXACT_HEAD = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+_APPEND_SUFFIX = re.compile(
+    r"--(?P<ts>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)-(?P<digest>[0-9a-f]{6,16})$")
+
+
+def normalize_head(value: Any) -> Optional[str]:
+    """Return a canonical full SHA-1/SHA-256 object id, or ``None``."""
+    head = str(value or "").strip().lower()
+    return head if _EXACT_HEAD.fullmatch(head) else None
+
+
+def verdict_filename(reviewer: str, *, head: Optional[str] = None,
+                     ts: Optional[str] = None,
+                     digest: Optional[str] = None) -> str:
+    """Name a legacy, head-keyed, or append-only verdict shard."""
+    if head and ts and digest:
+        return f"{head}--{reviewer}--{ts}-{digest}.md"
+    return f"{head}--{reviewer}.md" if head else f"{reviewer}.md"
+
+
+def parse_verdict_filename(
+    name: str, *, head: Optional[str] = None
+) -> Optional[tuple[str, Optional[str]]]:
+    """Return ``(reviewer, timestamp)`` when ``name`` belongs to ``head``."""
+    if not name.endswith(".md"):
+        return None
+    stem = name[:-3]
+    if head:
+        prefix = f"{head}--"
+        if not stem.startswith(prefix):
+            return None
+        rest = stem[len(prefix):]
+        match = _APPEND_SUFFIX.search(rest)
+        if match:
+            reviewer = rest[:match.start()]
+            return (reviewer, match.group("ts")) if reviewer else None
+        return (rest, None) if rest else None
+    return (stem, None) if "--" not in stem else None
+
+
+def fold_newest_per_reviewer(
+    rows: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], int]:
+    """Deterministically retain the newest append-only shard per reviewer."""
+    best: dict[str, dict[str, Any]] = {}
+    folded = 0
+    for row in sorted(rows, key=lambda item: (
+            item.get("sort_key") or "", item.get("name") or "")):
+        if row["reviewer"] in best:
+            folded += 1
+        best[row["reviewer"]] = row
+    return [best[key] for key in sorted(best)], folded
 
 
 def normalize_verdict(v: Optional[str]) -> Optional[str]:

@@ -61,7 +61,7 @@ _TRUNCATION_MARK = "…"
 #: force-reparses any prior row whose stamp != this, so a projection change heals
 #: the whole index within one full pass instead of only rows that happen to be
 #: rebuilt. Kept a tiny key + small int: it is stored per-row in the index.
-ROW_SCHEMA_VERSION = 1
+ROW_SCHEMA_VERSION = 2
 
 
 def cap_summary_text(text: str, cap: Optional[int] = None) -> str:
@@ -112,6 +112,8 @@ def row_from_frontmatter(
         "timestamp": fm.get("timestamp"),
         "mtime": mtime,
         "blocked_on": fm.get("blocked_on"),
+        "unlock": fm.get("unlock"),
+        "superseded_by": fm.get("superseded_by"),
         "due": fm.get("due"),
         "not_before": fm.get("not_before"),
         "checkpoint_ref": fm.get("checkpoint_ref"),

@@ -235,7 +235,7 @@ ACKS_STREAK_KEY = "acks_incremental_streak"
 #: a pass knew a slug had changed but could not READ it, reusing generated_at
 #: would consume the change — the next window would start past it and the new ack
 #: would stay invisible until the periodic backstop. That is a FALSE ADVANCE (the
-#: `listen` fold's discipline: a failed read must never mark unknown state as
+#: queue fold discipline: a failed read must never mark unknown state as
 #: seen). This anchor advances ONLY on a fold that read everything it meant to,
 #: so an unread change stays inside the next pass's window. Absent (a legacy
 #: aggregate, or a pass that never got a conclusive fold) means NO anchor — a
