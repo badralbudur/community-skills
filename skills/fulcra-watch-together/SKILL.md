@@ -7,6 +7,10 @@ description: "Compare two consenting people's viewing histories and recommend mu
 
 Build explainable recommendations that are fair to both participants. Treat viewing history as private personal data.
 
+## Dependencies & References
+
+This skill depends on the core `fulcra-ingest` and `fulcra-analytics` skills. You MUST load them via `skill_view(name="fulcra-ingest")` and `skill_view(name="fulcra-analytics")` before using their workflows or commands.
+
 ## Workflow
 
 1. Identify both participants and whether the request is mutual or single-person.
