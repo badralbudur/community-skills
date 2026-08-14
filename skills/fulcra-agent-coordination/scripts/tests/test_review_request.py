@@ -7,11 +7,27 @@ reviewer acked the directives and the obligation vanished with them.
 """
 
 import json
+import re
 import time
 
 from coord_engine import cli, okf, reconcile
 from coord_engine.transport import TransportError
 from coord_engine_test_helpers import FakeTransport
+
+
+HEAD_A = "a" * 40
+HEAD_B = "b" * 40
+
+
+def _head_verdict(head, reviewer="alice", verdict="approve"):
+    return (
+        "---\n"
+        "type: Verdict\n"
+        f"reviewer: {reviewer}\n"
+        f"head: {head}\n"
+        f"verdict: {verdict}\n"
+        "---\n"
+    )
 
 
 # --- bounded-review-fold fixtures -------------------------------------------
@@ -56,6 +72,154 @@ def _approve(t, slug, reviewer="rev"):
               "--reviewer", reviewer], transport=t)
     t.put(f"team/r/review/{slug}/verdicts/{reviewer}.md",
           f"---\ntype: Verdict\nreviewer: {reviewer}\nverdict: approve\n---\n")
+
+
+def test_head_request_writes_v2_round_and_head_specific_paths(capsys):
+    t = FakeTransport()
+    assert cli.main(
+        ["review", "request", "r", "pr-86", "--of", "https://example/pr/86",
+         "--head", HEAD_A, "--reviewer", "alice", "--from", "requester"],
+        transport=t,
+    ) == 0
+    cap = capsys.readouterr()
+    fm = okf.parse_frontmatter(t.read("team/r/review/pr-86.md"))
+    assert fm["schema"] == "review-request/v2"
+    assert fm["head"] == HEAD_A
+    assert fm["round"] == "1"
+    verdict_path = f"team/r/review/pr-86/verdicts/{HEAD_A}--alice.md"
+    assert verdict_path in cap.out
+    assert any(verdict_path in content for path, content in t.store.items()
+               if path.startswith("team/r/task/"))
+
+
+def test_new_head_advances_same_slug_and_ignores_prior_head_verdict(capsys):
+    t = FakeTransport()
+    base = ["review", "request", "r", "pr-86", "--of", "https://example/pr/86",
+            "--reviewer", "alice", "--from", "requester"]
+    assert cli.main([*base, "--head", HEAD_A], transport=t) == 0
+    t.put(f"team/r/review/pr-86/verdicts/{HEAD_A}--alice.md",
+          _head_verdict(HEAD_A))
+    capsys.readouterr()
+    assert cli.main(["review", "status", "r", "pr-86", "--json"], transport=t) == 0
+    assert json.loads(capsys.readouterr().out)["state"] == "APPROVED"
+
+    assert cli.main([*base, "--head", HEAD_B], transport=t) == 0
+    capsys.readouterr()
+    fm = okf.parse_frontmatter(t.read("team/r/review/pr-86.md"))
+    assert fm["head"] == HEAD_B
+    assert fm["round"] == "2"
+    assert f"team/r/review/pr-86/verdicts/{HEAD_A}--alice.md" in t.store
+    assert cli.main(["review", "status", "r", "pr-86", "--json"], transport=t) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["state"] == "PENDING"
+    assert result["head"] == HEAD_B
+    assert result["round"] == 2
+    assert result["pending_required"] == ["alice"]
+
+
+def test_new_head_refuses_to_advance_when_settled_marker_cannot_clear(capsys):
+    class DeleteFails(FakeTransport):
+        def delete(self, path):
+            return False
+
+    t = DeleteFails()
+    base = ["review", "request", "r", "pr-stuck", "--of", "PR#1",
+            "--reviewer", "alice", "--from", "requester"]
+    assert cli.main([*base, "--head", HEAD_A], transport=t) == 0
+    marker = "team/r/review/pr-stuck/verdicts/.settled"
+    t.put(marker, "---\nschema: review-settled/v1\nstate: APPROVED\n---\n")
+    capsys.readouterr()
+    assert cli.main([*base, "--head", HEAD_B], transport=t) == 1
+    assert "cannot clear" in capsys.readouterr().err
+    fm = okf.parse_frontmatter(t.read("team/r/review/pr-stuck.md"))
+    assert fm["head"] == HEAD_A
+
+
+def test_current_head_requires_matching_head_in_verdict_frontmatter(capsys):
+    t = FakeTransport()
+    assert cli.main(
+        ["review", "request", "r", "pr-86", "--of", "https://example/pr/86",
+         "--head", HEAD_B, "--reviewer", "alice"], transport=t) == 0
+    t.put(f"team/r/review/pr-86/verdicts/{HEAD_B}--alice.md",
+          _head_verdict(HEAD_A))
+    capsys.readouterr()
+    rc = cli.main(["review", "status", "r", "pr-86", "--json"], transport=t)
+    cap = capsys.readouterr()
+    assert rc == 3
+    assert "not this round's head" in cap.err
+    result = json.loads(cap.out)
+    assert result["state"] == "PENDING"
+    assert result["head_mismatched_verdicts"] == [
+        {"file": f"{HEAD_B}--alice.md", "claimed_head": HEAD_A}
+    ]
+
+
+def test_matching_head_verdict_stays_silent_and_counts(capsys):
+    t = FakeTransport()
+    assert cli.main(
+        ["review", "request", "r", "pr-ok", "--of", "PR#1", "--head", HEAD_A,
+         "--reviewer", "alice"], transport=t) == 0
+    t.put(f"team/r/review/pr-ok/verdicts/{HEAD_A}--alice.md",
+          _head_verdict(HEAD_A))
+    capsys.readouterr()
+    assert cli.main(["review", "status", "r", "pr-ok"], transport=t) == 0
+    cap = capsys.readouterr()
+    assert "APPROVED" in cap.out
+    assert "not this round's head" not in cap.err
+
+
+def test_keyed_shard_on_headless_review_is_uncounted_and_loud(capsys):
+    t = FakeTransport()
+    assert cli.main(
+        ["review", "request", "r", "pr-old", "--of", "PR#1",
+         "--reviewer", "alice"], transport=t) == 0
+    filename = f"{HEAD_A}--alice.md"
+    t.put(f"team/r/review/pr-old/verdicts/{filename}", _head_verdict(HEAD_A))
+    capsys.readouterr()
+    assert cli.main(["review", "status", "r", "pr-old", "--json"],
+                    transport=t) == 3
+    cap = capsys.readouterr()
+    assert filename in cap.err and "NOT counted" in cap.err
+    result = json.loads(cap.out)
+    assert result["state"] == "PENDING"
+    assert result["unattributable"] == [filename]
+
+
+def test_head_request_rejects_non_exact_sha_without_writes(capsys):
+    t = FakeTransport()
+    assert cli.main(
+        ["review", "request", "r", "pr-86", "--of", "https://example/pr/86",
+         "--head", "abc1234", "--reviewer", "alice"], transport=t) == 2
+    assert "exact 40- or 64-hex commit SHA" in capsys.readouterr().err
+    assert t.read("team/r/review/pr-86.md") is None
+
+
+def test_two_reviewers_file_distinct_append_only_verdicts(capsys):
+    t = FakeTransport()
+    assert cli.main(
+        ["review", "request", "r", "pr-append", "--of", "PR#1",
+         "--head", HEAD_A, "--reviewer", "alice", "--reviewer", "bob"],
+        transport=t,
+    ) == 0
+    capsys.readouterr()
+    for reviewer in ("alice", "bob"):
+        assert cli.main(
+            ["review", "verdict", "r", "pr-append", "--head", HEAD_A,
+             "--verdict", "approve", "--from", reviewer], transport=t,
+        ) == 0
+    names = [p.rsplit("/", 1)[-1] for p in t.store
+             if p.startswith("team/r/review/pr-append/verdicts/")
+             and p.endswith(".md")]
+    assert len(names) == 2
+    assert all(re.fullmatch(
+        rf"{HEAD_A}--(?:alice|bob)--\d{{4}}-\d{{2}}-\d{{2}}T"
+        r"\d{2}:\d{2}:\d{2}Z-[0-9a-f]{8}\.md", name) for name in names)
+    capsys.readouterr()
+    assert cli.main(["review", "status", "r", "pr-append", "--json"],
+                    transport=t) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["state"] == "APPROVED"
+    assert result["approvals"] == ["alice", "bob"]
 
 
 def test_settled_slug_skipped_with_zero_reads(capsys):
