@@ -31,26 +31,31 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Commit:** Commit the brief and `.gitignore`.
 
 ### 2. Architecture & Spec (User Gate)
-- **Action:** Map the requirements to Fulcra capabilities (`fulcra-api catalog`). If a data type exists, use it. If not, define a custom data type. Compile the findings into a strict, immutable specification.
+- **Action:** Map the requirements to Fulcra capabilities (`fulcra-api catalog`). Compile the findings into a strict, immutable specification.
 - **Artifact:** Write `spec.md` (capability map, architecture, explicit generation rules, and explicit evaluation criteria).
 - **Gate:** STOP and ask the user to review `spec.md`. Do not proceed until approved.
 - **Commit:** Commit the spec.
 
-### 3. Harness Scaffolding
-- **Action:** Generate the harness skeleton in the user's workspace based on the Universal Invariants. 
+### 3. Harness Scaffolding (via Fulcra Workspaces)
+- **Action:** Generate the harness in the user's Fulcra workspace (`team/prototype-<project>/`) to orchestrate the generation and evaluation loops. You will use `fulcra-workspaces` team primitives (inboxes and shared files) to manage the coordination process.
 - **Artifacts:**
-  - `generator.sh` / `generator.py`: A script or agent execution template that takes the `spec.md` and generates the artifact.
-  - `evaluator.sh` / `evaluator.py`: A test script or validation agent that strictly compares the generated artifact against `spec.md`.
-  - `runner.sh`: A script to loop the generator and evaluator (up to N times, typically 3), halting on success or escalating on max retries.
-- **Commit:** Commit the harness scripts.
+  - **Shared Spec:** Upload `spec.md` to `team/prototype-<project>/knowledge/spec.md`.
+  - **Team Roles:** Create `role.md` files defining at least two distinct agent roles: a **Generator** (responsible for creating the artifact based strictly on the spec) and an **Evaluator** (responsible for scoring the artifact against the spec).
+  - **The Runner Script:** Create `runner.sh` or `runner.py` locally. This script coordinates the flow by writing messages to the Fulcra Workspaces inboxes:
+    1. Sends a generation task to `team/prototype-<project>/member/generator/inbox/`.
+    2. Waits for the generator to post the resulting artifact to `team/prototype-<project>/artifact/`.
+    3. Sends an evaluation task to `team/prototype-<project>/member/evaluator/inbox/`.
+    4. Evaluates the verdict. If the verdict is a pass, it halts successfully. If it is a failure, it loops the feedback back to the generator's inbox, tracking the retry count.
+    5. If the retry count exceeds the bounded limit (typically 3), it halts and escalates to the user.
+- **Commit:** Commit the local harness scripts.
 
 ### 4. Prototype & Iterate (User Gate)
-- **Action:** Execute the harness `runner.sh`. It will attempt to generate and evaluate the target artifact using real Fulcra data (no mock data). 
-- **Correction Rule:** If the harness fails or produces undesirable results, DO NOT manually edit the generated artifact! Instead, work with the user to update the `spec.md`, the generator prompt, or improve the evaluator script to catch the problem automatically, then run the harness again.
+- **Action:** Execute the harness `runner.sh`. It will orchestrate the generator and evaluator agents via Fulcra Workspaces to build the target artifact using real data. 
+- **Correction Rule:** If the harness escalates or fails, DO NOT manually edit the generated artifact! Instead, work with the user to update the `spec.md` (and re-upload it to the workspace knowledge base), refine the generator instructions, or improve the evaluator script. Then, run the harness again.
 - **Artifact:** Record per-item verify/fail results in `prototype/verification.md`. 
 - **Gate:** STOP and ask the user to review the verification record.
 - **Commit:** Commit the spikes and verification log.
-- **Backup:** Run `git bundle create prototype.bundle --all` and `fulcra-api file upload prototype.bundle /prototypes/<project-name>.bundle`.
+- **Backup:** Run `git bundle create prototype.bundle --all` and upload it to `/prototypes/<project-name>.bundle`.
 
 ### 5. Retro
 - **Action:** Review the engagement. What worked? What platform gaps bit us?
