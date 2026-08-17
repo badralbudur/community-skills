@@ -43,20 +43,34 @@ def parse_time(value):
 def read_profile(path, profile):
     with open(path, newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.DictReader(handle))
-    required = {"Profile Name", "Start Time", "Duration", "Title"}
-    if not rows or not required.issubset(rows[0]):
-        raise ValueError("Expected detailed Netflix ViewingActivity.csv columns")
+    
+    # The instant export only requires Profile Name and Title.
+    # The detailed export also includes Start Time and Duration.
+    is_detailed = {"Profile Name", "Start Time", "Duration", "Title"}.issubset(rows[0])
+    is_instant = {"Profile Name", "Title"}.issubset(rows[0])
+    
+    if not is_detailed and not is_instant:
+        raise ValueError("Expected either detailed or instant Netflix ViewingActivity.csv columns")
+        
     selected = []
     for row in rows:
         if row["Profile Name"] != profile:
             continue
-        seconds = duration_seconds(row["Duration"])
-        if seconds < 300:
-            continue
+            
+        if is_detailed:
+            seconds = duration_seconds(row["Duration"])
+            if seconds < 300:
+                continue
+            time_val = parse_time(row["Start Time"])
+        else:
+            # Instant export lacks duration and start time; infer constant weight and epoch time
+            seconds = 1800  # Assume 30 mins as a baseline
+            time_val = datetime.fromtimestamp(0)
+            
         selected.append({
             "canonical": canonicalize(row["Title"]),
             "seconds": seconds,
-            "time": parse_time(row["Start Time"]),
+            "time": time_val,
         })
     if len(selected) < 5:
         raise ValueError("Profile %s has fewer than five qualifying sessions" % profile)

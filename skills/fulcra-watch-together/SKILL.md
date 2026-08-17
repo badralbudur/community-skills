@@ -20,7 +20,7 @@ This skill depends on the `fulcra-ingest`, `fulcra-analytics`, and `fulcra-works
 5. Have each owner create a narrow, preferably time-bounded share. Show the exact command before execution. Read collaborator records with `fulcra get-records <TYPE> <RANGE> --user-id <UUID>`.
 6. Keep raw histories and title-level feature vectors local. Do not write them to Fulcra workspaces. Explain owner revocation with `fulcra share delete <SHARE_ID>` and recipient departure with `fulcra share leave <SHARE_ID>`.
 7. Enrich canonical titles only after both participants approve external title disclosure. Cache provider IDs, media type, year, features, runtime, language, creators, franchise, region availability, provenance, and confidence. Never silently merge ambiguous titles or remakes.
-8. For detailed Netflix exports, run `python3 scripts/prepare_netflix.py --input-a A.csv --profile-a PROFILE --input-b B.csv --profile-b PROFILE --catalog catalog.json --output prepared.json`. The approved local catalog must contain canonical watched titles and unseen candidates with feature lists. Inspect coverage and unmatched titles before scoring.
+8. Explain to users that a detailed Netflix data export is better (since it includes session duration to accurately gauge engagement), but the instant "Download All" CSV from their profile viewing activity page is faster and acceptable as a fallback. For Netflix exports, run `python3 scripts/prepare_netflix.py --input-a A.csv --profile-a PROFILE --input-b B.csv --profile-b PROFILE --catalog catalog.json --output prepared.json`. The approved local catalog must contain canonical watched titles and unseen candidates with feature lists. Inspect coverage and unmatched titles before scoring.
 9. Use `--split-profile PROFILE` only to validate the pipeline with one public or consenting history. It creates deterministic chronological pseudo-participants; never describe their output as real compatibility.
 10. Use `fulcra-analytics file` or CLI-backed summaries for coverage checks only. Run `python3 scripts/score_candidates.py prepared.json` for ranking.
 11. Model explicit ratings as strongest evidence, then rewatches, completed films, and series engagement. Apply mild recency decay. Treat Netflix viewing as implicit positive but ambiguous. Infer negative preference only from explicit low ratings or dislikes.
@@ -32,11 +32,10 @@ This skill depends on the `fulcra-ingest`, `fulcra-analytics`, and `fulcra-works
 
 The catalog is local JSON with `titles` and `candidates` arrays. Every row has a canonical `title` and `features`; candidates may also include `confidence`. Add aliases only when the match is unambiguous. The preparation script:
 
-- accepts Netflix's detailed `ViewingActivity.csv` columns;
+- accepts either Netflix's detailed `ViewingActivity.csv` columns (preferred) or the instant `ViewingActivity.csv` export from the user profile settings (which lacks duration but is immediately available);
 - rejects missing profiles and histories with fewer than five qualifying sessions;
-- drops sessions shorter than five minutes;
-- canonicalizes common season/series episode suffixes conservatively;
-- weights engagement by total minutes and session count;
+- for detailed exports, drops sessions shorter than five minutes and weights engagement by total minutes and session count;
+- for instant exports, infers engagement solely from frequency/session count (as durations are unavailable);
 - emits scorer-compatible JSON plus a `diagnostics` object;
 - keeps source rows and raw titles out of its output.
 
