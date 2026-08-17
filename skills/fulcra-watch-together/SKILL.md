@@ -14,19 +14,19 @@ This skill depends on the `fulcra-ingest`, `fulcra-analytics`, and `fulcra-works
 ## Workflow
 
 1. Identify both participants and whether the request is mutual or single-person.
-2. Obtain explicit consent from each participant for the source/export, exact Fulcra data types, date range, analysis recipient, enrichment provider and title disclosure, retention, and any saved output.
-3. Never infer consent from a user ID, an existing relationship, or one participant's approval. Never use `--share-all`.
+2. Treat the provisioning of a Fulcra share or the explicit sharing of a file as sufficient consent from the participant to run the analysis, keep the data locally for the session, and enrich it.
+3. Never use `--share-all`.
 4. Ingest each owner's export independently with `fulcra-ingest` (instruct users to upload their exports to the Fulcra File Store at https://context.fulcradynamics.com/library/files). Prefer Netflix and Letterboxd for the MVP. Preserve provenance and match confidence.
 5. Have each owner create a narrow, preferably time-bounded share. Show the exact command before execution. Read collaborator records with `fulcra get-records <TYPE> <RANGE> --user-id <UUID>`.
 6. Keep raw histories and title-level feature vectors local. Do not write them to Fulcra workspaces. Explain owner revocation with `fulcra share delete <SHARE_ID>` and recipient departure with `fulcra share leave <SHARE_ID>`.
-7. Enrich canonical titles only after both participants approve external title disclosure. Cache provider IDs, media type, year, features, runtime, language, creators, franchise, region availability, provenance, and confidence. Never silently merge ambiguous titles or remakes.
+7. Enrich canonical titles. Cache provider IDs, media type, year, features, runtime, language, creators, franchise, region availability, provenance, and confidence. Never silently merge ambiguous titles or remakes.
 8. Explain to users that a detailed Netflix data export is better (since it includes session duration to accurately gauge engagement), but the instant "Download All" CSV from their profile viewing activity page is faster and acceptable as a fallback. For Netflix exports, run `python3 scripts/prepare_netflix.py --input-a A.csv --profile-a PROFILE --input-b B.csv --profile-b PROFILE --catalog catalog.json --output prepared.json`. The approved local catalog must contain canonical watched titles and unseen candidates with feature lists. Inspect coverage and unmatched titles before scoring.
 9. Use `--split-profile PROFILE` only to validate the pipeline with one public or consenting history. It creates deterministic chronological pseudo-participants; never describe their output as real compatibility.
 10. Use `fulcra-analytics file` or CLI-backed summaries for coverage checks only. Run `python3 scripts/score_candidates.py prepared.json` for ranking.
 11. Model explicit ratings as strongest evidence, then rewatches, completed films, and series engagement. Apply mild recency decay. Treat Netflix viewing as implicit positive but ambiguous. Infer negative preference only from explicit low ratings or dislikes.
 12. Report overlap, shared favorites, complementary differences, catalog coverage, unmatched titles, and uncertainty. Avoid pseudo-precise compatibility scores for sparse histories.
 13. Rank unseen candidates with `0.45 * min(person_a, person_b) + 0.35 * mean(person_a, person_b) + 0.20 * shared_feature_confidence`. Enforce explicit dislike/veto thresholds, then rerank for novelty, diversity, availability, runtime, mood, and franchise fatigue.
-14. Return 5–10 recommendations with separate reasons for each participant, confidence, assumptions, and revocation guidance. Save aggregate annotations only with both participants' consent; never persist partner-derived raw features.
+13. Return 5–10 recommendations with separate reasons for each participant, confidence, assumptions, and revocation guidance. Save aggregate annotations; never persist partner-derived raw features.
 
 ## Netflix Preparation Contract
 
@@ -45,7 +45,7 @@ Do not rank when either participant has under 20% catalog coverage or fewer than
 
 - One history: request the second share/export or use a short preference questionnaire.
 - Sparse histories: combine questionnaires with a diverse popular shortlist and lower confidence.
-- No enrichment consent: use approved local metadata or title/genre evidence and state the limitation.
+- Enrichment failure: use approved local metadata or title/genre evidence and state the limitation.
 - Conflicting tastes: offer compromise genres, alternating picks, or explicit veto-safe choices.
 - No availability data: omit availability claims.
 - No Fulcra access: analyze two explicitly supplied local files without requiring upload to the Fulcra File Store (https://context.fulcradynamics.com/library/files).
