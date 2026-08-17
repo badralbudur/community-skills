@@ -16,7 +16,7 @@ This skill depends on the `fulcra-ingest`, `fulcra-analytics`, and `fulcra-works
 1. Identify both participants and whether the request is mutual or single-person.
 2. Obtain explicit consent from each participant for the source/export, exact Fulcra data types, date range, analysis recipient, enrichment provider and title disclosure, retention, and any saved output.
 3. Never infer consent from a user ID, an existing relationship, or one participant's approval. Never use `--share-all`.
-4. Ingest each owner's export independently with `fulcra-ingest`. Prefer Netflix and Letterboxd for the MVP. Preserve provenance and match confidence.
+4. Ingest each owner's export independently with `fulcra-ingest` (instruct users to upload their exports to the Fulcra File Store at https://context.fulcradynamics.com/library/files). Prefer Netflix and Letterboxd for the MVP. Preserve provenance and match confidence.
 5. Have each owner create a narrow, preferably time-bounded share. Show the exact command before execution. Read collaborator records with `fulcra get-records <TYPE> <RANGE> --user-id <UUID>`.
 6. Keep raw histories and title-level feature vectors local. Do not write them to Fulcra workspaces. Explain owner revocation with `fulcra share delete <SHARE_ID>` and recipient departure with `fulcra share leave <SHARE_ID>`.
 7. Enrich canonical titles only after both participants approve external title disclosure. Cache provider IDs, media type, year, features, runtime, language, creators, franchise, region availability, provenance, and confidence. Never silently merge ambiguous titles or remakes.
@@ -49,7 +49,7 @@ Do not rank when either participant has under 20% catalog coverage or fewer than
 - No enrichment consent: use approved local metadata or title/genre evidence and state the limitation.
 - Conflicting tastes: offer compromise genres, alternating picks, or explicit veto-safe choices.
 - No availability data: omit availability claims.
-- No Fulcra access: analyze two explicitly supplied local files without upload.
+- No Fulcra access: analyze two explicitly supplied local files without requiring upload to the Fulcra File Store (https://context.fulcradynamics.com/library/files).
 
 ## Validation
 
