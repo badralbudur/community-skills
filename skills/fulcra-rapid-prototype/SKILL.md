@@ -41,7 +41,7 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Artifacts:**
   - **Shared Spec:** Upload `spec.md` to `team/prototype-<project>/knowledge/spec.md`.
   - **Team Roles:** Create `role.md` files defining at least two distinct agent roles: a **Generator** (responsible for creating the artifact based strictly on the spec) and an **Evaluator** (responsible for scoring the artifact against the spec).
-  - **The Runner Script:** Create `runner.sh` or `runner.py` locally. This script ONLY coordinates the workflow by writing explicit coordination messages to the Fulcra Workspaces inboxes:
+  - **The Coordinator Script:** Create `coordinator.sh` or `coordinator.py` locally. This script ONLY coordinates the workflow by writing explicit coordination messages to the Fulcra Workspaces inboxes:
     1. Sends a generation task message (referencing the shared spec) to `team/prototype-<project>/member/generator/inbox/`.
     2. Waits (polls the workspace state) for the generator agent to post the resulting artifact to `team/prototype-<project>/artifact/`.
     3. Sends an evaluation task message (pointing to both the artifact and the spec) to `team/prototype-<project>/member/evaluator/inbox/`.
@@ -50,7 +50,7 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Commit:** Commit the local harness scripts.
 
 ### 4. Prototype & Iterate (User Gate)
-- **Action:** Execute the harness `runner.sh`. It will orchestrate the generator and evaluator agents via Fulcra Workspaces to build the target artifact using real data. 
+- **Action:** Execute the harness `coordinator.sh`. It will orchestrate the generator and evaluator agents via Fulcra Workspaces to build the target artifact using real data. 
 - **Correction Rule:** If the harness escalates or fails, DO NOT manually edit the generated artifact! Instead, work with the user to update the `spec.md` (and re-upload it to the workspace knowledge base), refine the generator instructions, or improve the evaluator script. Then, run the harness again.
 - **Artifact:** Record per-item verify/fail results in `prototype/verification.md`. 
 - **Gate:** STOP and ask the user to review the verification record.
