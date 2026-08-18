@@ -18,7 +18,7 @@ This skill depends on the `fulcra-ingest`, `fulcra-analytics`, and `fulcra-works
 3. Never use `--share-all`.
 4. Ingest each owner's export independently with `fulcra-ingest` (instruct users to upload their exports to the Fulcra File Store at https://context.fulcradynamics.com/library/files). Prefer Netflix and Letterboxd for the MVP. Preserve provenance and match confidence.
 5. Have each owner create a narrow, preferably time-bounded share. Show the exact command before execution. Read collaborator records with `fulcra get-records <TYPE> <RANGE> --user-id <UUID>`.
-6. Keep raw histories and title-level feature vectors local. Do not write them to Fulcra workspaces. Explain owner revocation with `fulcra share delete <SHARE_ID>` and recipient departure with `fulcra share leave <SHARE_ID>`.
+6. **Workspace Persistence**: Initialize or load a dedicated Fulcra Workspace (e.g., `watch-together-<names>`) using `fulcra-workspaces` to track the session state. Store metadata about data sources (file IDs, share IDs), participant preferences, past recommendations, and user feedback in the workspace. This ensures the recommendation session can be picked up again at any point by any agent with access to the workspace, providing continuity and historical context. Keep raw histories and raw title-level feature vectors local, taking care not to write partner PII to the workspace. Explain owner revocation with `fulcra share delete <SHARE_ID>` and recipient departure with `fulcra share leave <SHARE_ID>`.
 7. Enrich canonical titles to build the required feature arrays for the catalog. For accurate and structured enrichment, use the following methods in order of preference:
    - **OMDb API:** (Preferred) If the user can provide an API key, use `web_fetch` or `curl` to query OMDb for clean, structured JSON containing genres, directors, cast, and keywords.
    - **Wikipedia API:** If no dedicated API key is available, query the Wikipedia API using rate-limited, polite requests (e.g. max 1 request per second, batching when possible) to extract genre and cast features from infoboxes or summaries.
@@ -29,7 +29,7 @@ This skill depends on the `fulcra-ingest`, `fulcra-analytics`, and `fulcra-works
 11. Model explicit ratings as strongest evidence, then rewatches, completed films, and series engagement. Apply mild recency decay. Treat Netflix viewing as implicit positive but ambiguous. Infer negative preference only from explicit low ratings or dislikes.
 12. Report overlap, shared favorites, complementary differences, catalog coverage, unmatched titles, and uncertainty. Avoid pseudo-precise compatibility scores for sparse histories.
 13. Rank unseen candidates with `0.45 * min(person_a, person_b) + 0.35 * mean(person_a, person_b) + 0.20 * shared_feature_confidence`. Enforce explicit dislike/veto thresholds, then rerank for novelty, diversity, availability, runtime, mood, and franchise fatigue.
-13. Return 5–10 recommendations with separate reasons for each participant, confidence, assumptions, and revocation guidance. Save aggregate annotations; never persist partner-derived raw features.
+14. Return 5–10 recommendations with separate reasons for each participant, confidence, assumptions, and revocation guidance. Save aggregate annotations, recommended candidates, and user feedback to the Fulcra Workspace for future reference; never persist partner-derived raw features.
 
 ## Netflix Preparation Contract
 
