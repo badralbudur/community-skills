@@ -44,17 +44,17 @@ def read_profile(path, profile):
     with open(path, newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.DictReader(handle))
     
-    # The instant export only requires Profile Name and Title.
+    # The instant export only requires Title (and usually Date, but at least Title).
     # The detailed export also includes Start Time and Duration.
-    is_detailed = {"Profile Name", "Start Time", "Duration", "Title"}.issubset(rows[0])
-    is_instant = {"Profile Name", "Title"}.issubset(rows[0])
+    is_detailed = {"Start Time", "Duration", "Title"}.issubset(rows[0])
+    is_instant = {"Title"}.issubset(rows[0])
     
     if not is_detailed and not is_instant:
         raise ValueError("Expected either detailed or instant Netflix ViewingActivity.csv columns")
         
     selected = []
     for row in rows:
-        if row["Profile Name"] != profile:
+        if "Profile Name" in row and row["Profile Name"] != profile:
             continue
             
         if is_detailed:
