@@ -1,0 +1,14 @@
+{
+  "titles": [
+    {"title": "The Office (U.S.)", "features": ["comedy", "workplace", "ensemble"]},
+    {"title": "Star Trek: Deep Space Nine", "features": ["science-fiction", "ensemble", "serialized"]},
+    {"title": "Archer", "features": ["comedy", "animation", "spy"]}
+  ],
+  "candidates": [
+    {"title": "Galaxy Quest", "features": ["science-fiction", "comedy", "ensemble"], "confidence": 0.9},
+    {"title": "Office Space", "features": ["comedy", "workplace"], "confidence": 0.9},
+    {"title": "Hot Fuzz", "features": ["comedy", "ensemble"], "confidence": 0.85},
+    {"title": "Moon", "features": ["science-fiction"], "confidence": 0.9},
+    {"title": "The Conversation", "features": ["spy"], "confidence": 0.7}
+  ]
+}
