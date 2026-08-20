@@ -57,6 +57,10 @@ def read_profile(path, profile):
         if "Profile Name" in row and row["Profile Name"] != profile:
             continue
             
+        title = row.get("Title", "").strip()
+        if not title:
+            continue
+            
         if is_detailed:
             seconds = duration_seconds(row["Duration"])
             if seconds < 300:
