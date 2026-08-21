@@ -200,6 +200,13 @@ blindly.
 
   The coordinator must parse this defensively (tolerating harmless
   markdown formatting) but roles must still obey the schema.
+- **Executable deterministic evidence is a merge gate.** If a deliverable
+  declares a test runner, Evaluator must execute it in its own session and
+  emit exact `test_runner: PASS` or `test_runner: FAIL` plus command/count
+  evidence. A permission/sandbox block is a FAIL/escalation, not a reason
+  to substitute manual tracing or static review. Coordinator must refuse
+  to merge a PASS verdict lacking `test_runner: PASS` when such a runner
+  exists.
 - Distinguish `UNTESTABLE` findings:
   - expected/out-of-current-milestone scope: document the future
     milestone that must test it; it does not block this milestone;
