@@ -13,7 +13,7 @@ You manage the user's shared markdown knowledge vault stored persistently in the
 
 The vault holds the durable prose memory for projects, people, decisions, corrections, and domain notes, interconnected via `[[wikilinks]]`. Because the vault is stored in Fulcra, it acts as a shared memory layer accessible to all the user's authorized agents.
 
-If the user does not already have a Fulcra account, invoke the `fulcra-connect` skill (from `fulcradynamics/agent-skills`) to set one up before proceeding.
+If the user does not already have a Fulcra account, use the instructions at https://docs.fulcradynamics.com/agent-get-started.txt to set up Fulcra if necessary.
 
 ## Vault Structure (OKF Compliant)
 
