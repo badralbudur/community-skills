@@ -220,7 +220,10 @@ blindly.
 
 - Initialize a **separate** deliverable git repo from the harness repo.
 - Coordinator creates/resumes `milestone/<id>-<slug>` from deliverable
-  `main` before Generator starts.
+  `main` before Generator starts. Before its dirty-tree safety check, it
+  may remove only explicitly known ephemeral artifacts produced by the
+  declared test runner (e.g. Python `__pycache__/`); never broadly clean
+  untracked files or hide real source changes.
 - Generator commits and pushes only to that branch, using the narrowest
   noninteractive permission allowlist possible (e.g. allow only git
   add/commit/push/status/diff/log, not broad shell bypass).
