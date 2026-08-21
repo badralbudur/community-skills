@@ -1,6 +1,6 @@
 ---
 name: fulcra-vault
-description: "Manage a durable, Obsidian-like shared markdown knowledge vault using Open Knowledge Format (OKF) natively, eliminating the need for external Python CLI code."
+description: "Manage a durable, Obsidian-like shared markdown knowledge vault using Open Knowledge Format (OKF) stored in Fulcra, enabling persistent shared memory across all agents."
 homepage: "https://github.com/ashfulcra/fulcra-tools/tree/main/packages/fulcra-vault"
 license: "MIT"
 user-invocable: true
@@ -9,17 +9,19 @@ metadata: { "openclaw": { "emoji": "📓" } }
 
 # fulcra-vault
 
-You manage the user's shared markdown knowledge vault (stored in Fulcra or locally under `vault/`) by directly applying Open Knowledge Format (OKF) conventions. Instead of relying on a Python CLI to parse and edit the vault, **you** natively execute these operations using standard file manipulation tools (`read`, `write`, `edit`, `exec`).
+You manage the user's shared markdown knowledge vault stored persistently in their Fulcra account, directly applying Open Knowledge Format (OKF) conventions. **You** natively execute operations on this vault using standard file manipulation tools (`read`, `write`, `edit`, `exec`).
 
-The vault holds the durable prose memory for projects, people, decisions, corrections, and domain notes, interconnected via `[[wikilinks]]`.
+The vault holds the durable prose memory for projects, people, decisions, corrections, and domain notes, interconnected via `[[wikilinks]]`. Because the vault is stored in Fulcra, it acts as a shared memory layer accessible to all the user's authorized agents.
+
+If the user does not already have a Fulcra account, invoke the `fulcra-connect` skill (from `fulcradynamics/agent-skills`) to set one up before proceeding.
 
 ## Vault Structure (OKF Compliant)
 
-- **Root:** `vault/`
+- **Root:** `vault/` (stored in Fulcra)
 - **Metadata:** `vault/meta.json` (schema and exclusion paths)
 - **Navigation:**
-  - `vault/index.md` (The full map of the vault, replacing `MAP.md`)
-  - `vault/log.md` (The top-level audit trail, replacing `LOG.md` and encompassing the `HOT.md` compact cache conceptually)
+  - `vault/index.md` (The full map of the vault)
+  - `vault/log.md` (The top-level audit trail)
 - **Notes:** Individual `.md` files containing:
   - OKF YAML frontmatter (`type`, `tags`, `updated_at`, etc.)
   - Owned sections fenced by HTML comments
@@ -27,7 +29,7 @@ The vault holds the durable prose memory for projects, people, decisions, correc
 
 ## Operations (Native Agent Execution)
 
-Do not ask the user to install the `fulcra-vault` Python package. Execute the following actions natively:
+Execute the following actions natively:
 
 ### 1. Initialization (`init`)
 When starting in an empty vault:
@@ -60,4 +62,4 @@ You are the engine. You enforce safety:
 - **Append Only Logs:** Never rewrite history in `## Log` or `vault/log.md`.
 - **Deterministic Validation:** After editing, read the file back to verify OKF compliance and structural integrity.
 
-By executing these rules, you replace the need for the external `fulcra-vault` Python codebase while maintaining strict OKF compatibility and safe, cross-agent coordination.
+See `references/fulcra-vault-cli.md` and `references/fulcra-vault-mcp.md` for guidance on interacting with the Fulcra datastore via CLI or MCP.
