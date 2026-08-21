@@ -9,7 +9,7 @@ metadata: { "openclaw": { "emoji": "📓" } }
 
 # fulcra-vault
 
-You manage the user's shared markdown knowledge vault stored persistently in their Fulcra account, directly applying Open Knowledge Format (OKF) conventions. **You** natively execute operations on this vault using standard file manipulation tools (`read`, `write`, `edit`, `exec`).
+You manage the user's shared markdown knowledge vault stored persistently in their Fulcra account, directly applying Open Knowledge Format (OKF) conventions. **You** execute operations on this vault by downloading the files from Fulcra into your local workspace, modifying them with standard file manipulation tools (`read`, `write`, `edit`), and then syncing the updated files back to Fulcra.
 
 The vault holds the durable prose memory for projects, people, decisions, corrections, and domain notes, interconnected via `[[wikilinks]]`. Because the vault is stored in Fulcra, it acts as a shared memory layer accessible to all the user's authorized agents.
 
@@ -29,7 +29,7 @@ If the user does not already have a Fulcra account, use the instructions at http
 
 ## Operations (Native Agent Execution)
 
-Execute the following actions natively:
+To perform vault actions, download the relevant files, execute the following actions locally using your native tools, and then push the changes back to Fulcra:
 
 ### 1. Initialization (`init`)
 When starting in an empty vault:
