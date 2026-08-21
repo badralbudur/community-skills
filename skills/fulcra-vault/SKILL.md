@@ -17,7 +17,7 @@ If the user does not already have a Fulcra account, use the instructions at http
 
 ## Vault Structure (OKF Compliant)
 
-- **Root:** `vault/` (stored in Fulcra)
+- **Root:** `vault/` (stored in Fulcra as files)
 - **Metadata:** `vault/meta.json` (schema and exclusion paths)
 - **Navigation:**
   - `vault/index.md` (The full map of the vault)
@@ -42,10 +42,11 @@ When starting in an empty vault:
 - To read a note, load the `.md` file.
 - To find backlinks, use `exec` with `grep` (e.g., `grep -ri "\[\[Note Name\]\]" vault/`) to find references natively.
 
-### 3. Writing and Updating (`write-section` / `append-log`)
-When writing durable context back:
-- **Owned Sections:** Use the `edit` tool to apply targeted mutations to sections owned by your agent ID (e.g., `<!-- section:summary owner:openclaw -->...<!-- /section:summary -->`). Do not rewrite the entire file unless replacing your own content.
-- **Shared Logs:** Use `edit` or shell tools to append a single dated line (e.g., `- 2026-08-21T12:00:00Z openclaw: Captured preferences`) to the `## Log` section of the relevant note.
+### 3. Writing Derived Context (`write-section` / `append-log`)
+When deriving a summary, preference, plan, decision, or other reusable conclusion, record it as an attributed, refreshable claim:
+- **Owned Sections (Refreshable Claims):** Use the `edit` tool to apply targeted mutations to sections owned by your agent ID (e.g., `<!-- section:summary owner:openclaw -->...<!-- /section:summary -->`). Inspect, correct, and supersede this derived context when evidence changes. Do not rewrite the entire file unless replacing your own content.
+- **Provenance & Evidence:** Persist conclusions, evidence, and useful work state rather than transient reasoning. Always include provenance (the observation or source that led to the conclusion) and relevant time semantics.
+- **Shared Logs:** Use `edit` or shell tools to append a single dated line (e.g., `- 2026-08-21T12:00:00Z openclaw: Captured preferences from recent conversation`) to the `## Log` section of the relevant note.
 - **Frontmatter:** Ensure any YAML frontmatter updates leave the file as valid OKF. 
 - ALWAYS append an audit line to `vault/log.md` when you mutate any note.
 
