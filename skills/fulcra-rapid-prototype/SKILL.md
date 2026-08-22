@@ -261,6 +261,9 @@ For each coordinator invocation:
    milestone.
 2. Skip cheaply if the current spec version has already converged or if
    an open escalation for this exact spec+milestone already exists. A
+   short-circuit is still a terminal coordinator outcome: refresh the
+   durable `status-summary.md` (and optional dashboard hook) to record the
+   observation, but do not duplicate the existing escalation evidence. A
    dirty-working-tree safety escalation is the narrow exception: preserve
    the corrective files, and once the owning Generator has made the tree
    clean by committing/pushing them, re-check that objective precondition
