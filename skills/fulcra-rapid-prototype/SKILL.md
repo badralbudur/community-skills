@@ -260,7 +260,12 @@ For each coordinator invocation:
 1. Read workspace milestone progress and select exactly one current
    milestone.
 2. Skip cheaply if the current spec version has already converged or if
-   an open escalation for this exact spec+milestone already exists.
+   an open escalation for this exact spec+milestone already exists. A
+   dirty-working-tree safety escalation is the narrow exception: preserve
+   the corrective files, and once the owning Generator has made the tree
+   clean by committing/pushing them, re-check that objective precondition
+   and resume on a later scheduled invocation; never reset, stash, or
+   auto-commit merely to clear the escalation.
 3. Prepare/resume the deliverable milestone branch.
 4. Send Generator an explicit workspace inbox task. Launch Generator in a
    separate session, scoped to that milestone but supplied the full spec.
