@@ -290,7 +290,8 @@ with user approval), milestone scope, or coordination mechanics.
 
 The workspace should be dashboard-readable even if no dashboard is deployed:
 keep `progress.md`, `milestone-progress.md`, verdicts, escalations, and a
-stable `status-summary.md` current.
+stable `status-summary.md` current. Include the active retry mode in the
+summary so a dashboard does not present stale manual/unattended semantics.
 
 A dashboard is outside the portable harness by default. If an operator
 configures an optional `DASHBOARD_PUBLISH_HOOK`, Coordinator may call it
