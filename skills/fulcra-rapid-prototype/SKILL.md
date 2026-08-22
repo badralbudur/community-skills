@@ -233,6 +233,10 @@ blindly.
 - Evaluator grades committed branch state, not an uncommitted working
   tree. Coordinator merges only after `overall: PASS`; on FAIL/escalation
   branch and PR remain reviewable.
+- If a corrective role leaves tracked source changes behind, preserve them
+  and escalate; never reset, stash, or auto-commit them merely to resume a
+  scheduled run. The owning Generator must review, commit, and push the
+  correction before independent evaluation can resume.
 
 #### 3e. Bootstrap and prove portability
 
