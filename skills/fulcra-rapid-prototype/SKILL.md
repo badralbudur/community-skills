@@ -284,6 +284,11 @@ For each coordinator invocation:
    liveness ceiling, or merge failure: write a durable escalation and
    status summary. In manual mode, halt after one attempt; in explicitly
    enabled unattended mode, retry only within policy bounds.
+9. A scheduler-owned invocation that reaches any terminal coordinator
+   outcome—including a deliberately blocked short-circuit—must emit a
+   concise non-silent report to its configured origin. Scheduler completion
+   and durable workspace state are distinct evidence; do not suppress the
+   report merely because the durable state repeats a known blocker.
 
 **Correction rule:** do not manually patch a generated artifact merely to
 clear a verdict. Change role instructions, evaluator logic, spec (only
