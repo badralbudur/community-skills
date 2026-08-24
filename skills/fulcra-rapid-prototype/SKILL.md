@@ -223,7 +223,12 @@ blindly.
   `main` before Generator starts. Before its dirty-tree safety check, it
   may remove only explicitly known ephemeral artifacts produced by the
   declared test runner (e.g. Python `__pycache__/`); never broadly clean
-  untracked files or hide real source changes.
+  untracked files or hide real source changes. If meaningful dirty work is
+  already on the exact current milestone branch, resume it in place and
+  direct Generator to validate/commit it. If dirty work belongs to another
+  branch, preserve it with a named `git stash` and durable workspace
+  handoff record before switching branches; never discard it or repeatedly
+  block all future runs.
 - Generator commits and pushes only to that branch, using the narrowest
   noninteractive permission allowlist possible (e.g. allow only git
   add/commit/push/status/diff/log, not broad shell bypass).
