@@ -298,6 +298,17 @@ For each coordinator invocation:
    concise non-silent report to its configured origin. Scheduler completion
    and durable workspace state are distinct evidence; do not suppress the
    report merely because the durable state repeats a known blocker.
+10. **Pair unattended runners with a delayed verifier.** Where the scheduler
+   supports it, create a second job on the same cadence, offset after the
+   main Coordinator long enough for it to finish. The verifier must not
+   browse chat history or trust a scheduler "completed" flag alone; it
+   checks durable scheduler execution history, workspace status/verdict/
+   escalation files, deliverable PR/branch state, and dashboard refresh
+   evidence. If the main run is unhealthy, it follows the documented
+   unattended-recovery protocol: preserve/resume/stash state, repair only
+   harness/branch/worktree mechanics, prove one clean Coordinator
+   preflight, and report exactly what it recovered. The verifier may never
+   directly edit deliverable code/tests or user-owned spec/decisions.
 
 **Correction rule:** do not manually patch a generated artifact merely to
 clear a verdict. Change role instructions, evaluator logic, spec (only
