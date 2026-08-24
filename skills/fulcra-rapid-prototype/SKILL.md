@@ -188,6 +188,15 @@ blindly.
 
 - Inbox messages include: type, from, to, run ID, timestamp, spec ref,
   milestone ID, and explicit artifact/verdict references.
+- Add a `schemas/decision-request.md` contract. When a role discovers a
+  user-only judgment, it must emit a structured `decision_request: true`
+  block with one concise question, factual context, options/consequences,
+  priority, and optional recommended default. Coordinator persists the raw
+  request under `team/<team>/decision/`, writes a `DECISION REQUIRED`
+  status/dashboard item, notifies the origin, and pauses a blocking
+  milestone. User answers are appended raw to `decisions.md`; only then
+  may an approved spec/config revision resume work. Do not bury a decision
+  request in prose, silently choose it, or retry it automatically.
 - Every evaluator output must contain one exact line early in the result:
 
   ```text
