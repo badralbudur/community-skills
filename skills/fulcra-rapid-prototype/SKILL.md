@@ -228,7 +228,11 @@ blindly.
   direct Generator to validate/commit it. If dirty work belongs to another
   branch, preserve it with a named `git stash` and durable workspace
   handoff record before switching branches; never discard it or repeatedly
-  block all future runs.
+  block all future runs. Document this as an unattended recovery protocol:
+  verifier/maintainer may preserve/reset branch/worktree state only after
+  a named stash + durable handoff record, then must prove one clean
+  Coordinator preflight. It may never directly edit deliverable code/tests
+  or user-owned spec/decisions.
 - Generator commits and pushes only to that branch, using the narrowest
   noninteractive permission allowlist possible (e.g. allow only git
   add/commit/push/status/diff/log, not broad shell bypass).
