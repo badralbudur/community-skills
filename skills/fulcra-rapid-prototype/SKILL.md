@@ -1,393 +1,325 @@
 ---
 name: fulcra-rapid-prototype
-description: Act as the lead prototyping engineer for Fulcra. Build a portable, task-specific iteration harness that separates generation from evaluation, uses immutable specs and bounded/escalating loops, and converges in small independently gradeable milestones. Uses local git plus Fulcra Workspaces for durable coordination and tracking.
+description: "Scaffolds a running, project-specific Fulcra agent harness (control loop + sandboxed tools + provider adapter), then operates it with an inspectable task-specific iteration discipline: immutable user-approved specs, separate generation/evaluation, milestone-sized loops, durable Fulcra Workspace state, bounded liveness/retry, and reviewable git/PR gates. Depends on fulcra-prototype-grill-me for requirements gathering."
+author: schr3b3r
+version: 1.1.0
+metadata:
+  tags: [fulcra, agent-harness, scaffolding, meta, rapid-prototype, evaluation, milestones]
 ---
 
-# Fulcra Rapid Prototype (Task-Harness Pipeline)
+# Fulcra Rapid Prototype
 
-You are a product prototyping engineer building on the Fulcra platform. The
-user brings a business plan or idea; you run a structured engagement that
-scaffolds a lightweight, task-specific harness to iteratively converge on
-working software.
+This skill turns a project idea into a **running, project-specific agent
+harness** — a small, hand-rolled control loop (model call -> tool
+dispatch -> feedback -> repeat) with sandboxed file/git/shell tools, a
+system prompt describing the specific project, and a first real task
+prompt to run against it.
 
-## Intended Use
+It has two complementary responsibilities:
 
-Trigger this skill exclusively when the user brings a complex product idea,
-an architectural exploration, a third-party API integration, or explicitly
-asks for a structured prototyping pipeline. For all other workflows, rely on
-your standard toolset.
+1. **Scaffold the runtime harness.** The bundled `engine/`, `scripts/`,
+   and `templates/` create an inspectable reference harness with a provider
+   adapter and sandboxed tools. This is upstream's concrete starter
+   implementation, not hypothetical documentation.
+2. **Operate/evolve it reliably.** Once a project is scaffolded, use the
+   task-specific iteration discipline in this document so the harness
+   builds work in small verifiable increments instead of making one large,
+   unreviewed model attempt.
 
-Follow the pipeline in order. Do not skip user gates. Use git to preserve
-state and make every consequential process or artifact change reviewable.
+It does not directly build the user's whole project in one opaque session;
+it builds and governs the thing that will build the project.
 
-## Core Philosophy (Universal Invariants)
+This exists as a reference implementation of building on Fulcra with an
+agent harness — see
+[fulcra-for-agents.md](https://github.com/kubla/fulcra-for-agents/blob/main/fulcra-for-agents.md)
+for the architectural patterns (Context-Compute Separation, Derived
+Context, Resumable Discovery, etc.) this skill's generated
+`ENGINEERING_STANDARDS.md` encodes as concrete rules.
 
-1. **Separate Generator from Evaluator.** Generator builds; Evaluator
-   strictly tests/grades the artifact against the approved spec. They must
-   run as genuinely separate agents/sessions/subprocesses, never one
-   session switching personas. This produces independent corroboration of
-   failures rather than self-review theater.
-2. **Immutable specs during a run.** Requirements are fixed and passed into
-   the harness. Change target behavior only by deliberately revising
-   `spec.md` between runs after a user decision; never hand-patch an output
-   to make a verdict disappear.
-3. **Small, independently gradeable milestones.** Never ask one role run to
-   build the whole spec. The full spec remains context, but each
-   Generator/Evaluator invocation is scoped to exactly one ordered,
-   buildable-and-testable milestone. Later work regression-checks earlier
-   passed milestones.
-4. **Bounded retries, configurable by operating mode.** Retry logic remains
-   available for unattended operation, but manual/interactive mode should
-   normally disable automatic retries: one attempt, durable evidence,
-   operator review. Never hide backoff loops from the operator.
-5. **Escalation is a first-class output.** Ambiguity, untestable in-scope
-   criteria, role failure, a liveness timeout, or retry exhaustion writes a
-   durable, channel-agnostic escalation record and halts safely.
-6. **Fix the process, not one output.** Incorporate feedback into role
-   instructions, schemas, evaluation logic, liveness/permissions setup, or
-   milestone design. Do not compensate for recurring failures by manually
-   fixing one artifact.
-7. **Git is an audit trail, not just a backup.** Harness and deliverable use
-   separate repositories with no shared history. Every milestone attempt is
-   committed on a reviewable deliverable branch; harness/process evolution
-   is committed separately. Bundle/upload repos for portability as needed.
-8. **Workspace state is durable; local runners are adapters.** Fulcra
-   Workspaces inboxes, knowledge, progress, verdicts, milestones, and
-   escalations are the durable coordination record. A local coordinator
-   script may run agents, but it must write/read this durable state rather
-   than relying only on ephemeral local context.
-9. **Treat durable evidence as arbitrary text.** Parse workspace status,
-   escalation, and decision fields without shell word re-parsing (for
-   example, never use `xargs` merely to trim a field): punctuation such as
-   apostrophes must not erase or corrupt a blocker reason.
+## When to use this skill
 
-## The Three Boundaries
+Trigger this when the user explicitly wants to:
 
-Keep these distinct:
+- Build a new application/tool on top of Fulcra using a **custom agent
+  harness** they control and can inspect/modify (not just "have Claude
+  Code build it directly").
+- Learn agent-harness engineering fundamentals by having a real, minimal
+  reference implementation to study and extend.
+- Run a project-specific generation/evaluation loop with durable state,
+  reviewable artifacts, and an escalation path.
 
-1. **Portable harness** (versioned): everything needed to re-run the
-   process in a new team/workspace with new agents. It includes current
-   spec, raw user decisions, earned knowledge, roles, schemas, milestones,
-   coordinator policy/runbook, and bootstrap/doctor scripts. It contains
-   no deliverable and no run execution history.
-2. **Workspace/team** (Fulcra-side, disposable/reconstructable): a concrete
-   run's inboxes, progress, role state, verdicts, escalations, session
-   summaries, and milestone progress. A dashboard reads this layer.
-3. **Deliverable** (separate git repo): the product being built. It is
-   generated/evaluated on milestone branches and merged only after
-   evaluator approval.
+Do NOT use this for quick one-off scripts, tasks where the user just wants
+you (Claude Code) to build something directly without a separate harness
+layer, or projects with no Fulcra involvement at all.
 
-**Portability acceptance check:** starting from only the portable harness,
-`bootstrap.sh <new-team>` against an empty workspace must provision enough
-state for new roles to begin a loop without prior inboxes, logs, or local
-memory.
+## Prerequisites
 
-## Required Harness Layout
+- The `fulcra-prototype-grill-me` skill must be available. This skill
+  depends on it for Intake/Interview/Architecture/Plan; it does not
+  duplicate that requirements-gathering logic.
+- A Gemini API key will be needed eventually for the bundled default
+  `google-genai` provider adapter. **Do not ask for it yet.** Intake,
+  Interview, Architecture, Plan, dry-run scaffolding, and static artifact
+  review do not need it. Ask only at the first point the generated runtime
+  harness is actually verified/run. The adapter is an extension point, not
+  a permanent provider limitation.
+- For multi-agent evaluation or a different provider, adapt the provider
+  invocation layer while retaining the operational contract below. Do not
+  make project specs or durable coordination depend on one CLI/provider.
 
-Use these names or a clearly documented equivalent:
+# Part I — Scaffold the Runtime Harness
+
+## The flow (follow these steps in order)
+
+### 1. Run fulcra-prototype-grill-me through its Plan phase
+
+Load `fulcra-prototype-grill-me` and run its Intake -> Interview ->
+Architecture -> Plan phases with the user, exactly as that skill specifies
+(including its Architecture user gate — do not skip it). Stop before that
+skill's own Prototype/Build phases: this skill's generated harness replaces
+those phases for a project that wants a custom harness.
+
+By the end, the rapid-prototype project git repo should have:
 
 ```text
-harness/
-  README.md                 # boundaries + portability contract
-  RUNBOOK.md                # exact execution instructions, providers/adapters
-  HARNESS_GOVERNANCE.md     # what may evolve automatically vs. user-only
-  spec.md                   # approved requirements; immutable during a run
-  decisions.md              # append-only chronological raw user decisions
-  knowledge/                # earned domain/process knowledge, not requirements
-  roles/
-    manifest.md             # active role registry; roles are not hardcoded
-    generator.md
-    evaluator.md
-  schemas/
-    message.md
-    verdict.md
-  coordinator/
-    milestones.md           # ordered, independently gradeable work units
-    policy.md               # retry/liveness/escalation operating policy
-    coordinator.sh|py       # workflow sequencing only
-  bootstrap.sh              # fresh-team provisioning
-  doctor.sh                 # prerequisites check
+intake/brief.md
+architecture.md   (approved by the user)
+plan.md
 ```
 
-### Decisions, knowledge, and governance
+If upstream Grill-Me creates any additional interview artifact, retain it.
+If the user already has recent approved artifacts, confirm they remain
+current rather than rerunning discovery from scratch.
 
-- `decisions.md` is append-only, chronological, lightly tagged, and as
-  close to the user's original words as practical. It records *why*.
-- `spec.md` is the synthesized, formalized requirement target. It is
-  derived from decisions but not a replacement for them.
-- `knowledge/` stores learned facts/patterns that are neither raw user
-  decisions nor requirements (e.g. a provider permission behavior or an
-  observed inbox failure mode).
-- `HARNESS_GOVERNANCE.md` must explicitly say:
-  - only the user may change `spec.md` and `decisions.md`;
-  - a separate Harness Maintainer role may automatically append knowledge,
-    split/reorder milestones with evidence, and repair concrete harness
-    mechanics;
-  - every automatic harness change is committed, pushed, and reported;
-  - Harness Maintainer never edits the deliverable or impersonates
-    Generator/Evaluator.
+### 2. Confirm the bundled scaffold is available
 
-## The Task-Harness Pipeline
+This skill's scaffolding logic ships beside this `SKILL.md`, in `scripts/`,
+`engine/`, and `templates/`. Confirm `scripts/scaffold.py` is present
+relative to the skill directory before proceeding; do not rely on a sibling
+clone existing at a guessed path.
 
-At every completed phase, commit the harness repo with a meaningful message.
+### 3. Decide where the new project will live
 
-### 1. Intake & Interview ("Grill Me")
+Ask the user where the new project's own repo/directory should be created.
+Normally use a new sibling directory, **not** the skill directory (the skill
+stays a reusable template, not a place real projects accumulate).
 
-- **Action:** Create a local project directory and git repo. Shape the
-  fuzzy idea into requirements by asking exactly **one** concise question
-  at a time; wait for the answer before the next question.
-- **Artifacts:** `intake/brief.md`, initial `decisions.md` entries.
-- **Rule:** Do not repeat answers already supplied. Preserve raw decisions
-  before synthesizing them.
-- **Commit:** brief, `.gitignore`, and decisions log.
+### 4. Run the scaffold script
 
-### 2. Architecture & Spec (User Gate)
+```bash
+cd <this skill's own directory>
+python scripts/scaffold.py \
+  --project-name "<Human-readable project name>" \
+  --rapid-prototype-dir <path to repo with intake/, architecture.md, plan.md> \
+  --output-dir <path to new project directory> \
+  --domain-library-guidance "- For X: use library Y, not a hand-rolled Z."
+```
 
-- **Action:** Map requirements to Fulcra capabilities (`fulcra-api
-  catalog` / relevant CLI discovery), data ownership, integration points,
-  and evaluation methods.
-- **Artifacts:** `spec.md` containing explicit goal, testable numbered
-  requirements, generation rules, deterministic evaluation criteria,
-  judged criteria, explicit out-of-scope items, and configurable values.
-- **Config:** Put all actual runtime-tunable parameters in one deliverable
-  `config.json` (or clearly documented equivalent). Roles read it; do not
-  re-derive/hardcode values independently.
-- **Gate:** STOP and ask the user to approve `spec.md`. Do not scaffold or
-  run roles until approval.
-- **Commit:** approved spec and decision updates.
+Run with `--dry-run` first and show the user what would be written before
+the real run.
 
-### 3. Harness Scaffolding (User Gate)
+`--domain-library-guidance` is optional but useful when Architecture
+surfaced an obvious domain (for example, audio processing or a web backend).
+If omitted, the generated `ENGINEERING_STANDARDS.md` contains a visible
+TODO; that is acceptable when no sensible library choice exists yet.
 
-#### 3a. Define milestones before invoking expensive roles
+**Git history:** default `--history=auto` preserves
+`fulcra-prototype-grill-me`'s phase history when `--rapid-prototype-dir` is
+a git working tree. That lets future sessions inspect genuine
+Intake/Architecture/Plan decisions via `git log` rather than a flattened
+snapshot. A bundle can be unpacked first with `git clone <bundle> <dir>`.
+If the source is not a git repo, auto falls back to copy mode; use
+`--history=preserve` only when lack of history should be a hard error.
 
-Write `coordinator/milestones.md`. Each milestone must specify:
+History-preserving mode clones directly into `--output-dir`, so that path
+must not exist at all. Pick a fresh target or remove/rename the old target
+before running it.
 
-- a bounded scope;
-- target spec requirement numbers;
-- deterministic and/or judged completion conditions;
-- dependencies on earlier milestones;
-- what later-spec work is intentionally out of scope now.
+### 5. Verify the scaffold actually works before handoff
 
-A good ordering is: seed/content → core state machine → scoring →
-interaction/facilitation → publication/presentation → endgame → full
-integration/regression. Adapt it to the product; do not copy this order
-blindly.
+Do **not** claim success merely because scaffolding exits 0. At the first
+actual runtime verification point, ask for the Gemini key (or configure the
+user's chosen provider adapter) and write it into the new project's `.env`.
+Then run:
 
-#### 3b. Define roles and exact contracts
+```bash
+cd <new project dir>
+git log --oneline
+# commit generated scaffold if the script did not preserve/create the repo
+# history itself
+python -m venv .venv && .venv/bin/pip install -e .
+cp .env.example .env
+.venv/bin/python -m harness.test_loop_smoke
+.venv/bin/python -m harness.test_context_smoke
+.venv/bin/python -m harness.tools.test_filesystem_smoke
+.venv/bin/python -m harness.tools.test_git_smoke
+.venv/bin/python -m harness.tools.test_git_commit_gate_smoke
+.venv/bin/python -m harness.tools.test_run_command_smoke
+```
 
-- Create `roles/manifest.md` as the source of active role names,
-  responsibilities, and inbox paths. Do not hardcode only Generator and
-  Evaluator into the harness design; additive roles (dashboard support,
-  catalog advisor, harness maintainer) should be possible.
-- Generator role instructions must state: milestone scope, full-spec
-  invariants, allowed deliverable directory/branch, what it must commit,
-  and what it must never change.
-- Evaluator role instructions must state the actual deterministic tests
-  and judged review rubric, require evidence for each finding, forbid
-  artifact edits, and require an exact machine-readable verdict line.
-- Configure models per role where appropriate. Do not assume one model is
-  optimal for creative generation, strict testing, and maintenance.
+All six must pass. If any fails, fix the scaffold before saying it is ready.
+A known fast-successive-write bytecode-cache artifact in the git-commit-gate
+smoke test may be resolved by clearing `app/**/__pycache__` and running that
+test once again; do not use this as an excuse for unrelated failures.
 
-#### 3c. Define message, verdict, and liveness contracts
+### 6. Hand off the verified scaffold
 
-- Inbox messages include: type, from, to, run ID, timestamp, spec ref,
-  milestone ID, and explicit artifact/verdict references.
-- Add a `schemas/decision-request.md` contract. When a role discovers a
-  user-only judgment, it must emit a structured `decision_request: true`
-  block with one concise question, factual context, options/consequences,
-  priority, and optional recommended default. Coordinator persists the raw
-  request under `team/<team>/decision/`, writes a `DECISION REQUIRED`
-  status/dashboard item, notifies the origin, and pauses a blocking
-  milestone. User answers are appended raw to `decisions.md`; only then
-  may an approved spec/config revision resume work. Do not bury a decision
-  request in prose, silently choose it, or retry it automatically.
-- Every evaluator output must contain one exact line early in the result:
+Point the user at:
 
-  ```text
-  overall: PASS
-  ```
-  or:
-  ```text
-  overall: FAIL
-  ```
+- generated `harness/prompts/system_prompt.md` and
+  `harness/prompts/task_001_*.md` — heuristic starting points to inspect,
+  not guaranteed finished prompts;
+- the generated project `README.md` for getting started;
+- `app/CONTEXT.md` and `app/features/` for runtime context/progress.
 
-  The coordinator must parse this defensively (tolerating harmless
-  markdown formatting) but roles must still obey the schema.
-- **Executable deterministic evidence is a merge gate.** If a deliverable
-  declares a test runner, Evaluator must execute it in its own session and
-  emit exact `test_runner: PASS` or `test_runner: FAIL` plus command/count
-  evidence. A permission/sandbox block is a FAIL/escalation, not a reason
-  to substitute manual tracing or static review. Coordinator must refuse
-  to merge a PASS verdict lacking `test_runner: PASS` when such a runner
-  exists.
-- Distinguish `UNTESTABLE` findings:
-  - expected/out-of-current-milestone scope: document the future
-    milestone that must test it; it does not block this milestone;
-  - a genuine ambiguity within current scope: block PASS and escalate.
-- Add activity-aware liveness policy: configurable idle threshold based on
-  changed deliverable files or fresh role output, plus a configurable hard
-  wall-clock ceiling. A simple wall-clock timeout alone will kill active
-  long work; no watchdog risks infinite apparent runs.
+Then either run the first task (`python -m harness.run_task task_001_*.md`)
+if the user wants a demonstration, or hand the verified scaffold over.
 
-#### 3d. Prepare repositories and review flow
+# Part II — Operate the Scaffold as a Reliable Task Harness
 
-- Initialize a **separate** deliverable git repo from the harness repo.
-- Coordinator creates/resumes `milestone/<id>-<slug>` from deliverable
-  `main` before Generator starts. Before its dirty-tree safety check, it
-  may remove only explicitly known ephemeral artifacts produced by the
-  declared test runner (e.g. Python `__pycache__/`); never broadly clean
-  untracked files or hide real source changes. If meaningful dirty work is
-  already on the exact current milestone branch, resume it in place and
-  direct Generator to validate/commit it. If dirty work belongs to another
-  branch, preserve it with a named `git stash` and durable workspace
-  handoff record before switching branches; never discard it or repeatedly
-  block all future runs. Document this as an unattended recovery protocol:
-  verifier/maintainer may preserve/reset branch/worktree state only after
-  a named stash + durable handoff record, then must prove one clean
-  Coordinator preflight. It may never directly edit deliverable code/tests
-  or user-owned spec/decisions.
-- Generator commits and pushes only to that branch, using the narrowest
-  noninteractive permission allowlist possible (e.g. allow only git
-  add/commit/push/status/diff/log, not broad shell bypass).
-- GitHub cannot create a PR for a zero-diff branch. After Generator's
-  first pushed commit, Coordinator creates/resumes a private PR to
-  `main`, **before Evaluator runs**.
-- Evaluator grades committed branch state, not an uncommitted working
-  tree. Coordinator merges only after `overall: PASS`; on FAIL/escalation
-  branch and PR remain reviewable.
-- If a corrective role leaves tracked source changes behind, preserve them
-  and escalate; never reset, stash, or auto-commit them merely to resume a
-  scheduled run. The owning Generator must review, commit, and push the
-  correction before independent evaluation can resume.
+The bundled runtime loop may be single-agent. That does **not** remove the
+need for independent project-level evaluation. Treat its output as a
+Generator artifact and run a separate Evaluator session/process against it.
 
-#### 3e. Bootstrap and prove portability
+## Universal operational invariants
 
-- Implement `bootstrap.sh <team-name>` to check for an existing team and
-  refuse accidental overwrite, then upload harness-owned spec/decisions/
-  knowledge/roles/schemas/milestones into the new workspace and provision
-  team/member role/progress/inbox structure.
-- Implement `doctor.sh` to check provider CLI availability/auth, Fulcra
-  auth, git identity, deliverable repo separation, role files, spec goal,
-  policy values, and PR CLI auth if using the branch workflow.
-- Implement `RUNBOOK.md`: on-demand invocation, unattended scheduler
-  invocation, prerequisites, escalation recovery, alternate model-provider
-  adapter contract, and optional integrations.
-- **Gate:** run a real fresh-team bootstrap smoke test, verify upload and
-  overwrite guard, then clean it up. Do not claim portability untested.
+1. **Separate Generator from Evaluator.** Generator builds the current
+   artifact; Evaluator independently tests/grades it. Do not use one
+   session switching personas as a substitute for independent evaluation.
+2. **Immutable approved spec during a run.** Requirements change only after
+   a user decision. Do not patch output to make a verdict disappear.
+3. **Milestones, not whole-spec attempts.** Build exactly one bounded,
+   independently gradeable work item per Coordinator invocation. Supply
+   the whole spec for invariants, but scope actual work narrowly.
+4. **Durable state is not chat memory.** Fulcra Workspace files record
+   status, milestone state, requests, verdicts, escalations, and summaries.
+5. **Bounded retry/liveness.** Manual mode should normally attempt once and
+   return control. Unattended mode may retry within a visible bound. Watch
+   activity (file/output changes) plus a hard wall clock; never let a
+   process appear to run forever.
+6. **Fix the process, not one output.** Repeated failures modify prompts,
+   schemas, permissions, provider adapters, milestone scope, or evaluation
+   logic — not just a single generated file.
+7. **Git is the review/audit trail.** Keep the portable control harness and
+   deliverable/project in separate repositories. Use milestone branches and
+   PRs; merge only after evaluator approval.
 
-### 4. Prototype & Iterate
+## Required portable control-harness contract
 
-For each coordinator invocation:
+Alongside the scaffolded project, maintain a portable control-harness repo
+(or a clearly separated `prototype-control/` directory) containing:
 
-1. Read workspace milestone progress and select exactly one current
-   milestone.
-2. Skip cheaply if the current spec version has already converged or if
-   an open escalation for this exact spec+milestone already exists. A
-   short-circuit is still a terminal coordinator outcome: refresh the
-   durable `status-summary.md` (and optional dashboard hook) to record the
-   observation, but do not duplicate the existing escalation evidence. A
-   dirty-working-tree safety escalation is the narrow exception: preserve
-   the corrective files, and once the owning Generator has made the tree
-   clean by committing/pushing them, re-check that objective precondition
-   and resume on a later scheduled invocation; never reset, stash, or
-   auto-commit merely to clear the escalation.
-3. Prepare/resume the deliverable milestone branch.
-4. Send Generator an explicit workspace inbox task. Launch Generator in a
-   separate session, scoped to that milestone but supplied the full spec.
-5. Verify Generator committed/pushed branch state. Create/resume the PR
-   after its first commit.
-6. Send Evaluator its own inbox task. Launch a separate Evaluator session
-   to test the committed branch, including regression checks of earlier
-   passed milestones.
-7. On PASS: merge the PR, update workspace milestone progress, write a
-   concise durable status summary (where we are / where we're going / next
-   bearing), and proceed on a later invocation to the next milestone.
-8. On FAIL, unparseable verdict, subprocess error, inactivity stall, hard
-   liveness ceiling, or merge failure: write a durable escalation and
-   status summary. In manual mode, halt after one attempt; in explicitly
-   enabled unattended mode, retry only within policy bounds.
-9. A scheduler-owned invocation that reaches any terminal coordinator
-   outcome—including a deliberately blocked short-circuit—must emit a
-   concise non-silent report to its configured origin. Scheduler completion
-   and durable workspace state are distinct evidence; do not suppress the
-   report merely because the durable state repeats a known blocker. Classify
-   provider/session-limit/rate-limit failures as transient capacity
-   escalations: retain their evidence, but permit a later scheduled retry
-   after provider reset. Do not treat them as permanent open-blocker
-   short-circuits; keep genuine spec/decision/state blockers paused.
-10. **Pair unattended runners with a delayed verifier.** Where the scheduler
-   supports it, create a second job on the same cadence, offset after the
-   main Coordinator long enough for it to finish. The verifier must not
-   browse chat history or trust a scheduler "completed" flag alone; it
-   checks durable scheduler execution history, workspace status/verdict/
-   escalation files, deliverable PR/branch state, and dashboard refresh
-   evidence. If the main run is unhealthy, it follows the documented
-   unattended-recovery protocol: preserve/resume/stash state, repair only
-   harness/branch/worktree mechanics, prove one clean Coordinator
-   preflight, and report exactly what it recovered. Durable status,
-   decision, milestone-progress, and escalation uploads are required
-   records: retry them boundedly and surface a critical visibility failure;
-   never silently swallow an upload error then claim dashboard/status is
-   current. The verifier may never
-   directly edit deliverable code/tests or user-owned spec/decisions.
+```text
+spec.md                    # approved requirements; immutable during a run
+decisions.md               # append-only raw user decisions
+knowledge/                 # earned domain/process findings
+roles/manifest.md          # active roles, not hardcoded pair names
+roles/generator.md
+roles/evaluator.md
+schemas/message.md
+schemas/verdict.md
+schemas/decision-request.md
+coordinator/milestones.md
+coordinator/policy.md
+coordinator/unattended-recovery.md
+RUNBOOK.md
+HARNESS_GOVERNANCE.md
+bootstrap.sh
+doctor.sh
+```
 
-**Correction rule:** do not manually patch a generated artifact merely to
-clear a verdict. Change role instructions, evaluator logic, spec (only
-with user approval), milestone scope, or coordination mechanics.
+Keep three boundaries distinct:
 
-### 5. Dashboard / Visibility (Optional Integration)
+- **Control harness:** portable process/spec/roles/schemas/knowledge; no
+  execution history or deliverable code.
+- **Fulcra Workspace team:** durable run state, inboxes, progress, verdicts,
+  decisions, escalations, session summaries, dashboard source data.
+- **Deliverable:** generated project/runtime-harness/app code in its own git
+  repo and PR history.
 
-The workspace should be dashboard-readable even if no dashboard is deployed:
-keep `progress.md`, `milestone-progress.md`, verdicts, escalations, and a
-stable `status-summary.md` current. Include the active retry mode in the
-summary so a dashboard does not present stale manual/unattended semantics.
+A fresh `bootstrap.sh <team>` must provision a new Workspace from only the
+control-harness contents. If it needs old inboxes or local memory, the
+harness is not portable.
 
-A dashboard is outside the portable harness by default. If an operator
-configures an optional `DASHBOARD_PUBLISH_HOOK`, Coordinator may call it
-after each terminal outcome. The hook must:
+## Decision and governance contract
 
-- read only durable workspace summaries/progress;
-- publish only explicitly curated public data, never raw inboxes,
-  credentials, full verdict archives, or private repo contents;
-- report failure without masking the actual harness result;
-- keep source/deployment history reviewable.
+- `decisions.md` preserves chronological raw user answers; `spec.md` is the
+  formalized target derived from those decisions.
+- Only the user may change `spec.md` or `decisions.md`.
+- A distinct Harness Maintainer may automatically append evidence-backed
+  knowledge, improve milestone decomposition, and fix control-harness
+  mechanics. It must never edit deliverable code or user requirements.
+- A role that discovers a user-only judgment emits a structured
+  `decision_request: true` record (one question, context, options,
+  priority). Coordinator persists it under `team/<team>/decision/`, writes
+  `DECISION REQUIRED` status/dashboard state, reports it to the origin, and
+  pauses blocking work. Never bury such a request in prose or auto-retry it.
 
-### 6. Retro
+## Milestone execution and evaluation
 
-- **Action:** Review the engagement and harness itself: what converged,
-  what failed, what platform/permission/liveness gaps emerged, whether
-  additional roles or `fulcra-agent-coordination` are warranted.
-- **Artifacts:** `retro.md`; append validated process findings to
-  `knowledge/`.
-- **Commit & backup:** commit the retro and final harness/deliverable
-  state; create/upload a git bundle as appropriate.
+1. Define ordered milestones with scope, requirement IDs, explicit done
+   criteria, dependencies, and intentionally-out-of-scope later work.
+2. Coordinator creates/resumes a `milestone/<id>-<slug>` deliverable branch.
+   Generator receives the narrowest required tool permissions (for example,
+   git stage/commit/push and declared test runner), commits/pushes only that
+   branch, and never merges.
+3. GitHub cannot create a zero-diff PR. After Generator's first pushed
+   commit, Coordinator creates/resumes the PR before Evaluator runs.
+4. Evaluator grades committed branch state, not an uncommitted worktree. It
+   emits exact `overall: PASS` or `overall: FAIL`.
+5. If a declared test runner exists, Evaluator must execute it independently
+   and emit exact `test_runner: PASS` or `test_runner: FAIL` with command/
+   count evidence. A permission block is a FAIL/escalation, never a reason
+   to replace executable testing with code reading.
+6. `UNTESTABLE` must distinguish later-milestone scope (document when it
+   will be tested) from genuine in-scope ambiguity (decision request and
+   halt). Only an all-in-scope PASS plus passing executable evidence may
+   merge the PR.
+7. On PASS, merge, update `milestone-progress.md`, and write a concise
+   `status-summary.md`: where we are, where we are going, next bearing.
 
-## Provider Portability
+## Safe recovery and unattended operation
 
-The default coordinator may use `claude -p`, but Claude is not a harness
-requirement. To use another provider, replace only the role-invocation
-adapter while preserving this contract:
+Before any branch switch, remove only documented ephemeral test caches
+(e.g. Python `__pycache__/`). Never broadly clean untracked files.
 
-- separate session/process per role;
-- role instructions + full immutable spec + current milestone context as
-  input;
-- restricted filesystem scope to the deliverable repo;
-- narrow version-control permissions for Generator only;
-- captured output; exact Evaluator verdict line; activity/liveness signal.
+- Meaningful dirty work on the exact current milestone branch is resumed in
+  place so Generator can inspect/test/commit it.
+- Meaningful work on another branch is preserved in a named `git stash -u`
+  plus Workspace handoff record before checkout/reset.
+- Never discard source work, force-push, or let a verifier directly repair
+  deliverable code/tests.
 
-Do not make the portable specification, schemas, workspace layout, or role
-semantics depend on one CLI's syntax.
+For unattended work, pair the Coordinator with a delayed verifier on the
+same cadence. The verifier checks scheduler history, Workspace state,
+branch/PR state, and dashboard evidence — not chat history or a scheduler
+"completed" flag alone. It may repair control-harness/branch/worktree state
+through the safe recovery protocol, then prove one clean Coordinator
+preflight. Provider/session/rate limits are transient capacity escalations:
+retain their evidence but allow a later scheduled retry after reset; keep
+real spec/decision/state blockers paused.
 
-## Reference: Resuming a Project
+Durable status, decision, milestone-progress, and escalation uploads are
+required records. Retry them boundedly and surface a critical visibility
+failure; never silently claim dashboard/status is current after a failed
+upload.
 
-On a new machine or in a new workspace:
+## Optional dashboard
 
-1. Restore/clone the portable harness repo and the separate deliverable
-   repo (or their uploaded bundles).
-2. Read `RUNBOOK.md`, run `doctor.sh`, and inspect git logs.
-3. Bootstrap a fresh team if needed; never reuse old execution history as
-   a prerequisite.
-4. Read `team/<team>/status-summary.md`, `milestone-progress.md`, current
-   escalation pointer, role/progress files, and the current milestone PR.
-5. Resume only the current milestone; do not regenerate completed work
-   unless a user-approved spec/milestone revision requires it.
+A dashboard is outside the portable control harness by default. If used,
+read only durable Workspace summaries/progress, publish only explicitly
+curated data, never raw inboxes/verdict archives/credentials/private repo
+contents, and make deployment history reviewable. A dashboard publish
+failure must not mask the actual harness result.
+
+## What this skill deliberately does NOT do
+
+- It does not duplicate requirements gathering; that remains
+  `fulcra-prototype-grill-me`.
+- It does not treat the bundled Gemini adapter as the only provider choice.
+- It does not turn a single runtime-agent loop into a claim of independently
+  evaluated work; use the operational Generator/Evaluator contract above.
+- It does not permit unattended verifier/maintainer roles to edit
+  deliverable code/tests or user-owned requirements directly.
+- It does not use a general-purpose templating engine for every scaffold
+  file; `scripts/scaffold.py` intentionally uses plain substitution.
