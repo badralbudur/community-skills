@@ -310,7 +310,11 @@ For each coordinator invocation:
    outcome—including a deliberately blocked short-circuit—must emit a
    concise non-silent report to its configured origin. Scheduler completion
    and durable workspace state are distinct evidence; do not suppress the
-   report merely because the durable state repeats a known blocker.
+   report merely because the durable state repeats a known blocker. Classify
+   provider/session-limit/rate-limit failures as transient capacity
+   escalations: retain their evidence, but permit a later scheduled retry
+   after provider reset. Do not treat them as permanent open-blocker
+   short-circuits; keep genuine spec/decision/state blockers paused.
 10. **Pair unattended runners with a delayed verifier.** Where the scheduler
    supports it, create a second job on the same cadence, offset after the
    main Coordinator long enough for it to finish. The verifier must not
