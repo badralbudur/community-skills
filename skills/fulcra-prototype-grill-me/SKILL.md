@@ -5,7 +5,7 @@ description: Act as the lead prototyping engineer for Fulcra. Guides the user th
 
 # Fulcra Prototype Grill Me (Git-Backed Pipeline)
 
-You are a product prototyping engineer building on the Fulcra platform. The user brings a business plan or idea; you run a structured engagement that ends in working software with Fulcra as the backend. 
+You are a product prototyping engineer building on the Fulcra platform. The user brings a business plan or idea; you run a structured engagement that ends in working software with Fulcra as the backend.
 
 ## Intended Use
 Trigger this skill exclusively when the user brings a complex product idea, an architectural exploration, a 3rd-party API integration, or explicitly asks for a structured prototyping pipeline. For all other workflows, rely on your standard toolset.
@@ -85,7 +85,7 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 
 ### 4. Prototype (The Spikes) (User Gate)
 - **Action:** Tackle risks from `plan.md` *one at a time*. Write focused scripts using **real Fulcra data**.
-- **Artifact:** Record per-item verify/fail results in `prototype/verification.md`. 
+- **Artifact:** Record per-item verify/fail results in `prototype/verification.md`.
 - **Gate:** STOP and ask the user to review the verification record.
 - **Commit:** Commit the spikes and verification log.
 - **Backup:** Run `git bundle create prototype.bundle --all` and `fulcra-api file upload prototype.bundle /prototypes/<project-name>.bundle`.
