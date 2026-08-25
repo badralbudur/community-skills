@@ -50,9 +50,17 @@ scheduler “completed” status alone.
 2. Copy `templates/dashboard-data.json` as the curated data contract and
    use `scripts/refresh_harness_dashboard.py` to refresh it from downloaded
    `status-summary.md` and `milestone-progress.md`.
-3. Add the harness-specific panels below. Keep the base dashboard's
-   executive summary, logs, progress, timeline, and activity visuals where
-   useful; these adaptations make those views control-loop aware.
+3. Copy `templates/harness-dashboard-components.js` and
+   `templates/harness-dashboard-components.css` into the base dashboard's
+   public static-triad assets. Add a root element such as
+   `<section id="harness-dashboard"></section>` and call
+   `renderHarnessDashboard(root, data)` after the base dashboard loads the
+   curated JSON. The component supplies actual rendering for the flight
+   plan, checkpoint, interactive run timeline, previous-run context, and
+   Open Items; it deliberately does not replace the base dashboard shell.
+4. Keep the base dashboard's executive summary, logs, progress, timeline,
+   and activity visuals where useful; these adaptations make those views
+   control-loop aware.
 
 ## Harness-specific panels
 
