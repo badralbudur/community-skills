@@ -36,7 +36,49 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 
 ### 3. Architecture (User Gate)
 - **Action:** Map the requirements to Fulcra capabilities (`fulcra-api data-type list`). If a data type exists, use it. If not, define a custom data type.
-- **Artifact:** Write `architecture.md` (capability map, gap register, tenancy).
+- **For each custom data type identified, explicitly decide and record
+  in `architecture.md`:**
+  1. **`recorded_at` semantics:** what real historical timestamp will
+     `recorded_at` use for this type -- a source event's own
+     timestamp, a period's start/end, a measurement's actual time?
+     Never default this to "ingestion time" (when the record happens
+     to be written) unless the data genuinely IS about the moment of
+     recording itself (e.g. a checkpoint/progress marker). Getting
+     this wrong is a common, costly mistake: Fulcra's query surface is
+     fundamentally time-range-based, so a `recorded_at` that doesn't
+     reflect real event time makes genuinely time-scoped queries
+     return nothing even though the data exists -- especially costly
+     for backfilled/historical batches, where every record would
+     otherwise cluster at whenever the ingestion script happened to
+     run instead of spreading across the real history it represents.
+  2. **Tags vs. note fields:** which fields on this type are
+     cross-cutting/filterable dimensions a consumer would plausibly
+     want to query or group by (a category, status, type, flag,
+     project/repo name, etc.)? Those should become real Fulcra tags
+     (`fulcra-api tag create`, or `create_tags()` in the SDK) attached
+     to each record's `tags` array, not left only as keys inside a
+     JSON note/description field. A field trapped in an opaque JSON
+     blob is invisible to anyone using the Fulcra API directly without
+     first fetching every record and parsing it themselves; a real tag
+     is filterable by anyone.
+  3. **`sources` chain:** beyond whatever tag distinguishes this
+     custom type's own identity, does the `sources` array need to
+     encode real lineage (origin system -> intermediate artifact/
+     context -> producing agent, ordered origin-to-destination)? This
+     matters most for ingested/derived data where "where did this
+     actually come from" is itself useful, inspectable information --
+     not just "what type is this."
+  These three checks exist because it's easy to build a working
+  integration that technically uses Fulcra's custom data types while
+  still leaving most of the platform's actual query power unused --
+  everything crammed into an opaque note blob with an ingestion-time
+  timestamp. That defeats much of the reason to choose Fulcra as the
+  backend in the first place. Answering these three questions per type
+  up front, before any code exists, is far cheaper than discovering
+  and fixing it after a real backfill has already written thousands of
+  wrongly-timestamped, untagged records.
+- **Artifact:** Write `architecture.md` (capability map, gap register, tenancy, and the per-type
+  `recorded_at`/tags/sources decisions above).
 - **Gate:** STOP and ask the user to review `architecture.md`. Do not proceed until approved.
 - **Commit:** Commit the architecture.
 
