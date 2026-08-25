@@ -1,0 +1,32 @@
+{
+  "project": {
+    "name": "{{PROJECT_NAME}} Harness",
+    "workspace": "team/{{TEAM_NAME}}",
+    "lastUpdated": null
+  },
+  "overview": {
+    "currentMilestone": null,
+    "currentMilestoneTitle": null,
+    "completedMilestones": [],
+    "totalMilestones": 0,
+    "retryMode": "unknown",
+    "workspaceStatus": "unknown"
+  },
+  "checkpoint": {
+    "headline": "Awaiting first terminal harness outcome",
+    "whereWeAre": "",
+    "whereWeGo": "",
+    "nextAction": ""
+  },
+  "milestones": [
+    {
+      "id": "M1",
+      "title": "Replace with milestone name",
+      "status": "queued",
+      "detail": "Replace with milestone scope"
+    }
+  ],
+  "runs": [],
+  "openItems": [],
+  "harnessEvolution": []
+}
