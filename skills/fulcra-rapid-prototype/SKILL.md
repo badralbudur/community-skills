@@ -56,6 +56,10 @@ state and make every consequential process or artifact change reviewable.
    escalations are the durable coordination record. A local coordinator
    script may run agents, but it must write/read this durable state rather
    than relying only on ephemeral local context.
+9. **Treat durable evidence as arbitrary text.** Parse workspace status,
+   escalation, and decision fields without shell word re-parsing (for
+   example, never use `xargs` merely to trim a field): punctuation such as
+   apostrophes must not erase or corrupt a blocker reason.
 
 ## The Three Boundaries
 
