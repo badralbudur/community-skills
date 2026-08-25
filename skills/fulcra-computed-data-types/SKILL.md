@@ -14,7 +14,7 @@ This skill enables agents to act as personal data engineers. Instead of running 
 ## Prerequisites
 
 1. **The Data:** The user must provide the path to their extracted data files.
-2. **Authentication:** Ensure you are authenticated to the Fulcra CLI (`uv tool run fulcra-api auth login --get-auth-url`).
+2. **Authentication:** Ensure you are authenticated to the Fulcra CLI (`uvx fulcra-api auth login --get-auth-url`).
 
 ## Dependencies & References
 
@@ -29,7 +29,7 @@ Ask the user what dimension they want to track (e.g., "I want to track my Spotif
 Use tools to briefly inspect the shape of their raw data files (e.g., `head -n 20 data.json`) to identify the required fields (timestamps, specific tags, and notes).
 
 ### 2. Schema Creation
-Check if the desired target schema already exists using `uv tool run fulcra-api catalog | jq '.[] | select(.categories | index("user_configured"))'`.
+Check if the desired target schema already exists using `uvx fulcra-api catalog | jq '.[] | select(.categories | index("user_configured"))'`.
 If not, consult the `fulcra-ingest` CLI reference to create the appropriate base annotation type (`MomentAnnotation`, `DurationAnnotation`, `NumericAnnotation`, etc.) via the CLI.
 Capture the returned JSON schema ID (e.g., `com.fulcradynamics.annotation...`).
 
