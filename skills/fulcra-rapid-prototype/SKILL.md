@@ -324,7 +324,11 @@ For each coordinator invocation:
    evidence. If the main run is unhealthy, it follows the documented
    unattended-recovery protocol: preserve/resume/stash state, repair only
    harness/branch/worktree mechanics, prove one clean Coordinator
-   preflight, and report exactly what it recovered. The verifier may never
+   preflight, and report exactly what it recovered. Durable status,
+   decision, milestone-progress, and escalation uploads are required
+   records: retry them boundedly and surface a critical visibility failure;
+   never silently swallow an upload error then claim dashboard/status is
+   current. The verifier may never
    directly edit deliverable code/tests or user-owned spec/decisions.
 
 **Correction rule:** do not manually patch a generated artifact merely to
