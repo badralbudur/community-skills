@@ -327,8 +327,14 @@ upload.
 
 ## Optional dashboard
 
-A dashboard is outside the portable control harness by default. If used,
-read only durable Workspace summaries/progress, publish only explicitly
+A dashboard is outside the portable control harness by default. If a
+project wants a visual harness view, invoke **`fulcra-harness-dashboard`**
+after the Workspace tracking contract exists. That skill is an adapter on
+top of **`fulcra-project-dashboard`**: it supplies the harness-specific
+flight plan, run timeline, checkpoint, Open Items, refresh contract, and
+safe-publication adaptations without replacing the base dashboard shell.
+
+Read only durable Workspace summaries/progress, publish only explicitly
 curated data, never raw inboxes/verdict archives/credentials/private repo
 contents, and make deployment history reviewable. A dashboard publish
 failure must not mask the actual harness result.
