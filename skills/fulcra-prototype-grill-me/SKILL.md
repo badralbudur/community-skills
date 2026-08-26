@@ -31,7 +31,30 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Commit:** Commit the brief and `.gitignore`.
 
 ### 2. Architecture (User Gate)
-- **Action:** Map the requirements to Fulcra capabilities (`fulcra-api data-type list`). If a data type exists, use it. If not, define a custom data type.
+- **Action:** Map the requirements to Fulcra capabilities. Discover existing
+  data types with `fulcra catalog` (optionally `--name <substring>` or
+  `--category <category>` to narrow the search). If a data type exists,
+  use it. If not, define a custom data type.
+- **Match on `name`/`description`, never on `id` alone, when checking
+  whether a data type already exists.** `fulcra catalog`'s output mixes
+  two kinds of entries:
+  - Platform built-in types (e.g. `HeartRate`, `AFibBurden`), where `id`
+    is the human-readable type name.
+  - User-defined custom types (created via `fulcra data-type create` in
+    an earlier session/project), where `id` is an opaque
+    `<BaseType>/<UUID>` string (e.g.
+    `MomentAnnotation/5010da19-8586-4d49-9cf3-ba9fd266dcd7`) that reveals
+    nothing about what the type actually is. The real, human-assigned
+    name lives in the separate `name` field (often alongside a short
+    `description`), not `id`.
+  Filtering or matching on `id` alone will silently miss every
+  pre-existing custom type in an account with prior Fulcra prototyping
+  history -- which is the common case, not the exception. Always fetch
+  full records (`fulcra catalog` with no `-d`/`--data-type` filter
+  returns full JSON per entry) and inspect `name` and `description`
+  together with `id` before declaring a capability gap or an "already
+  exists" conclusion.
+
 - **For each custom data type identified, explicitly decide and record
   in `architecture.md`:**
   1. **`recorded_at` semantics:** what real historical timestamp will
