@@ -175,6 +175,27 @@ Point the user at:
 Then either run the first task (`python -m harness.run_task task_001_*.md`)
 if the user wants a demonstration, or hand the verified scaffold over.
 
+### 7. Scaffold the portable outer control harness
+
+The bundled runtime harness is the inner model/tool loop. If the project
+will use independent generation/evaluation, milestone branches, durable
+Workspace tracking, or unattended operation, scaffold the separate outer
+control harness now:
+
+```bash
+cd <this skill's own directory>
+python scripts/scaffold_control_harness.py \
+  --project-name "<Human-readable project name>" \
+  --output-dir <new sibling path such as ../<project>-control>
+```
+
+Run with `--dry-run` first. The script refuses to overwrite a non-empty
+control harness. Fill its `spec.md`/`milestones.md` from the approved
+Grill-Me artifacts, then follow its README to configure provider adapters
+and bootstrap a Fulcra Workspace team. Keep it separate from the generated
+deliverable repo: the control harness governs work; the deliverable is the
+artifact being evaluated.
+
 # Part II — Operate the Scaffold as a Reliable Task Harness
 
 The bundled runtime loop may be single-agent. That does **not** remove the
@@ -306,8 +327,14 @@ upload.
 
 ## Optional dashboard
 
-A dashboard is outside the portable control harness by default. If used,
-read only durable Workspace summaries/progress, publish only explicitly
+A dashboard is outside the portable control harness by default. If a
+project wants a visual harness view, invoke **`fulcra-harness-dashboard`**
+after the Workspace tracking contract exists. That skill is an adapter on
+top of **`fulcra-project-dashboard`**: it supplies the harness-specific
+flight plan, run timeline, checkpoint, Open Items, refresh contract, and
+safe-publication adaptations without replacing the base dashboard shell.
+
+Read only durable Workspace summaries/progress, publish only explicitly
 curated data, never raw inboxes/verdict archives/credentials/private repo
 contents, and make deployment history reviewable. A dashboard publish
 failure must not mask the actual harness result.

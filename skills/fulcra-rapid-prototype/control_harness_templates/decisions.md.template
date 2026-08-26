@@ -1,0 +1,9 @@
+# Decisions Log
+
+Append-only chronological record of raw user decisions. This is the source
+of truth for why; `spec.md` is the formalized target.
+
+```text
+## YYYY-MM-DD HH:MM UTC — [tag]
+<verbatim user decision>
+```

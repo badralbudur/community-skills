@@ -1,0 +1,24 @@
+# Spec: {{PROJECT_NAME}}
+
+_Approved requirements are immutable during a run. Change this file only
+following a user decision recorded in `decisions.md`._
+
+## Goal
+
+<!-- Fill after fulcra-prototype-grill-me Architecture/Plan approval. -->
+
+## Requirements
+
+<!-- Numbered, testable requirements. -->
+
+## Generation Rules
+
+<!-- Constraints for Generator. -->
+
+## Evaluation Criteria
+
+<!-- Deterministic checks, declared test runner, and judged checks. -->
+
+## Out of Scope
+
+<!-- Explicit exclusions. -->

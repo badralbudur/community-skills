@@ -1,0 +1,21 @@
+# Milestones
+
+Each milestone is one independently buildable/evaluable unit. Generator
+reads the full spec but works only the current milestone; Evaluator checks
+current scope plus regressions in passed milestones.
+
+## M1: <name>
+
+**Scope:**
+
+**Requirements:**
+
+**Done when:**
+
+## M2: <name>
+
+**Scope:**
+
+**Requirements:**
+
+**Done when:**
