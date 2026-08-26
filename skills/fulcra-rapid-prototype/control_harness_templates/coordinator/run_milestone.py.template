@@ -14,6 +14,7 @@ import argparse
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -87,11 +88,19 @@ def write_workspace(cli: list[str], team: str, remote: str, content: str) -> Non
         local.unlink(missing_ok=True)
 
 
-def persist_status(cli: list[str] | None, team: str | None, outcome: str, milestone: str, where: str, next_bearing: str) -> None:
+def persist_status(
+    cli: list[str] | None,
+    team: str | None,
+    outcome: str,
+    milestone: str,
+    where: str,
+    going: str,
+    next_bearing: str,
+) -> None:
     if not cli or not team:
         return
     now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    content = f"---\ntype: Harness Status Summary\n---\n\n# Harness checkpoint\n- **Outcome:** {outcome}\n- **Milestone:** {milestone}\n- **Updated:** {now}\n\n## Where we are\n{where}\n\n## Where we're going\n{next_bearing}\n\n## Next bearing\n{next_bearing}\n"
+    content = f"---\ntype: Harness Status Summary\n---\n\n# Harness checkpoint\n- **Outcome:** {outcome}\n- **Milestone:** {milestone}\n- **Updated:** {now}\n\n## Where we are\n{where}\n\n## Where we're going\n{going}\n\n## Next bearing\n{next_bearing}\n"
     write_workspace(cli, team, "status-summary.md", content)
 
 
@@ -107,16 +116,35 @@ def role_command(role: str, command: str, milestone: str, context: str, delivera
     transient = re.compile(r"429|rate limit|usage limit|session limit", re.I)
     last = ""
     for attempt in range(1, retries + 1):
+        # shell=True is the documented adapter boundary for an operator-supplied
+        # command string. Start a new session so timeout cleanup can terminate
+        # the entire provider process group, not only the intermediate shell.
+        proc = subprocess.Popen(
+            command,
+            shell=True,
+            cwd=deliverable,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+        )
         try:
-            result = subprocess.run(command, shell=True, cwd=deliverable, env=env, capture_output=True, text=True, timeout=timeout)
-        except subprocess.TimeoutExpired as exc:
-            last = f"{role} exceeded {timeout}s wall clock: {exc}"
+            stdout, stderr = proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            os.killpg(proc.pid, signal.SIGTERM)
+            try:
+                stdout, stderr = proc.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                os.killpg(proc.pid, signal.SIGKILL)
+                stdout, stderr = proc.communicate()
+            last = f"{role} exceeded {timeout}s wall clock; terminated provider process group"
             retryable = True
         else:
-            output = result.stdout + ("\n" + result.stderr if result.stderr else "")
-            if result.returncode == 0:
-                return result.stdout
-            last = f"{role} exited {result.returncode}: {output[-2000:]}"
+            output = stdout + ("\n" + stderr if stderr else "")
+            if proc.returncode == 0:
+                return stdout
+            last = f"{role} exited {proc.returncode}: {output[-2000:]}"
             retryable = bool(transient.search(output))
         if not retryable or attempt == retries:
             raise MilestoneError(last)
@@ -150,6 +178,35 @@ def adapter(command: str | None, env: dict[str, str], label: str) -> None:
     print(result.stdout)
 
 
+def ensure_milestone_branch(deliverable: Path, branch: str) -> str:
+    """Checkout a safe local/remote milestone branch and return start SHA.
+
+    A fresh clone may only have `origin/<branch>`, not a local ref. Prefer
+    that remote branch to preserve prior milestone work; otherwise branch
+    from origin's advertised default branch, never a hardcoded `main`.
+    """
+    if run(["git", "-C", str(deliverable), "status", "--porcelain"], check=False).stdout.strip():
+        raise MilestoneError("Deliverable is dirty before branch preparation; preserve/resume it via recovery protocol first.")
+    run(["git", "-C", str(deliverable), "fetch", "origin"], check=False)
+    local = run(["git", "-C", str(deliverable), "rev-parse", "--verify", branch], check=False).returncode == 0
+    remote = run(["git", "-C", str(deliverable), "rev-parse", "--verify", f"origin/{branch}"], check=False).returncode == 0
+    if local:
+        run(["git", "-C", str(deliverable), "checkout", branch])
+    elif remote:
+        run(["git", "-C", str(deliverable), "checkout", "-B", branch, f"origin/{branch}"])
+    else:
+        default = run(["git", "-C", str(deliverable), "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], check=False).stdout.strip()
+        base = default or "origin/main"
+        if run(["git", "-C", str(deliverable), "rev-parse", "--verify", base], check=False).returncode != 0:
+            raise MilestoneError(f"Cannot resolve origin default branch for new milestone (tried {base}).")
+        run(["git", "-C", str(deliverable), "checkout", "-B", branch, base])
+    return run(["git", "-C", str(deliverable), "rev-parse", "HEAD"]).stdout.strip()
+
+
+def has_new_commit(deliverable: Path, start_sha: str) -> bool:
+    return run(["git", "-C", str(deliverable), "rev-parse", "HEAD"]).stdout.strip() != start_sha
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--milestone", required=True)
@@ -174,21 +231,18 @@ def main() -> int:
     evaluator = os.getenv("HARNESS_EVALUATOR_CMD")
     if not generator or not evaluator:
         raise MilestoneError("HARNESS_GENERATOR_CMD and HARNESS_EVALUATOR_CMD are required.")
-    run(["git", "-C", str(deliverable), "fetch", "origin"], check=False)
-    branch_exists = run(["git", "-C", str(deliverable), "rev-parse", "--verify", branch], check=False).returncode == 0
-    if branch_exists:
-        run(["git", "-C", str(deliverable), "checkout", branch])
-    else:
-        run(["git", "-C", str(deliverable), "checkout", "-B", branch, "origin/main"])
+    start_sha = ensure_milestone_branch(deliverable, branch)
 
     try:
         generator_output = role_command("generator", generator, args.milestone, context, deliverable, args.role_timeout, args.max_retries)
     except MilestoneError as exc:
-        persist_status(cli, args.team, "ESCALATED", args.milestone, str(exc), "Resolve provider/process blocker, then resume this branch.")
+        persist_status(cli, args.team, "ESCALATED", args.milestone, str(exc), "Provider/process execution did not complete.", "Resolve provider/process blocker, then resume this branch.")
         raise
 
     if run(["git", "-C", str(deliverable), "status", "--porcelain"], check=False).stdout.strip():
         raise MilestoneError("Generator returned with uncommitted work; Generator must commit/push before evaluation.")
+    if not has_new_commit(deliverable, start_sha):
+        raise MilestoneError("Generator made no new commit for this invocation; refusing no-op push/PR/evaluation against unchanged state.")
     run(["git", "-C", str(deliverable), "push", "-u", "origin", branch])
     host_env = {"HARNESS_BRANCH": branch, "HARNESS_MILESTONE": args.milestone, "HARNESS_DELIVERABLE": str(deliverable)}
     adapter(os.getenv("HARNESS_PR_CREATE_CMD"), host_env, "PR-create")
@@ -200,17 +254,17 @@ def main() -> int:
     if verdict.get("decision_request") == "TRUE":
         if cli and args.team:
             write_workspace(cli, args.team, f"decision/{args.milestone}-decision-request.md", evaluator_output)
-        persist_status(cli, args.team, "DECISION REQUIRED", args.milestone, "Evaluator emitted a user decision request.", "Record user answer in decisions.md/spec before resuming.")
+        persist_status(cli, args.team, "DECISION REQUIRED", args.milestone, "Evaluator emitted a user decision request.", "The milestone is paused pending user input.", "Record user answer in decisions.md/spec before resuming.")
         return 1
 
     mergeable = is_mergeable(verdict, test_runner_declared=not args.no_test_runner)
     if not mergeable:
-        persist_status(cli, args.team, "FAIL", args.milestone, f"Evaluator verdict: {verdict}", "Leave branch/PR open; repair process or artifact through Generator.")
+        persist_status(cli, args.team, "FAIL", args.milestone, f"Evaluator verdict: {verdict}", "Branch and PR remain reviewable for a bounded corrective iteration.", "Leave branch/PR open; repair process or artifact through Generator.")
         return 1
     adapter(os.getenv("HARNESS_PR_MERGE_CMD"), host_env, "PR-merge")
     if cli and args.team:
         write_workspace(cli, args.team, "milestone-progress.md", f"current: <next milestone>\ncompleted: {args.milestone}\n")
-    persist_status(cli, args.team, "PASS", args.milestone, "Independent evaluator passed committed branch state.", "Advance to the next milestone.")
+    persist_status(cli, args.team, "PASS", args.milestone, "Independent evaluator passed committed branch state.", "The harness may advance to the next milestone.", "Advance to the next milestone.")
     return 0
 
 
