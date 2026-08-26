@@ -27,12 +27,40 @@ from pathlib import Path
 CONTROL_HARNESS_ROOT = Path(__file__).resolve().parent.parent
 
 
+def _resolve_fulcra_cli() -> list[str]:
+    """Resolve the real, available CLI invocation for the fulcra-api CLI.
+
+    bootstrap.sh's own preflight accepts either a `fulcra` or `fulcra-api`
+    executable on PATH (see bootstrap.sh.template) -- this must match that
+    check exactly, rather than hardcoding one name, or an environment that
+    only has `fulcra-api` (or only has it runnable via `uvx fulcra-api`,
+    per this skill's own documented install path) would pass bootstrap.sh's
+    shell preflight and then fail inside this script regardless.
+    """
+    import shutil
+
+    for candidate in ("fulcra", "fulcra-api"):
+        if shutil.which(candidate):
+            return [candidate]
+    if shutil.which("uvx"):
+        return ["uvx", "fulcra-api"]
+    print(
+        "ERROR: no usable fulcra CLI found (tried 'fulcra', 'fulcra-api', "
+        "'uvx fulcra-api'). Install with: pip install fulcra-api",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+
+
+FULCRA_CLI = _resolve_fulcra_cli()
+
+
 def _fulcra_file_exists(remote_path: str) -> bool:
     """Whether a file already exists at `remote_path` in the user's Fulcra
     file store. Used to decide create-vs-join for the team, per
     fulcra-workspaces' explicit "check before creating" requirement."""
     result = subprocess.run(
-        ["fulcra", "file", "stat", remote_path],
+        [*FULCRA_CLI, "file", "stat", remote_path],
         capture_output=True,
         text=True,
     )
@@ -48,7 +76,7 @@ def _upload_text(remote_path: str, content: str, dry_run: bool) -> None:
         local_path = f.name
     try:
         result = subprocess.run(
-            ["fulcra", "file", "upload", local_path, remote_path],
+            [*FULCRA_CLI, "file", "upload", local_path, remote_path],
             capture_output=True,
             text=True,
         )

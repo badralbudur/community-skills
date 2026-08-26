@@ -207,3 +207,93 @@ def test_run_milestone_extracts_correct_milestone_context(tmp_path: Path) -> Non
             run_milestone.extract_milestone_context("M99")
     finally:
         sys.path.remove(str(target / "coordinator"))
+
+
+def _load_run_milestone_module(target: Path):
+    """Shared helper: import coordinator/run_milestone.py from a scaffolded
+    target as a fresh module, matching the reload pattern used elsewhere
+    in this file."""
+    import importlib
+
+    sys.path.insert(0, str(target / "coordinator"))
+    try:
+        if "run_milestone" in sys.modules:
+            importlib.reload(sys.modules["run_milestone"])
+            return sys.modules["run_milestone"]
+        import run_milestone  # type: ignore
+
+        return run_milestone
+    finally:
+        sys.path.remove(str(target / "coordinator"))
+
+
+def test_is_mergeable_requires_test_runner_pass_when_declared(tmp_path: Path) -> None:
+    """Regression test for a real reported bug: an Evaluator reporting
+    'overall: PASS' alongside 'test_runner: FAIL' (or no test_runner line
+    at all) must NOT be treated as merge-eligible when a test runner is
+    declared -- this is exactly the unverified-milestone failure mode the
+    Generator/Evaluator separation exists to prevent. parse_verdict()
+    alone does not enforce this; callers must use is_mergeable()."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+    run_milestone = _load_run_milestone_module(target)
+
+    # overall PASS + test_runner PASS -> mergeable when a runner is declared.
+    assert run_milestone.is_mergeable({"overall": "PASS", "test_runner": "PASS"}, test_runner_declared=True)
+
+    # overall PASS + test_runner FAIL -> NOT mergeable when a runner is declared.
+    assert not run_milestone.is_mergeable({"overall": "PASS", "test_runner": "FAIL"}, test_runner_declared=True)
+
+    # overall PASS with NO test_runner line at all -> NOT mergeable when a runner is declared.
+    assert not run_milestone.is_mergeable({"overall": "PASS"}, test_runner_declared=True)
+
+    # overall FAIL is never mergeable regardless of test_runner.
+    assert not run_milestone.is_mergeable({"overall": "FAIL", "test_runner": "PASS"}, test_runner_declared=True)
+
+    # When no test runner is declared for the project, overall PASS alone is mergeable.
+    assert run_milestone.is_mergeable({"overall": "PASS"}, test_runner_declared=False)
+
+
+def test_bootstrap_resolves_fulcra_or_fulcra_api_or_uvx(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression test for a real reported bug: bootstrap.py used to
+    unconditionally shell out to `fulcra`, even though bootstrap.sh's own
+    preflight accepts `fulcra` OR `fulcra-api` on PATH -- an environment
+    with only `fulcra-api` (or only `uvx fulcra-api`) would pass the shell
+    preflight and then fail inside Python regardless."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+
+    bootstrap_src = (target / "coordinator" / "bootstrap.py").read_text()
+    assert "_resolve_fulcra_cli" in bootstrap_src
+    # No remaining hardcoded ["fulcra", ...] call sites -- every real
+    # invocation must go through the resolved FULCRA_CLI.
+    assert '["fulcra", "file"' not in bootstrap_src
+
+    import shutil as shutil_module
+
+    original_which = shutil_module.which
+
+    def fake_which(name: str):
+        # Simulate an environment where only `fulcra-api` exists, not `fulcra`.
+        if name == "fulcra-api":
+            return "/usr/bin/fulcra-api"
+        if name == "fulcra":
+            return None
+        return original_which(name)
+
+    monkeypatch.setattr(shutil_module, "which", fake_which)
+
+    sys.path.insert(0, str(target / "coordinator"))
+    try:
+        import importlib
+
+        if "bootstrap" in sys.modules:
+            del sys.modules["bootstrap"]
+        import bootstrap  # type: ignore
+
+        importlib.reload(bootstrap)
+        assert bootstrap.FULCRA_CLI == ["fulcra-api"]
+    finally:
+        sys.path.remove(str(target / "coordinator"))
+        if "bootstrap" in sys.modules:
+            del sys.modules["bootstrap"]

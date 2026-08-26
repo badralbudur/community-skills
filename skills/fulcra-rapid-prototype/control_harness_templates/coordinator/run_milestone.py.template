@@ -130,6 +130,32 @@ def parse_verdict(evaluator_output: str) -> dict[str, str]:
     return verdict
 
 
+def is_mergeable(verdict: dict[str, str], test_runner_declared: bool) -> bool:
+    """Whether a verdict is genuinely merge-eligible.
+
+    Per schemas/verdict.md: 'When a declared test runner exists, overall:
+    PASS requires test_runner: PASS plus all in-scope criteria passing.'
+    parse_verdict() only guarantees 'overall' is present -- it does NOT by
+    itself enforce this rule, so callers must check is_mergeable() rather
+    than testing verdict['overall'] == 'PASS' directly. This exists
+    specifically to prevent an Evaluator that reports 'overall: PASS'
+    while also reporting (or omitting) 'test_runner: FAIL' from being
+    treated as mergeable -- recreating exactly the unverified-milestone
+    failure mode the Generator/Evaluator separation exists to catch.
+
+    Args:
+        verdict: parsed output from parse_verdict().
+        test_runner_declared: whether this project has a declared test
+            runner (per spec.md's Evaluation Criteria) -- if False, no
+            test_runner line is required at all.
+    """
+    if verdict.get("overall") != "PASS":
+        return False
+    if test_runner_declared and verdict.get("test_runner") != "PASS":
+        return False
+    return True
+
+
 def has_pushed_commits(deliverable: Path, branch: str) -> bool:
     result = _run(
         ["git", "-C", str(deliverable), "log", f"origin/{branch}..{branch}", "--oneline"],
@@ -147,6 +173,18 @@ def main() -> int:
         "--dry-run",
         action="store_true",
         help="Resolve context/branch name and print what would run, without invoking any provider command.",
+    )
+    parser.add_argument(
+        "--no-test-runner",
+        action="store_true",
+        help=(
+            "Declare that this project has NO test runner yet (e.g. very early "
+            "milestones before app/tests/ exists). Default assumes a test "
+            "runner IS declared, per spec.md's Evaluation Criteria -- this is "
+            "the safer default, since silently treating a real project as "
+            "test-runner-less would let an overall: PASS merge without ever "
+            "requiring test_runner: PASS."
+        ),
     )
     args = parser.parse_args()
 
@@ -196,9 +234,10 @@ def main() -> int:
 
     evaluator_output = run_role("evaluator", evaluator_cmd, args.milestone, context, deliverable)
     verdict = parse_verdict(evaluator_output)
+    test_runner_declared = not args.no_test_runner
 
     print(f"\nVerdict: {verdict}")
-    if verdict.get("overall") == "PASS":
+    if is_mergeable(verdict, test_runner_declared=test_runner_declared):
         print(
             f"PASS. Merge {branch} after your own review, update "
             f"milestone-progress.md, and write a status-summary.md, per "
@@ -207,12 +246,23 @@ def main() -> int:
         )
         return 0
     else:
-        print(
-            f"FAIL (or missing PASS). Branch/PR left open for review. Do not "
-            f"re-run blindly -- per this skill's invariant #6, fix the "
-            f"process (prompts, schemas, permissions, scope), not just retry "
-            f"the same generation."
-        )
+        if verdict.get("overall") == "PASS" and test_runner_declared and verdict.get("test_runner") != "PASS":
+            print(
+                f"NOT mergeable despite 'overall: PASS' -- a test runner is "
+                f"declared for this project but the Evaluator reported "
+                f"test_runner: {verdict.get('test_runner', '(missing)')} , not "
+                f"PASS. Per schemas/verdict.md, overall: PASS requires "
+                f"test_runner: PASS when a test runner is declared. Branch/PR "
+                f"left open for review.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"FAIL (or missing PASS). Branch/PR left open for review. Do not "
+                f"re-run blindly -- per this skill's invariant #6, fix the "
+                f"process (prompts, schemas, permissions, scope), not just retry "
+                f"the same generation."
+            )
         return 1
 
 
