@@ -33,30 +33,14 @@ python coordinator/run_milestone.py --milestone M1 --deliverable ../<deliverable
 ```
 
 This will:
-1. Create or resume the `milestone/m1-<slug>` branch in the deliverable
-   repo.
-2. Run Generator against that branch with `HARNESS_ROLE=generator` and
-   the milestone's scope/context.
-3. Push Generator's commits to `origin` if any were made.
-4. Run Evaluator independently against the pushed branch state with
-   `HARNESS_ROLE=evaluator`, and parse its verdict.
-5. Report `is_mergeable()`'s decision: `overall: PASS` requires
-   `test_runner: PASS` too when a test runner is declared (see
-   `schemas/verdict.md`).
+1. Create or resume the `milestone/m1-<slug>` branch in the deliverable repo.
+2. Run Generator against that branch with `HARNESS_ROLE=generator` and the milestone's scope/context, subject to configurable timeout/bounded retry behavior.
+3. Push Generator's commits to `origin` if any were made, then invoke `HARNESS_PR_CREATE_CMD` if configured.
+4. Run Evaluator independently against the pushed branch state with `HARNESS_ROLE=evaluator`, parse its verdict, and persist it to Workspace when `--team` is supplied.
+5. Reject a merge-eligible PASS unless `overall: PASS` and, when declared, `test_runner: PASS` are both present.
+6. On PASS invoke `HARNESS_PR_MERGE_CMD` if configured, then persist milestone progress/status. On FAIL or decision request, persist the relevant Workspace status/artifact and leave branch/PR reviewable.
 
-**What this step does NOT do today** (real, current scope -- see
-README.md's "Scope note" for why): it does not create or resume a PR on
-your git host, does not merge anything automatically, does not persist
-the verdict/decision/escalation to the Fulcra Workspace, does not write
-`milestone-progress.md`/`status-summary.md` for you, and applies no
-bounded-retry/liveness policy from `coordinator/policy.md` -- those
-remain your (or an integration adapter's) manual responsibility for now.
-Concretely, after a `PASS`, you still need to: create/resume the PR
-yourself (GitHub cannot create a zero-diff PR, so this has to happen
-after Generator's first pushed commit) and review it, merge it yourself,
-and update `milestone-progress.md`/write `status-summary.md` yourself.
-See `fulcradynamics/community-skills#45` for the tracking issue on
-closing this gap.
+**Host integration boundary:** this runner does not hardcode GitHub/GitLab/etc. Configure trusted adapter commands through `HARNESS_PR_CREATE_CMD` and `HARNESS_PR_MERGE_CMD`. Activity-aware watchdog behavior remains an integration adapter; the runner enforces a configurable hard role timeout and bounded retry policy.
 
 ## Handling a decision request
 

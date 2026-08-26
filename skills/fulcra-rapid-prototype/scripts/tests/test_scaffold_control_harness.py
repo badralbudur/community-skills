@@ -299,6 +299,86 @@ def test_bootstrap_resolves_fulcra_or_fulcra_api_or_uvx(tmp_path: Path, monkeypa
             del sys.modules["bootstrap"]
 
 
+def test_noop_generator_commit_guard_and_remote_branch_resume(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression coverage for #46 review: unchanged Generator output must
+    not reach PR/Evaluator, and a remote-only milestone branch must be
+    resumed rather than reset from origin/main."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+    module = _load_run_milestone_module(target)
+    deliverable = tmp_path / "deliverable"
+    deliverable.mkdir()
+
+    # The pure no-op guard is independent of provider/host adapters.
+    responses = iter(["same", "same"])
+    monkeypatch.setattr(module, "run", lambda *args, **kwargs: type("R", (), {"stdout": next(responses), "returncode": 0})())
+    assert not module.has_new_commit(deliverable, "same")
+
+    calls: list[list[str]] = []
+    def fake_run(cmd, *args, **kwargs):
+        calls.append(cmd)
+        text = ""
+        if "status" in cmd:
+            text = ""
+        elif "rev-parse" in cmd and cmd[-1] == "remote-branch":
+            return type("R", (), {"stdout": "", "returncode": 1})()
+        elif "rev-parse" in cmd and cmd[-1] == "origin/remote-branch":
+            return type("R", (), {"stdout": "origin-sha", "returncode": 0})()
+        elif "rev-parse" in cmd and cmd[-1] == "HEAD":
+            text = "remote-sha"
+        return type("R", (), {"stdout": text, "returncode": 0})()
+
+    monkeypatch.setattr(module, "run", fake_run)
+    assert module.ensure_milestone_branch(deliverable, "remote-branch") == "remote-sha"
+    assert ["git", "-C", str(deliverable), "checkout", "-B", "remote-branch", "origin/remote-branch"] in calls
+
+
+def test_templates_exclude_runtime_cache_copy() -> None:
+    """The scaffold loop must only copy explicit .template source files;
+    runtime __pycache__/pyc artifacts must never become harness files."""
+    source = SCRIPT.read_text()
+    assert 'rglob("*.template")' in source
+    assert '"__pycache__"' in source
+
+
+def test_role_timeout_kills_process_group_then_retries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A hung provider must receive group TERM and the bounded retry may
+    proceed to a fresh successful provider process rather than leaking the
+    child beyond the wall-clock timeout."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+    module = _load_run_milestone_module(target)
+    deliverable = tmp_path / "deliverable"
+    deliverable.mkdir()
+
+    class HungProcess:
+        pid = 4242
+        returncode = None
+        calls = 0
+        def communicate(self, timeout=None):
+            self.calls += 1
+            if self.calls == 1:
+                raise subprocess.TimeoutExpired("generator", timeout or 1)
+            return ("", "")
+
+    class PassingProcess:
+        pid = 4343
+        returncode = 0
+        def communicate(self, timeout=None):
+            return ("generator done", "")
+
+    processes = iter([HungProcess(), PassingProcess()])
+    killed: list[tuple[int, int]] = []
+    monkeypatch.setattr(module.subprocess, "Popen", lambda *args, **kwargs: next(processes))
+    monkeypatch.setattr(module.os, "killpg", lambda pid, sig: killed.append((pid, sig)))
+    monkeypatch.setattr(module.time, "sleep", lambda _: None)
+    monkeypatch.setenv("HARNESS_GENERATOR_CMD", "trusted-generator")
+
+    result = module.role_command("generator", "trusted-generator", "M1", "scope", deliverable, timeout=1, retries=2)
+    assert result == "generator done"
+    assert killed == [(4242, module.signal.SIGTERM)]
+
+
 def test_bootstrap_sh_wrapper_accepts_uvx_only_environment(tmp_path: Path) -> None:
     """Regression test for a real reported bug: bootstrap.sh's own shell
     preflight rejected a real, valid environment where only `uvx` is

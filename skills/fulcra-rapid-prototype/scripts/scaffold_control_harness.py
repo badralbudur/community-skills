@@ -31,8 +31,8 @@ def main() -> int:
         return 0
 
     target.mkdir(parents=True, exist_ok=True)
-    for source in TEMPLATES.rglob("*"):
-        if source.is_dir():
+    for source in TEMPLATES.rglob("*.template"):
+        if "__pycache__" in source.parts:
             continue
         relative = source.relative_to(TEMPLATES)
         destination = target / relative.name.replace(".template", "") if relative.parent == Path(".") else target / relative.parent / relative.name.replace(".template", "")
