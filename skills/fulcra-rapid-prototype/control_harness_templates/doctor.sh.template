@@ -33,12 +33,25 @@ done
 check "knowledge/ directory exists" test -d "$SCRIPT_DIR/knowledge"
 
 echo "--- Tooling ---"
-if command -v fulcra >/dev/null 2>&1; then
-  echo "  OK   fulcra CLI on PATH"
-elif command -v fulcra-api >/dev/null 2>&1; then
-  echo "  OK   fulcra-api CLI on PATH"
+# Delegate to the same resolver bootstrap.py uses (fulcra / fulcra-api /
+# uvx fulcra-api) rather than a third, separate duplicate of this check --
+# a prior version of doctor.sh had its own two-way check here that never
+# learned about uvx when bootstrap.py's resolver did, so a fresh
+# bootstrap -> doctor sequence could pass bootstrap and then fail doctor
+# in a uvx-only environment despite everything actually working.
+FULCRA_CLI_CHECK=$(python3 -c "
+import sys
+sys.path.insert(0, '$SCRIPT_DIR/coordinator')
+try:
+    import bootstrap
+    print(' '.join(bootstrap.FULCRA_CLI))
+except SystemExit:
+    print('')
+" 2>/dev/null)
+if [ -n "$FULCRA_CLI_CHECK" ]; then
+  echo "  OK   fulcra CLI resolved: $FULCRA_CLI_CHECK"
 else
-  echo "  FAIL neither fulcra nor fulcra-api CLI found on PATH"
+  echo "  FAIL no usable fulcra CLI found (tried fulcra, fulcra-api, uvx fulcra-api)"
   PROBLEMS=$((PROBLEMS + 1))
 fi
 check "python3 available" command -v python3

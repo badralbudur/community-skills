@@ -357,3 +357,56 @@ def test_bootstrap_sh_wrapper_accepts_uvx_only_environment(tmp_path: Path) -> No
 
     assert "neither 'fulcra' nor 'fulcra-api' CLI found" not in result.stderr
     assert result.returncode == 0, f"stdout={result.stdout}\nstderr={result.stderr}"
+
+
+def test_doctor_sh_accepts_uvx_only_environment(tmp_path: Path) -> None:
+    """Regression test for a real reported bug: doctor.sh had its own
+    third, separate fulcra/fulcra-api-only tooling check that never
+    learned about uvx even after bootstrap.sh and bootstrap.py were both
+    fixed to accept it -- so a fresh bootstrap -> doctor sequence could
+    pass bootstrap.sh and then fail doctor.sh in a genuinely valid
+    uvx-only environment. Exercises the actual generated ./doctor.sh
+    entry point with a fabricated PATH containing only a stub `uvx`."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+
+    doctor_sh_src = (target / "doctor.sh").read_text()
+    assert "uvx" in doctor_sh_src, "doctor.sh must accept uvx as a valid fulcra CLI route"
+
+    # Fill spec.md so that check doesn't also fail and muddy this test's
+    # specific assertion about the tooling check.
+    spec_path = target / "spec.md"
+    spec_text = spec_path.read_text()
+    spec_text = spec_text.replace(
+        "<!-- Fill after fulcra-prototype-grill-me Architecture/Plan approval. -->",
+        "filled in for this test",
+    )
+    spec_path.write_text(spec_text)
+
+    fake_bin = tmp_path / "fake_bin_doctor"
+    fake_bin.mkdir()
+    uvx_stub = fake_bin / "uvx"
+    uvx_stub.write_text("#!/usr/bin/env bash\nexit 1\n")
+    uvx_stub.chmod(0o755)
+
+    import shutil as shutil_module
+
+    for tool in ("python3", "bash", "dirname", "grep"):
+        real_path = shutil_module.which(tool)
+        if real_path:
+            (fake_bin / tool).symlink_to(real_path)
+
+    env = {
+        "PATH": str(fake_bin),
+        "HARNESS_GENERATOR_CMD": "true",
+        "HARNESS_EVALUATOR_CMD": "true",
+    }
+    result = subprocess.run(
+        ["bash", str(target / "doctor.sh")],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert "no usable fulcra CLI found" not in result.stdout
+    assert "fulcra CLI resolved: uvx fulcra-api" in result.stdout, result.stdout

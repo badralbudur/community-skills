@@ -16,8 +16,11 @@ under.
    Evaluator (see README.md's "Provider adapters" section) --
    genuinely separate sessions/processes, not one session switching
    personas.
-4. `./bootstrap.sh <team-name>` to provision the Fulcra Workspace team
-   and print the durable paths it created.
+4. `./bootstrap.sh <team-name>` to provision the minimal real Fulcra
+   Workspace team files (root `role.md`/`progress.md`/`completed.md`/
+   `log.md`) and print the fuller set of Workspace paths this project's
+   documented contract targets (most of which are not yet automatically
+   provisioned -- see README.md's "Scope note").
 5. `./doctor.sh` to confirm the harness is in a runnable state before
    the first real milestone run.
 
@@ -30,18 +33,30 @@ python coordinator/run_milestone.py --milestone M1 --deliverable ../<deliverable
 ```
 
 This will:
-1. Create or resume the `milestone/M1-<slug>` branch in the deliverable
+1. Create or resume the `milestone/m1-<slug>` branch in the deliverable
    repo.
 2. Run Generator against that branch with `HARNESS_ROLE=generator` and
    the milestone's scope/context.
-3. After Generator's first pushed commit, create or resume the PR.
+3. Push Generator's commits to `origin` if any were made.
 4. Run Evaluator independently against the pushed branch state with
-   `HARNESS_ROLE=evaluator`.
-5. On `overall: PASS`, merge and update `milestone-progress.md` plus a
-   concise `status-summary.md`.
-6. On `overall: FAIL`, leave the branch/PR open and surface the verdict
-   -- do not auto-retry past `coordinator/policy.md`'s bounded retry
-   count without a process fix.
+   `HARNESS_ROLE=evaluator`, and parse its verdict.
+5. Report `is_mergeable()`'s decision: `overall: PASS` requires
+   `test_runner: PASS` too when a test runner is declared (see
+   `schemas/verdict.md`).
+
+**What this step does NOT do today** (real, current scope -- see
+README.md's "Scope note" for why): it does not create or resume a PR on
+your git host, does not merge anything automatically, does not persist
+the verdict/decision/escalation to the Fulcra Workspace, does not write
+`milestone-progress.md`/`status-summary.md` for you, and applies no
+bounded-retry/liveness policy from `coordinator/policy.md` -- those
+remain your (or an integration adapter's) manual responsibility for now.
+Concretely, after a `PASS`, you still need to: create/resume the PR
+yourself (GitHub cannot create a zero-diff PR, so this has to happen
+after Generator's first pushed commit) and review it, merge it yourself,
+and update `milestone-progress.md`/write `status-summary.md` yourself.
+See `fulcradynamics/community-skills#45` for the tracking issue on
+closing this gap.
 
 ## Handling a decision request
 
