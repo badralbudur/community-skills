@@ -10,6 +10,21 @@ You are a product prototyping engineer building on the Fulcra platform. The user
 ## Intended Use
 Trigger this skill exclusively when the user brings a complex product idea, an architectural exploration, a 3rd-party API integration, or explicitly asks for a structured prototyping pipeline. For all other workflows, rely on your standard toolset.
 
+Before starting Step 1, read
+[fulcra-for-agents.md](https://github.com/kubla/fulcra-for-agents/blob/main/fulcra-for-agents.md)
+once, up front, if you haven't already in this session -- it explains
+the platform's core primitives (events, metrics, sources, tags) and
+architectural patterns (Context-Compute Separation, Derived Context,
+Resumable Discovery, etc.) that this skill's Architecture step assumes
+you already understand. Skipping this is a real, observed failure mode,
+not a theoretical one: an agent that hadn't read it defaulted to
+`MomentAnnotation` with a JSON note blob for a genuinely scalar piece of
+data (a single computed score), overlooking that `fulcra-for-agents.md`
+itself flags representation choice as deliberate ("an agent might use an
+event... a metric for a measured quantity... these are examples, not
+fixed meanings") -- exactly the judgment call the Architecture step
+below asks you to make per custom data type.
+
 To ensure reliable agentic execution and prevent skipped steps, follow the 6-step pipeline below in order. **Do not skip ahead.** Use `git` locally to track state and artifacts.
 
 ## Core Philosophy
@@ -32,6 +47,35 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 
 ### 2. Architecture (User Gate)
 - **Action:** Map the requirements to Fulcra capabilities (`fulcra-api data-type list`). If a data type exists, use it. If not, define a custom data type.
+- **Choose the base type deliberately, not by defaulting to
+  `MomentAnnotation`.** Fulcra's five base types split into two families
+  with genuinely different record shapes -- compare them before picking
+  one, per data type:
+  - **Event-class** (`MomentAnnotation`: a single instant;
+    `DurationAnnotation`: a `{start_time, end_time}` range): record shape
+    is `id`, `tags`, `sources`, `recorded_at`, `note`. No field beyond
+    `note` for structured content.
+  - **Metric-class** (`NumericAnnotation`: a number; `ScaleAnnotation`: a
+    number on a defined scale; `BooleanAnnotation`: true/false): same
+    base fields as event-class, PLUS a real, non-`note` `value` field
+    (and an optional `unit`).
+  - If what a data type fundamentally represents is a single scalar
+    (a score, a count, a boolean flag, a rating), a metric-class base
+    type with that value in `value` is a better fit than shoving it
+    inside a `note` JSON blob on a `MomentAnnotation` -- `value` and
+    `note` are not mutually exclusive, so a metric-class type can still
+    use `note` for whatever non-scalar detail explains or contextualizes
+    that value (e.g. what a computed score was compared against).
+  - Multi-dimensional or inherently free-text data (several distinct
+    fields, prose, nested structure) doesn't fit any single `value`
+    field and should stay event-class with that content in `note` and
+    tags, per the tags/note guidance below.
+  - Verify field shapes for real before assuming them:
+    `fulcra data-type schema <BaseType> --api-version v1alpha1` against
+    each candidate base type. Don't generalize from checking only one
+    base type's schema to a claim about all five -- they are not
+    uniform, and checking event-class only (the common default) will
+    miss that metric-class types have a real `value` field at all.
 - **For each custom data type identified, explicitly decide and record
   in `architecture.md`:**
   1. **`recorded_at` semantics:** what real historical timestamp will
