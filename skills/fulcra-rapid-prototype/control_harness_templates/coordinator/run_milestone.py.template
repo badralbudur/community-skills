@@ -132,11 +132,17 @@ def role_command(role: str, command: str, milestone: str, context: str, delivera
         try:
             stdout, stderr = proc.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGTERM)
+            try:
+                os.killpg(proc.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass  # Process exited in the timeout/cleanup race.
             try:
                 stdout, stderr = proc.communicate(timeout=10)
             except subprocess.TimeoutExpired:
-                os.killpg(proc.pid, signal.SIGKILL)
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass  # Same race after grace period.
                 stdout, stderr = proc.communicate()
             last = f"{role} exceeded {timeout}s wall clock; terminated provider process group"
             retryable = True

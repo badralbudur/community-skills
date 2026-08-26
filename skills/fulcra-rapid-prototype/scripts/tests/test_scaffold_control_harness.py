@@ -341,6 +341,44 @@ def test_templates_exclude_runtime_cache_copy() -> None:
     assert '"__pycache__"' in source
 
 
+def test_role_timeout_kills_process_group_then_retries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A hung provider must receive group TERM and the bounded retry may
+    proceed to a fresh successful provider process rather than leaking the
+    child beyond the wall-clock timeout."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+    module = _load_run_milestone_module(target)
+    deliverable = tmp_path / "deliverable"
+    deliverable.mkdir()
+
+    class HungProcess:
+        pid = 4242
+        returncode = None
+        calls = 0
+        def communicate(self, timeout=None):
+            self.calls += 1
+            if self.calls == 1:
+                raise subprocess.TimeoutExpired("generator", timeout or 1)
+            return ("", "")
+
+    class PassingProcess:
+        pid = 4343
+        returncode = 0
+        def communicate(self, timeout=None):
+            return ("generator done", "")
+
+    processes = iter([HungProcess(), PassingProcess()])
+    killed: list[tuple[int, int]] = []
+    monkeypatch.setattr(module.subprocess, "Popen", lambda *args, **kwargs: next(processes))
+    monkeypatch.setattr(module.os, "killpg", lambda pid, sig: killed.append((pid, sig)))
+    monkeypatch.setattr(module.time, "sleep", lambda _: None)
+    monkeypatch.setenv("HARNESS_GENERATOR_CMD", "trusted-generator")
+
+    result = module.role_command("generator", "trusted-generator", "M1", "scope", deliverable, timeout=1, retries=2)
+    assert result == "generator done"
+    assert killed == [(4242, module.signal.SIGTERM)]
+
+
 def test_bootstrap_sh_wrapper_accepts_uvx_only_environment(tmp_path: Path) -> None:
     """Regression test for a real reported bug: bootstrap.sh's own shell
     preflight rejected a real, valid environment where only `uvx` is
