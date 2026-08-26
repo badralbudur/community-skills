@@ -1,0 +1,79 @@
+# Runbook: {{PROJECT_NAME}}
+
+Operational how-to for running this project's control harness. See
+`README.md` for the file-layout/boundaries overview and
+`HARNESS_GOVERNANCE.md` for the governance rules this runbook operates
+under.
+
+## First-time setup
+
+1. Fill `spec.md` from the approved `fulcra-prototype-grill-me`
+   artifacts (`intake/brief.md`, `architecture.md`, `plan.md`) in the
+   deliverable repo.
+2. Break `plan.md`'s milestones into `coordinator/milestones.md` entries
+   (scope, requirement IDs, done criteria, per milestone).
+3. Choose and configure provider adapter commands for Generator and
+   Evaluator (see README.md's "Provider adapters" section) --
+   genuinely separate sessions/processes, not one session switching
+   personas.
+4. `./bootstrap.sh <team-name>` to provision the minimal real Fulcra
+   Workspace team files (root `role.md`/`progress.md`/`completed.md`/
+   `log.md`) and print the fuller set of Workspace paths this project's
+   documented contract targets (most of which are not yet automatically
+   provisioned -- see README.md's "Scope note").
+5. `./doctor.sh` to confirm the harness is in a runnable state before
+   the first real milestone run.
+
+## Running one milestone
+
+```bash
+export HARNESS_GENERATOR_CMD='...'
+export HARNESS_EVALUATOR_CMD='...'
+python coordinator/run_milestone.py --milestone M1 --deliverable ../<deliverable-repo>
+```
+
+This will:
+1. Create or resume the `milestone/m1-<slug>` branch in the deliverable
+   repo.
+2. Run Generator against that branch with `HARNESS_ROLE=generator` and
+   the milestone's scope/context.
+3. Push Generator's commits to `origin` if any were made.
+4. Run Evaluator independently against the pushed branch state with
+   `HARNESS_ROLE=evaluator`, and parse its verdict.
+5. Report `is_mergeable()`'s decision: `overall: PASS` requires
+   `test_runner: PASS` too when a test runner is declared (see
+   `schemas/verdict.md`).
+
+**What this step does NOT do today** (real, current scope -- see
+README.md's "Scope note" for why): it does not create or resume a PR on
+your git host, does not merge anything automatically, does not persist
+the verdict/decision/escalation to the Fulcra Workspace, does not write
+`milestone-progress.md`/`status-summary.md` for you, and applies no
+bounded-retry/liveness policy from `coordinator/policy.md` -- those
+remain your (or an integration adapter's) manual responsibility for now.
+Concretely, after a `PASS`, you still need to: create/resume the PR
+yourself (GitHub cannot create a zero-diff PR, so this has to happen
+after Generator's first pushed commit) and review it, merge it yourself,
+and update `milestone-progress.md`/write `status-summary.md` yourself.
+See `fulcradynamics/community-skills#45` for the tracking issue on
+closing this gap.
+
+## Handling a decision request
+
+If a role emits `decision_request: true` (per
+`schemas/decision-request.md`), work pauses on that thread. Bring the
+question to the user, record their raw answer in `decisions.md`
+(append-only), then update `spec.md` if the decision changes formalized
+requirements before resuming.
+
+## Unattended/scheduled operation
+
+See `coordinator/unattended-recovery.md` for the delayed-verifier
+pattern and what it may/may not repair on its own.
+
+## Resuming on a fresh machine
+
+The control harness itself is portable (no execution history, no local
+cache) -- clone this repo, re-run `./bootstrap.sh <team-name>` against
+the same team name to reconnect to the existing Fulcra Workspace state,
+then `./doctor.sh` before resuming milestone work.

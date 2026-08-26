@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Provision a Fulcra Workspace team for this control harness, from only
+# this directory's own contents -- no old inboxes, no local cache
+# assumed. Thin wrapper around coordinator/bootstrap.py; see that
+# script's docstring and RUNBOOK.md for the full contract.
+#
+# Usage: ./bootstrap.sh <team-name> [--deliverable <path>] [--dry-run]
+set -euo pipefail
+
+if [ "$#" -lt 1 ]; then
+  echo "Usage: ./bootstrap.sh <team-name> [--deliverable <path>] [--dry-run]" >&2
+  exit 2
+fi
+
+TEAM="$1"
+shift
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# CLI-availability resolution (fulcra / fulcra-api / uvx fulcra-api) is
+# delegated entirely to coordinator/bootstrap.py's _resolve_fulcra_cli()
+# rather than duplicated here -- a prior version of this check only
+# accepted a direct `fulcra`/`fulcra-api` executable on PATH and
+# rejected a real, valid `uvx fulcra-api`-only environment before ever
+# reaching Python's already-correct resolver. Let bootstrap.py itself
+# report a clear, specific error (including which candidates it tried)
+# if nothing usable is found, instead of a second, less capable check
+# living here that can drift out of sync with the real one again.
+
+DELIVERABLE_ARG=()
+if [[ "$*" != *"--deliverable"* ]]; then
+  DELIVERABLE_ARG=(--deliverable "$SCRIPT_DIR/../<fill-in-deliverable-path>")
+  echo "WARNING: no --deliverable given; pass one explicitly for a real run." >&2
+fi
+
+python3 "$SCRIPT_DIR/coordinator/bootstrap.py" --team "$TEAM" "${DELIVERABLE_ARG[@]}" "$@"

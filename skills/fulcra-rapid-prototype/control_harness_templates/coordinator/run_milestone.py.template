@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+"""Run one milestone through the Generator -> Evaluator contract.
+
+Deliberately does not hardcode Gemini, Claude, Hermes, or any other
+agent runner (per README.md's "Provider adapters" section) --
+HARNESS_GENERATOR_CMD and HARNESS_EVALUATOR_CMD are external commands
+you provide. Each receives HARNESS_ROLE, HARNESS_MILESTONE,
+HARNESS_SPEC, HARNESS_CONTEXT, and HARNESS_DELIVERABLE as environment
+variables, exactly as documented in README.md.
+
+This script drives the *coordination* (branch creation, env var
+wiring, PR creation, verdict-based merge decision) -- it does not
+replace a real agent for the Generator/Evaluator roles themselves.
+
+Usage:
+    export HARNESS_GENERATOR_CMD='your-agent-runner ...'
+    export HARNESS_EVALUATOR_CMD='your-independent-evaluator ...'
+    python coordinator/run_milestone.py --milestone M1 --deliverable ../project
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+CONTROL_HARNESS_ROOT = Path(__file__).resolve().parent.parent
+
+
+class MilestoneError(Exception):
+    """Raised when milestone execution cannot proceed -- always with a
+    message explaining what's missing/wrong, per this skill's own
+    convention for user-facing errors."""
+
+
+def _run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess:
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    if check and result.returncode != 0:
+        raise MilestoneError(
+            f"Command failed: {' '.join(cmd)}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+    return result
+
+
+def extract_milestone_context(milestone_id: str) -> str:
+    """Pull just the named milestone's section out of
+    coordinator/milestones.md -- Generator/Evaluator get this as
+    HARNESS_CONTEXT, not the whole milestone file, so scope stays
+    narrow per this skill's "milestones, not whole-spec attempts"
+    invariant."""
+    milestones_path = CONTROL_HARNESS_ROOT / "coordinator" / "milestones.md"
+    if not milestones_path.is_file():
+        raise MilestoneError(f"{milestones_path} not found")
+    text = milestones_path.read_text()
+    # Match "## M1: <name>" through the next "## " heading or end of file.
+    pattern = re.compile(
+        rf"^##\s+{re.escape(milestone_id)}:.*?(?=^##\s+|\Z)",
+        re.MULTILINE | re.DOTALL,
+    )
+    match = pattern.search(text)
+    if not match:
+        raise MilestoneError(
+            f"Milestone '{milestone_id}' not found in {milestones_path} "
+            f"(expected a heading like '## {milestone_id}: <name>')"
+        )
+    return match.group(0).strip()
+
+
+def slugify(text: str) -> str:
+    text = text.lower().strip()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-")
+
+
+def branch_name(milestone_id: str, context: str) -> str:
+    first_line = context.splitlines()[0]
+    # "## M1: Resumable backfill checkpoint..." -> "Resumable backfill checkpoint..."
+    name_part = first_line.split(":", 1)[-1].strip()
+    slug = slugify(name_part)[:50]
+    return f"milestone/{milestone_id.lower()}-{slug}" if slug else f"milestone/{milestone_id.lower()}"
+
+
+def ensure_milestone_branch(deliverable: Path, branch: str) -> None:
+    result = _run(["git", "-C", str(deliverable), "rev-parse", "--verify", branch], check=False)
+    if result.returncode == 0:
+        print(f"Resuming existing branch: {branch}")
+        _run(["git", "-C", str(deliverable), "checkout", branch])
+    else:
+        print(f"Creating new branch: {branch}")
+        _run(["git", "-C", str(deliverable), "checkout", "-b", branch])
+
+
+def run_role(role: str, cmd_str: str, milestone_id: str, context: str, deliverable: Path) -> str:
+    """Run one role's provider command with the documented env var
+    contract, returning its captured stdout (the role's output/verdict
+    text)."""
+    env = os.environ.copy()
+    env["HARNESS_ROLE"] = role
+    env["HARNESS_MILESTONE"] = milestone_id
+    env["HARNESS_SPEC"] = str(CONTROL_HARNESS_ROOT / "spec.md")
+    env["HARNESS_CONTEXT"] = context
+    env["HARNESS_DELIVERABLE"] = str(deliverable)
+
+    print(f"--- Running {role} for {milestone_id} ---")
+    result = subprocess.run(cmd_str, shell=True, cwd=deliverable, env=env, capture_output=True, text=True)
+    print(result.stdout)
+    if result.stderr:
+        print(result.stderr, file=sys.stderr)
+    if result.returncode != 0:
+        raise MilestoneError(f"{role} command exited {result.returncode}")
+    return result.stdout
+
+
+def parse_verdict(evaluator_output: str) -> dict[str, str]:
+    """Extract the exact required lines from schemas/verdict.md
+    ('overall: PASS|FAIL', 'test_runner: PASS|FAIL') out of the
+    Evaluator's raw output."""
+    verdict: dict[str, str] = {}
+    for line in evaluator_output.splitlines():
+        m = re.match(r"^\s*(overall|test_runner)\s*:\s*(PASS|FAIL)\s*$", line, re.IGNORECASE)
+        if m:
+            verdict[m.group(1).lower()] = m.group(2).upper()
+    if "overall" not in verdict:
+        raise MilestoneError(
+            "Evaluator output did not include a required 'overall: PASS|FAIL' "
+            "line (see schemas/verdict.md) -- cannot make a merge decision."
+        )
+    return verdict
+
+
+def is_mergeable(verdict: dict[str, str], test_runner_declared: bool) -> bool:
+    """Whether a verdict is genuinely merge-eligible.
+
+    Per schemas/verdict.md: 'When a declared test runner exists, overall:
+    PASS requires test_runner: PASS plus all in-scope criteria passing.'
+    parse_verdict() only guarantees 'overall' is present -- it does NOT by
+    itself enforce this rule, so callers must check is_mergeable() rather
+    than testing verdict['overall'] == 'PASS' directly. This exists
+    specifically to prevent an Evaluator that reports 'overall: PASS'
+    while also reporting (or omitting) 'test_runner: FAIL' from being
+    treated as mergeable -- recreating exactly the unverified-milestone
+    failure mode the Generator/Evaluator separation exists to catch.
+
+    Args:
+        verdict: parsed output from parse_verdict().
+        test_runner_declared: whether this project has a declared test
+            runner (per spec.md's Evaluation Criteria) -- if False, no
+            test_runner line is required at all.
+    """
+    if verdict.get("overall") != "PASS":
+        return False
+    if test_runner_declared and verdict.get("test_runner") != "PASS":
+        return False
+    return True
+
+
+def has_pushed_commits(deliverable: Path, branch: str) -> bool:
+    result = _run(
+        ["git", "-C", str(deliverable), "log", f"origin/{branch}..{branch}", "--oneline"],
+        check=False,
+    )
+    # If origin/branch doesn't exist yet, any local commit counts as "pushed-worthy".
+    return result.returncode != 0 or bool(result.stdout.strip())
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--milestone", required=True, help="Milestone ID, e.g. M1")
+    parser.add_argument("--deliverable", required=True, type=Path)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Resolve context/branch name and print what would run, without invoking any provider command.",
+    )
+    parser.add_argument(
+        "--no-test-runner",
+        action="store_true",
+        help=(
+            "Declare that this project has NO test runner yet (e.g. very early "
+            "milestones before app/tests/ exists). Default assumes a test "
+            "runner IS declared, per spec.md's Evaluation Criteria -- this is "
+            "the safer default, since silently treating a real project as "
+            "test-runner-less would let an overall: PASS merge without ever "
+            "requiring test_runner: PASS."
+        ),
+    )
+    args = parser.parse_args()
+
+    deliverable = args.deliverable.resolve()
+    if not deliverable.is_dir():
+        raise MilestoneError(f"Deliverable path not found: {deliverable}")
+
+    context = extract_milestone_context(args.milestone)
+    branch = branch_name(args.milestone, context)
+
+    print(f"Milestone: {args.milestone}")
+    print(f"Branch: {branch}")
+    print(f"Context:\n{context}\n")
+
+    if args.dry_run:
+        print("[dry-run] Would create/resume branch and run Generator then Evaluator.")
+        return 0
+
+    generator_cmd = os.environ.get("HARNESS_GENERATOR_CMD")
+    evaluator_cmd = os.environ.get("HARNESS_EVALUATOR_CMD")
+    if not generator_cmd or not evaluator_cmd:
+        raise MilestoneError(
+            "HARNESS_GENERATOR_CMD and HARNESS_EVALUATOR_CMD must both be set "
+            "(see README.md's Provider adapters section) -- refusing to guess "
+            "a default agent runner."
+        )
+
+    ensure_milestone_branch(deliverable, branch)
+    run_role("generator", generator_cmd, args.milestone, context, deliverable)
+
+    if not has_pushed_commits(deliverable, branch):
+        print(
+            "No new commits from Generator on this branch -- nothing to push, "
+            "no PR to create, and nothing for Evaluator to grade yet. Stopping "
+            "here rather than running Evaluator against unchanged state.",
+            file=sys.stderr,
+        )
+        return 1
+
+    _run(["git", "-C", str(deliverable), "push", "-u", "origin", branch])
+    print(
+        "Pushed. Create/resume the PR now if your git host doesn't do this "
+        "automatically (GitHub cannot create a zero-diff PR, per this skill's "
+        "milestone-execution rule #3) -- this script does not assume a "
+        "specific PR-hosting API."
+    )
+
+    evaluator_output = run_role("evaluator", evaluator_cmd, args.milestone, context, deliverable)
+    verdict = parse_verdict(evaluator_output)
+    test_runner_declared = not args.no_test_runner
+
+    print(f"\nVerdict: {verdict}")
+    if is_mergeable(verdict, test_runner_declared=test_runner_declared):
+        print(
+            f"PASS. Merge {branch} after your own review, update "
+            f"milestone-progress.md, and write a status-summary.md, per "
+            f"this skill's milestone-execution step 7. This script does not "
+            f"auto-merge -- merging is a reviewed action, not an automatic one."
+        )
+        return 0
+    else:
+        if verdict.get("overall") == "PASS" and test_runner_declared and verdict.get("test_runner") != "PASS":
+            print(
+                f"NOT mergeable despite 'overall: PASS' -- a test runner is "
+                f"declared for this project but the Evaluator reported "
+                f"test_runner: {verdict.get('test_runner', '(missing)')} , not "
+                f"PASS. Per schemas/verdict.md, overall: PASS requires "
+                f"test_runner: PASS when a test runner is declared. Branch/PR "
+                f"left open for review.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"FAIL (or missing PASS). Branch/PR left open for review. Do not "
+                f"re-run blindly -- per this skill's invariant #6, fix the "
+                f"process (prompts, schemas, permissions, scope), not just retry "
+                f"the same generation."
+            )
+        return 1
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except MilestoneError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        raise SystemExit(1)

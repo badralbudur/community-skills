@@ -38,8 +38,14 @@ def main() -> int:
         destination = target / relative.name.replace(".template", "") if relative.parent == Path(".") else target / relative.parent / relative.name.replace(".template", "")
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(source.read_text().replace("{{PROJECT_NAME}}", args.project_name))
+        # Shell scripts and the coordinator's Python entry points are meant
+        # to be run directly (./bootstrap.sh, ./doctor.sh, per RUNBOOK.md)
+        # -- make sure that actually works out of the box rather than
+        # requiring a manual chmod +x the first time someone tries it.
+        if destination.suffix in (".sh", ".py"):
+            destination.chmod(destination.stat().st_mode | 0o111)
     print(f"Scaffolded portable control harness: {target}")
-    print("Next: fill spec.md/milestones.md from approved Grill-Me artifacts, then configure provider adapter commands in README.md.")
+    print("Next: fill spec.md/milestones.md from approved Grill-Me artifacts, then configure provider adapter commands in README.md, then run ./doctor.sh.")
     return 0
 
 
