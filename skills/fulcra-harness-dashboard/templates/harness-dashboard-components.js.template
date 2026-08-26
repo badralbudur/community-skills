@@ -1,0 +1,88 @@
+/*
+ * Harness dashboard components for use on top of fulcra-project-dashboard.
+ *
+ * Copy into the base dashboard's public/app.js (or import as a module), then:
+ *
+ *   renderHarnessDashboard(document.querySelector('#harness-dashboard'), data)
+ *
+ * `data` follows templates/dashboard-data.json.template. This module does
+ * not fetch Fulcra or expose raw data; the refresh/publish layer supplies
+ * curated data.
+ */
+const harnessEscape = (value) => String(value ?? '').replace(/[&<>'"]/g, c => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+}[c]));
+
+const harnessDate = (iso, withTime = false) => new Intl.DateTimeFormat('en', {
+  month: 'short', day: 'numeric', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}), timeZone: 'UTC'
+}).format(new Date(iso));
+
+function renderFlightPlan(data) {
+  return `<section class="harness-panel harness-flight-plan">
+    <header><p class="harness-kicker">CONTROL PLANE</p><h2>Milestone Flight Plan</h2></header>
+    <ol>${(data.milestones || []).map((m, index) => `<li class="harness-milestone ${harnessEscape(m.status)}">
+      <span>${m.status === 'passed' ? '✓' : String(index + 1).padStart(2, '0')}</span>
+      <div><b>${harnessEscape(m.id)} · ${harnessEscape(m.title)}</b><p>${harnessEscape(m.detail)}</p></div>
+      <em>${harnessEscape(m.status)}</em>
+    </li>`).join('')}</ol>
+  </section>`;
+}
+
+function renderCheckpoint(data) {
+  const c = data.checkpoint || {};
+  return `<section class="harness-panel harness-checkpoint">
+    <p class="harness-kicker">LATEST HARNESS CHECKPOINT</p>
+    <h2>${harnessEscape(c.headline)}</h2>
+    <div class="harness-checkpoint-grid">
+      <article><b>WHERE WE ARE</b><p>${harnessEscape(c.whereWeAre)}</p></article>
+      <article><b>WHERE WE'RE GOING</b><p>${harnessEscape(c.whereWeGo)}</p></article>
+      <article><b>NEXT BEARING</b><p>${harnessEscape(c.nextAction)}</p></article>
+    </div>
+  </section>`;
+}
+
+function renderOpenItems(data) {
+  const items = data.openItems || [];
+  return `<section class="harness-panel harness-open-items">
+    <header><p class="harness-kicker">OPERATOR INPUT</p><h2>Open Items</h2></header>
+    ${items.length ? `<ul>${items.map(item => `<li class="${harnessEscape(item.status)}"><b>${harnessEscape(item.kind)}</b><p>${harnessEscape(item.text)}</p></li>`).join('')}</ul>` : '<p class="harness-empty">No unresolved decisions or blockers.</p>'}
+  </section>`;
+}
+
+function renderRunTimeline(data) {
+  const runs = data.runs || [];
+  const initial = Math.max(0, runs.length - 1);
+  return `<section class="harness-panel harness-run-panel" data-selected-run="${initial}">
+    <header><div><p class="harness-kicker">EVIDENCE</p><h2>Harness Runs</h2></div><label>Zoom <input class="harness-run-zoom" type="range" min="0.25" max="5" step="0.25" value="0.75"></label></header>
+    <p class="harness-help">Scroll the timeline horizontally; select a dated marker to inspect its evidence and the two preceding runs.</p>
+    <div class="harness-run-viewport"><div class="harness-run-track">${runs.map((run, index) => `<button class="harness-run-marker ${harnessEscape(run.status)}" data-run-index="${index}" style="left:${((index + .5) / Math.max(1, runs.length)) * 100}%"><span>${String(index + 1).padStart(2, '0')}</span><b>${harnessEscape(run.milestone)}</b><time>${harnessDate(run.time)}</time></button>`).join('')}</div></div>
+    <article class="harness-run-detail"></article>
+  </section>`;
+}
+
+function hydrateRunTimeline(root, runs) {
+  const panel = root.querySelector('.harness-run-panel');
+  if (!panel) return;
+  const viewport = panel.querySelector('.harness-run-viewport');
+  const track = panel.querySelector('.harness-run-track');
+  const detail = panel.querySelector('.harness-run-detail');
+  const zoom = panel.querySelector('.harness-run-zoom');
+  let scale = Number(zoom.value);
+  const resize = () => { track.style.width = `${Math.max(360, runs.length * 150 * scale)}px`; };
+  const select = index => {
+    const run = runs[index];
+    panel.querySelectorAll('.harness-run-marker').forEach(node => node.classList.toggle('selected', Number(node.dataset.runIndex) === index));
+    const prior = runs.slice(Math.max(0, index - 2), index).reverse();
+    detail.innerHTML = `<p class="harness-kicker">${harnessDate(run.time, true)} · ${harnessEscape(run.milestone)}</p><h3>${harnessEscape(run.title)} <em class="${harnessEscape(run.status)}">${harnessEscape(run.status)}</em></h3><p>${harnessEscape(run.detail)}</p>${prior.length ? `<div class="harness-prior-runs"><b>PREVIOUS ${prior.length === 1 ? 'RUN' : 'TWO RUNS'}</b>${prior.map(p => `<article class="${harnessEscape(p.status)}"><small>${harnessDate(p.time, true)} · ${harnessEscape(p.milestone)}</small><strong>${harnessEscape(p.title)}</strong><span>${harnessEscape(p.detail)}</span></article>`).join('')}</div>` : ''}`;
+  };
+  panel.querySelectorAll('.harness-run-marker').forEach(node => node.addEventListener('click', () => select(Number(node.dataset.runIndex))));
+  zoom.addEventListener('input', () => { scale = Number(zoom.value); resize(); });
+  viewport.addEventListener('wheel', event => { if (event.ctrlKey || event.metaKey) { event.preventDefault(); zoom.value = Math.max(0.25, Math.min(5, scale + (event.deltaY < 0 ? .25 : -.25))); scale = Number(zoom.value); resize(); } }, { passive: false });
+  resize();
+  requestAnimationFrame(() => { viewport.scrollLeft = viewport.scrollWidth; select(Math.max(0, runs.length - 1)); });
+}
+
+export function renderHarnessDashboard(root, data) {
+  root.innerHTML = `${renderCheckpoint(data)}${renderFlightPlan(data)}<div class="harness-dashboard-grid">${renderRunTimeline(data)}${renderOpenItems(data)}</div>`;
+  hydrateRunTimeline(root, data.runs || []);
+}
