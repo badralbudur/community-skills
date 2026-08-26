@@ -297,3 +297,63 @@ def test_bootstrap_resolves_fulcra_or_fulcra_api_or_uvx(tmp_path: Path, monkeypa
         sys.path.remove(str(target / "coordinator"))
         if "bootstrap" in sys.modules:
             del sys.modules["bootstrap"]
+
+
+def test_bootstrap_sh_wrapper_accepts_uvx_only_environment(tmp_path: Path) -> None:
+    """Regression test for a real reported bug: bootstrap.sh's own shell
+    preflight rejected a real, valid environment where only `uvx` is
+    available (no direct `fulcra`/`fulcra-api` executable on PATH), even
+    after coordinator/bootstrap.py's Python resolver was fixed to accept
+    exactly that case -- the shell wrapper never delegated to it and had
+    its own, stricter, out-of-sync check. This test exercises the actual
+    ./bootstrap.sh entry point users invoke (not just the Python module),
+    with a fabricated PATH containing only a stub `uvx`, matching the
+    reviewer's real reproduction steps."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+
+    bootstrap_sh_src = (target / "bootstrap.sh").read_text()
+    # The old, out-of-sync duplicate check must be gone -- resolution is
+    # delegated to coordinator/bootstrap.py's Python resolver instead.
+    assert "command -v fulcra " not in bootstrap_sh_src.replace("command -v fulcra-api", "")
+
+    # Build a fake PATH with a stub `uvx` that responds just enough for a
+    # --dry-run bootstrap to complete without needing real credentials:
+    # `uvx fulcra-api file stat ...` exits 1 (team doesn't exist yet, so
+    # bootstrap.py takes the "provisioning new team" -> dry-run path,
+    # which never actually uploads anything).
+    fake_bin = tmp_path / "fake_bin"
+    fake_bin.mkdir()
+    uvx_stub = fake_bin / "uvx"
+    uvx_stub.write_text("#!/usr/bin/env bash\nexit 1\n")
+    uvx_stub.chmod(0o755)
+
+    # Real python3/bash/dirname must still be reachable for the script
+    # itself to run (bootstrap.sh uses dirname internally to resolve
+    # SCRIPT_DIR) -- symlink the minimal set of real coreutils needed,
+    # not a full real PATH, so the test genuinely proves the fulcra-CLI
+    # check itself (not some other missing tool) is what used to fail.
+    import shutil as shutil_module
+
+    for tool in ("python3", "bash", "dirname", "cd"):
+        real_path = shutil_module.which(tool)
+        if real_path:
+            (fake_bin / tool).symlink_to(real_path)
+    real_python3 = shutil_module.which("python3")
+    real_bash = shutil_module.which("bash")
+    assert real_python3 and real_bash
+
+    deliverable = tmp_path / "fake-deliverable"
+    deliverable.mkdir()
+
+    env = {"PATH": str(fake_bin)}
+    result = subprocess.run(
+        ["bash", str(target / "bootstrap.sh"), "review-team",
+         "--deliverable", str(deliverable), "--dry-run"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert "neither 'fulcra' nor 'fulcra-api' CLI found" not in result.stderr
+    assert result.returncode == 0, f"stdout={result.stdout}\nstderr={result.stderr}"

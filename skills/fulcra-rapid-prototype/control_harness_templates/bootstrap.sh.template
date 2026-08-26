@@ -17,11 +17,15 @@ shift
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if ! command -v fulcra >/dev/null 2>&1 && ! command -v fulcra-api >/dev/null 2>&1; then
-  echo "ERROR: neither 'fulcra' nor 'fulcra-api' CLI found on PATH." >&2
-  echo "Install with: pip install fulcra-api" >&2
-  exit 1
-fi
+# CLI-availability resolution (fulcra / fulcra-api / uvx fulcra-api) is
+# delegated entirely to coordinator/bootstrap.py's _resolve_fulcra_cli()
+# rather than duplicated here -- a prior version of this check only
+# accepted a direct `fulcra`/`fulcra-api` executable on PATH and
+# rejected a real, valid `uvx fulcra-api`-only environment before ever
+# reaching Python's already-correct resolver. Let bootstrap.py itself
+# report a clear, specific error (including which candidates it tried)
+# if nothing usable is found, instead of a second, less capable check
+# living here that can drift out of sync with the real one again.
 
 DELIVERABLE_ARG=()
 if [[ "$*" != *"--deliverable"* ]]; then
