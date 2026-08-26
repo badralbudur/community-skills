@@ -17,12 +17,14 @@ the generated project's inner runtime model/tool loop (`engine/`).
 ## Bootstrap
 
 ```bash
-python coordinator/bootstrap.py --team <team-name> --deliverable <path>
+./bootstrap.sh <team-name> --deliverable <path>
 ```
 
-This creates the local durable-control structure and prints the required
-Fulcra Workspace paths. An integration adapter should upload the static
-control artifacts to those paths before the first role run.
+This provisions the Fulcra Workspace team (via `coordinator/bootstrap.py`)
+from only this control harness's own contents -- no old inboxes, no local
+cache. Run `./doctor.sh` afterward (and any time you resume on a fresh
+machine) to confirm the harness is actually in a runnable state before
+trusting it with real milestone work.
 
 ## Provider adapters
 
@@ -38,7 +40,10 @@ python coordinator/run_milestone.py --milestone M1 --deliverable ../project
 Each command receives `HARNESS_ROLE`, `HARNESS_MILESTONE`,
 `HARNESS_SPEC`, `HARNESS_CONTEXT`, and `HARNESS_DELIVERABLE` environment
 variables. Generator must commit/push only its milestone branch; Evaluator
-must write a verdict matching `schemas/verdict.md`.
+must write a verdict matching `schemas/verdict.md`. See `RUNBOOK.md` for
+the full step-by-step operating flow, `roles/generator.md` and
+`roles/evaluator.md` for what each role is responsible for, and
+`roles/manifest.md` for which roles are currently active on this project.
 
 ## Non-negotiable rules
 

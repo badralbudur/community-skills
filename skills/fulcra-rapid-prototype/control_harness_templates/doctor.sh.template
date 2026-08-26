@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Confirm this control harness is in a runnable state before trusting it
+# with real milestone work -- run after bootstrap.sh, and again after
+# resuming on a fresh machine, per RUNBOOK.md.
+#
+# Exits non-zero and prints every real problem found (not just the
+# first one) so a single run tells you everything that needs fixing.
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROBLEMS=0
+
+check() {
+  local description="$1"
+  shift
+  if "$@" >/dev/null 2>&1; then
+    echo "  OK   $description"
+  else
+    echo "  FAIL $description"
+    PROBLEMS=$((PROBLEMS + 1))
+  fi
+}
+
+echo "--- Required files present ---"
+for f in spec.md decisions.md HARNESS_GOVERNANCE.md RUNBOOK.md README.md \
+         coordinator/milestones.md coordinator/policy.md \
+         coordinator/unattended-recovery.md coordinator/bootstrap.py \
+         coordinator/run_milestone.py schemas/verdict.md \
+         schemas/decision-request.md schemas/message.md \
+         roles/manifest.md roles/generator.md roles/evaluator.md; do
+  check "$f exists" test -f "$SCRIPT_DIR/$f"
+done
+check "knowledge/ directory exists" test -d "$SCRIPT_DIR/knowledge"
+
+echo "--- Tooling ---"
+if command -v fulcra >/dev/null 2>&1; then
+  echo "  OK   fulcra CLI on PATH"
+elif command -v fulcra-api >/dev/null 2>&1; then
+  echo "  OK   fulcra-api CLI on PATH"
+else
+  echo "  FAIL neither fulcra nor fulcra-api CLI found on PATH"
+  PROBLEMS=$((PROBLEMS + 1))
+fi
+check "python3 available" command -v python3
+
+echo "--- Provider adapters ---"
+if [ -n "${HARNESS_GENERATOR_CMD:-}" ]; then
+  echo "  OK   HARNESS_GENERATOR_CMD is set"
+else
+  echo "  FAIL HARNESS_GENERATOR_CMD is not set (see README.md)"
+  PROBLEMS=$((PROBLEMS + 1))
+fi
+if [ -n "${HARNESS_EVALUATOR_CMD:-}" ]; then
+  echo "  OK   HARNESS_EVALUATOR_CMD is set"
+else
+  echo "  FAIL HARNESS_EVALUATOR_CMD is not set (see README.md)"
+  PROBLEMS=$((PROBLEMS + 1))
+fi
+
+echo "--- spec.md not left as an unfilled template ---"
+if grep -q "<!-- Fill after fulcra-prototype-grill-me" "$SCRIPT_DIR/spec.md" 2>/dev/null; then
+  echo "  FAIL spec.md still contains template placeholder comments -- fill it from approved Grill-Me artifacts"
+  PROBLEMS=$((PROBLEMS + 1))
+else
+  echo "  OK   spec.md appears to have been filled in"
+fi
+
+echo
+if [ "$PROBLEMS" -eq 0 ]; then
+  echo "All checks passed. Harness is ready for coordinator/run_milestone.py."
+  exit 0
+else
+  echo "$PROBLEMS problem(s) found. Fix before running a real milestone."
+  exit 1
+fi

@@ -1,0 +1,38 @@
+# Role: Evaluator
+
+## Responsibility
+
+Independently grade the Generator's committed milestone branch state --
+never an uncommitted worktree, never by reading code alone when a
+declared test runner exists.
+
+## Inputs (provided via environment by `coordinator/run_milestone.py`)
+
+- `HARNESS_ROLE=evaluator`
+- `HARNESS_MILESTONE`: the milestone ID being graded
+- `HARNESS_SPEC`: path to `spec.md`
+- `HARNESS_CONTEXT`: path to this milestone's scope/done-criteria excerpt
+- `HARNESS_DELIVERABLE`: path to the deliverable repo, checked out on
+  the milestone branch at the Generator's latest pushed commit
+
+## Rules
+
+- Grade the actual committed branch state, not local uncommitted edits.
+- If a declared test runner exists (see `spec.md`'s Evaluation Criteria
+  and `app/ENGINEERING_STANDARDS.md` in the deliverable), run it for
+  real and report exact evidence (command, output/count) -- do not
+  substitute code reading for actually running it. A permission block
+  on running it is a FAIL/escalation, not a pass-by-inspection.
+- Check the current milestone's own scope AND regressions in every
+  previously-passed milestone.
+- Distinguish `UNTESTABLE` (later-milestone scope, documented) from a
+  genuine in-scope ambiguity (which is a decision request, not a guess).
+- Output MUST include the exact lines from `schemas/verdict.md`
+  (`overall: PASS|FAIL`, `test_runner: PASS|FAIL` when applicable), plus
+  per-criterion evidence and a concise summary.
+
+## Output
+
+A verdict matching `schemas/verdict.md`, persisted by the Coordinator.
+Only an all-in-scope PASS with passing executable evidence may result in
+a merge.

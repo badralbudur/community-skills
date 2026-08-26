@@ -1,0 +1,64 @@
+# Runbook: {{PROJECT_NAME}}
+
+Operational how-to for running this project's control harness. See
+`README.md` for the file-layout/boundaries overview and
+`HARNESS_GOVERNANCE.md` for the governance rules this runbook operates
+under.
+
+## First-time setup
+
+1. Fill `spec.md` from the approved `fulcra-prototype-grill-me`
+   artifacts (`intake/brief.md`, `architecture.md`, `plan.md`) in the
+   deliverable repo.
+2. Break `plan.md`'s milestones into `coordinator/milestones.md` entries
+   (scope, requirement IDs, done criteria, per milestone).
+3. Choose and configure provider adapter commands for Generator and
+   Evaluator (see README.md's "Provider adapters" section) --
+   genuinely separate sessions/processes, not one session switching
+   personas.
+4. `./bootstrap.sh <team-name>` to provision the Fulcra Workspace team
+   and print the durable paths it created.
+5. `./doctor.sh` to confirm the harness is in a runnable state before
+   the first real milestone run.
+
+## Running one milestone
+
+```bash
+export HARNESS_GENERATOR_CMD='...'
+export HARNESS_EVALUATOR_CMD='...'
+python coordinator/run_milestone.py --milestone M1 --deliverable ../<deliverable-repo>
+```
+
+This will:
+1. Create or resume the `milestone/M1-<slug>` branch in the deliverable
+   repo.
+2. Run Generator against that branch with `HARNESS_ROLE=generator` and
+   the milestone's scope/context.
+3. After Generator's first pushed commit, create or resume the PR.
+4. Run Evaluator independently against the pushed branch state with
+   `HARNESS_ROLE=evaluator`.
+5. On `overall: PASS`, merge and update `milestone-progress.md` plus a
+   concise `status-summary.md`.
+6. On `overall: FAIL`, leave the branch/PR open and surface the verdict
+   -- do not auto-retry past `coordinator/policy.md`'s bounded retry
+   count without a process fix.
+
+## Handling a decision request
+
+If a role emits `decision_request: true` (per
+`schemas/decision-request.md`), work pauses on that thread. Bring the
+question to the user, record their raw answer in `decisions.md`
+(append-only), then update `spec.md` if the decision changes formalized
+requirements before resuming.
+
+## Unattended/scheduled operation
+
+See `coordinator/unattended-recovery.md` for the delayed-verifier
+pattern and what it may/may not repair on its own.
+
+## Resuming on a fresh machine
+
+The control harness itself is portable (no execution history, no local
+cache) -- clone this repo, re-run `./bootstrap.sh <team-name>` against
+the same team name to reconnect to the existing Fulcra Workspace state,
+then `./doctor.sh` before resuming milestone work.
