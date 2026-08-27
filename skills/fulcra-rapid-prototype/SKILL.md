@@ -184,7 +184,45 @@ History-preserving mode clones directly into `--output-dir`, so that path
 must not exist at all. Pick a fresh target or remove/rename the old target
 before running it.
 
-### 7. Verify the scaffold actually works before handoff
+### 7. Scaffold and bootstrap the outer control plane **before any inner runtime task**
+
+Do this immediately after the runtime project scaffold exists, and before
+running `harness.run_task`, asking for runtime provider credentials, or
+letting the inner model/tool loop begin deliverable work.
+
+```bash
+cd <this skill's own directory>
+python scripts/scaffold_control_harness.py \
+  --project-name "<Human-readable project name>" \
+  --output-dir <new sibling path such as ../<project>-control> \
+  --dry-run
+# repeat without --dry-run after user review
+```
+
+Fill the generated control harness's `spec.md`/`milestones.md` from the
+approved Grill-Me artifacts, configure separate Generator/Evaluator
+adapters, then run its `./bootstrap.sh <team-name> --deliverable <project>`
+and `./doctor.sh`. This must establish durable Fulcra Workspace tracking,
+member state, milestones, decisions, verdicts, and status before inner
+runtime work begins. Keep the control harness separate from the deliverable
+repo: it governs work; the deliverable is the artifact being evaluated.
+
+### 8. Set up the harness dashboard before runtime work (recommended)
+
+Once the control harness has a Workspace team, invoke
+**`fulcra-harness-dashboard`** as the normal manager/operator visibility
+step. It builds on **`fulcra-project-dashboard`** and renders the
+milestone flight plan, run evidence timeline, checkpoint, decision requests,
+escalations, and next bearing.
+
+The normal flow is to publish the curated dashboard to an **unguessable
+URL** (Surge is the preferred simple default) after printing the isolated
+public manifest, adding `noindex,nofollow`, warning that anyone with the
+URL can access it, and receiving explicit user confirmation. This is not
+access control; never publish raw inboxes, full verdict archives,
+credentials, or private repository data.
+
+### 9. Verify the scaffold actually works before handoff
 
 Do **not** claim success merely because scaffolding exits 0. At the first
 actual runtime verification point, get the user authenticated to a
@@ -222,7 +260,7 @@ A known fast-successive-write bytecode-cache artifact in the git-commit-gate
 smoke test may be resolved by clearing `app/**/__pycache__` and running that
 test once again; do not use this as an excuse for unrelated failures.
 
-### 8. Hand off the verified scaffold
+### 10. Hand off the verified scaffold
 
 Point the user at:
 
@@ -234,48 +272,6 @@ Point the user at:
 
 Then either run the first task (`python -m harness.run_task task_001_*.md`)
 if the user wants a demonstration, or hand the verified scaffold over.
-
-### 9. Scaffold the portable outer control harness
-
-The bundled runtime harness is the inner model/tool loop. If the project
-will use independent generation/evaluation, milestone branches, durable
-Workspace tracking, or unattended operation, scaffold the separate outer
-control harness now:
-
-```bash
-cd <this skill's own directory>
-python scripts/scaffold_control_harness.py \
-  --project-name "<Human-readable project name>" \
-  --output-dir <new sibling path such as ../<project>-control>
-```
-
-Run with `--dry-run` first. The script refuses to overwrite a non-empty
-control harness. Fill its `spec.md`/`milestones.md` from the approved
-Grill-Me artifacts, then follow its README to configure provider adapters
-and bootstrap a Fulcra Workspace team. Keep it separate from the generated
-deliverable repo: the control harness governs work; the deliverable is the
-artifact being evaluated.
-
-### 10. Set up the harness dashboard (recommended; public deployment optional)
-
-Once the control harness has a Workspace team, invoke
-**`fulcra-harness-dashboard`** as the normal manager/operator visibility
-step. It builds on **`fulcra-project-dashboard`** and renders the
-actionable harness state that a project dashboard alone does not make
-explicit: milestone flight plan, run evidence timeline, current checkpoint,
-decision requests, escalations, and next bearing.
-
-Dashboard setup is recommended because durable status is part of the
-control-harness contract and an operator needs to see it across sessions.
-The normal flow is to publish the curated dashboard to an **unguessable
-URL** (Surge is the preferred simple default) so all authorized players or
-operators can open the same view. This is not access control: make clear to
-the user that the dashboard is publicly reachable by anyone who has the
-URL. Before deploying, print the exact isolated `public/` manifest, confirm
-it contains only intended curated files, add `noindex,nofollow`, and obtain
-explicit user confirmation. Follow `fulcra-harness-dashboard` for the
-refresh/publish adapter; never publish raw inboxes, full verdict archives,
-credentials, or private repository data.
 
 # Part II — Operate the Scaffold as a Reliable Task Harness
 
