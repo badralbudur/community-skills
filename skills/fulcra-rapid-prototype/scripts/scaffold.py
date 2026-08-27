@@ -223,9 +223,15 @@ def extract_first_plan_milestone(plan_md: str) -> tuple[str, str]:
 
     Returns:
         (title, body) — title is the heading text, body is everything
-        until the next heading of any level (unchanged from the
-        original behavior: a milestone's body still stops at the very
-        next heading, whatever its level, not just a same-or-higher one).
+        through any MORE-nested headings (e.g. an "### Acceptance
+        criteria" sub-section under a "## Milestone 1" heading), stopping
+        only at the next heading of the SAME OR SHALLOWER level than the
+        selected milestone heading. An earlier version of this function
+        stopped at the very next heading regardless of level, which
+        silently dropped exactly this kind of nested milestone content
+        (acceptance criteria, sub-steps) -- caught in review once this
+        function became explicitly responsible for producing the whole
+        first bounded task prompt, not just picking a title.
     """
     heading_pattern = re.compile(r"^(#{1,6})\s+(.+)$", re.MULTILINE)
     headings = list(heading_pattern.finditer(plan_md))
@@ -244,6 +250,7 @@ def extract_first_plan_milestone(plan_md: str) -> tuple[str, str]:
     )
 
     for i, match in enumerate(headings):
+        level = len(match.group(1))
         title = match.group(2).strip()
         # Strip common markdown emphasis wrapping ("**M1**", "`M1`", "_M1_")
         # before testing, so a bolded/coded milestone heading still matches.
@@ -251,7 +258,15 @@ def extract_first_plan_milestone(plan_md: str) -> tuple[str, str]:
         if not milestone_heading_re.match(normalized_title):
             continue
         start = match.end()
-        end = headings[i + 1].start() if i + 1 < len(headings) else len(plan_md)
+        # Find the next heading at the SAME OR SHALLOWER level (a smaller
+        # or equal '#' count) -- a deeper heading (e.g. this milestone's
+        # own "### Acceptance criteria" sub-section) is content belonging
+        # to this milestone's body, not a boundary that ends it.
+        end = len(plan_md)
+        for later_match in headings[i + 1:]:
+            if len(later_match.group(1)) <= level:
+                end = later_match.start()
+                break
         body = plan_md[start:end].strip()
         return title, body
 

@@ -202,6 +202,52 @@ def test_extract_first_plan_milestone_raises_when_no_heading_looks_like_a_milest
         scaffold.extract_first_plan_milestone(plan)
 
 
+# Regression test for review feedback on #52's fix: the body boundary
+# must stop at the next heading of the SAME OR SHALLOWER level as the
+# selected milestone, not the next heading of ANY level -- otherwise a
+# milestone's own nested sub-section (e.g. "### Acceptance criteria"
+# under a "## Milestone 1" heading) is silently dropped from the
+# generated task body.
+def test_extract_first_plan_milestone_preserves_nested_subsections():
+    plan = (
+        "## Milestone 1: Build engine\n"
+        "Intro text.\n\n"
+        "### Acceptance criteria\n"
+        "Must preserve this nested section.\n\n"
+        "## Milestone 2: Next\n"
+        "Later.\n"
+    )
+    title, body = scaffold.extract_first_plan_milestone(plan)
+    assert title == "Milestone 1: Build engine"
+    assert "Acceptance criteria" in body
+    assert "Must preserve this nested section" in body
+    assert "Later" not in body
+
+
+def test_extract_first_plan_milestone_stops_at_shallower_heading_past_deep_nesting():
+    """A milestone heading nested deeper than top-level (### under a ##
+    section) should still correctly bound its body at the next heading
+    of its OWN level or shallower, while preserving even-deeper nested
+    content (#### under it) as part of its own body."""
+    plan = (
+        "## Production milestones\n\n"
+        "### M1 — Build engine\n"
+        "Intro text.\n\n"
+        "#### Sub-detail\n"
+        "Deep nested content, part of M1.\n\n"
+        "### M2 — Next\n"
+        "Later.\n\n"
+        "## Retro\n"
+        "unrelated section.\n"
+    )
+    title, body = scaffold.extract_first_plan_milestone(plan)
+    assert title == "M1 — Build engine"
+    assert "Sub-detail" in body
+    assert "Deep nested content" in body
+    assert "M2" not in body
+    assert "Retro" not in body
+
+
 def test_read_required_artifact_raises_clear_error_when_missing(tmp_path: Path):
     missing_path = tmp_path / "does_not_exist.md"
     with pytest.raises(scaffold.ScaffoldError, match="Architecture"):
