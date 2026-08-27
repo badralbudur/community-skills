@@ -13,7 +13,8 @@ Trigger this skill exclusively when the user brings a complex product idea, an a
 ## Prerequisites
 
 - The [`fulcra-connect`](https://github.com/fulcradynamics/agent-skills/tree/main/skills/fulcra-connect)
-  skill is used for authentication in the Architecture step below.
+  skill is used for authentication in Step 1b, immediately after Intake &
+  Interview and before the project Workspace/Architecture phases.
 
 Before starting Step 1, read
 [fulcra-for-agents.md](https://github.com/kubla/fulcra-for-agents/blob/main/fulcra-for-agents.md)
@@ -56,8 +57,16 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
   to get the user authenticated. The just-completed Intake/Interview gives
   a concrete project purpose/name for account setup; do not postpone
   authentication until after Architecture or rely on chat/local git alone.
+  If the user cannot complete authentication now (for example, no browser
+  is available), use `fulcra-connect`'s non-blocking device-login flow,
+  record this as the current blocker, and pause before Architecture. Resume
+  Step 1b after the user authorizes; do not create local-only Architecture
+  state as a workaround.
 - **Action:** Load `fulcra-workspaces` and create or join one named
-  `team/prototype-<project>/` Workspace. This is the single continuous
+  `team/prototype-<project>/` Workspace. Before joining an existing name,
+  inspect its `role.md`/project identity and ask the user to confirm it is
+  the same project; if it is not, choose a distinct project slug rather
+  than merging unrelated histories. This is the single continuous
   project tracker that `fulcra-rapid-prototype` later reuses and extends;
   do not create a second workspace for the harness.
 - **Artifacts:** Establish root `role.md`, `progress.md`, `log.md`,
