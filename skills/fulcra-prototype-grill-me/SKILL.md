@@ -13,7 +13,8 @@ Trigger this skill exclusively when the user brings a complex product idea, an a
 ## Prerequisites
 
 - The [`fulcra-connect`](https://github.com/fulcradynamics/agent-skills/tree/main/skills/fulcra-connect)
-  skill is used for authentication in the Architecture step below.
+  skill is used for authentication in Step 1b, immediately after Intake &
+  Interview and before the project Workspace/Architecture phases.
 
 Before starting Step 1, read
 [fulcra-for-agents.md](https://github.com/kubla/fulcra-for-agents/blob/main/fulcra-for-agents.md)
@@ -50,12 +51,37 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Artifact:** Write `intake/brief.md` (stated goals, implied product shape, data entities).
 - **Commit:** Commit the brief and `.gitignore`.
 
+### 1b. Create the project Workspace and persist the Grill-Me result
+- **Authenticate to Fulcra now.** Before Architecture begins, use
+  [`fulcra-connect`](https://github.com/fulcradynamics/agent-skills/tree/main/skills/fulcra-connect)
+  to get the user authenticated. The just-completed Intake/Interview gives
+  a concrete project purpose/name for account setup; do not postpone
+  authentication until after Architecture or rely on chat/local git alone.
+  If the user cannot complete authentication now (for example, no browser
+  is available), use `fulcra-connect`'s non-blocking device-login flow,
+  record this as the current blocker, and pause before Architecture. Resume
+  Step 1b after the user authorizes; do not create local-only Architecture
+  state as a workaround.
+- **Action:** Load `fulcra-workspaces` and create or join one named
+  `team/prototype-<project>/` Workspace. Before joining an existing name,
+  inspect its `role.md`/project identity and ask the user to confirm it is
+  the same project; if it is not, choose a distinct project slug rather
+  than merging unrelated histories. This is the single continuous
+  project tracker that `fulcra-rapid-prototype` later reuses and extends;
+  do not create a second workspace for the harness.
+- **Artifacts:** Establish root `role.md`, `progress.md`, `log.md`,
+  `task/rapid-prototype.md`, and `knowledge/`. Upload
+  `intake/brief.md` (plus any separate interview findings) to Workspace
+  knowledge. Record the project goal, current phase, user decisions, and
+  the next Architecture question in team progress/task state.
+- **Commit:** Commit the local artifacts; update the Workspace on every
+  later Architecture/Plan artifact approval.
+
 ### 2. Architecture (User Gate)
-- **Authenticate to Fulcra first.** Before doing any Architecture work, use
-  the [`fulcra-connect`](https://github.com/fulcradynamics/agent-skills/tree/main/skills/fulcra-connect)
-  skill to get the user authenticated, so the Intake/Interview history and
-  every later phase's artifacts are saved durably instead of only living
-  in this chat.
+- **Confirm the Fulcra connection and Workspace state.** The 1b
+  `fulcra-connect`/`fulcra-workspaces` setup must already be complete.
+  Confirm `team/prototype-<project>/` contains the persisted Intake/
+  Interview result before doing Architecture work.
 - **Action:** Map the requirements to Fulcra capabilities (`fulcra-api catalog`). If a data type exists, use it. If not, define a custom data type.
 - **Choose the base type deliberately, not by defaulting to
   `MomentAnnotation`.** Fulcra's five base types split into two families
@@ -130,11 +156,17 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Artifact:** Write `architecture.md` (capability map, gap register, tenancy, and the per-type
   `recorded_at`/tags/sources decisions above).
 - **Gate:** STOP and ask the user to review `architecture.md`. Do not proceed until approved.
+- **Workspace update:** Upload the approved `architecture.md` to the same
+  project Workspace knowledge area and append the Architecture outcome/
+  next Plan step to team progress/task state.
 - **Commit:** Commit the architecture.
 
 ### 3. Plan
 - **Action:** Define the sequential technical spikes needed to prove the hardest parts of the architecture.
 - **Artifact:** Write `plan.md` (ranked list of technical risks to spike, plus the production build plan).
+- **Workspace update:** Upload `plan.md` to the same project Workspace
+  knowledge area and record the approved handoff to `fulcra-rapid-prototype`
+  in team progress/task state.
 - **Commit:** Commit the plan.
 
 ### 4. Prototype (The Spikes) (User Gate)
