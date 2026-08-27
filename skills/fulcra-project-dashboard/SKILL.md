@@ -55,7 +55,7 @@ When building or updating the dashboard, you must include the following elements
 1. **Data Gathering & Parsing:**
    - **Sync Team State:** Before generating or updating the dashboard, you must fetch the latest changes to the team files (e.g., via `git pull` or syncing the workspace) to ensure you are reporting on the most up-to-date progress.
    - Read local team progress files.
-   - Run `uv tool run fulcra-api catalog` to locate and extract relevant historical annotations for the workspace.
+   - Run `uvx fulcra-api catalog` to locate and extract relevant historical annotations for the workspace.
    - Compile this data into clean `.jsonl` or `.json` files inside a `public/` directory, following the `fulcra-dashboard` skill (fulcradynamics/agent-skills) data separation rules.
 
 2. **Scaffolding the UI:**
