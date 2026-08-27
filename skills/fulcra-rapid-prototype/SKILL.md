@@ -78,6 +78,37 @@ layer, or projects with no Fulcra involvement at all.
 
 ## The flow (follow these steps in order)
 
+### 0. Set up the Fulcra Workspace tracker before requirements deepen
+
+As soon as the user has a Fulcra account/authenticated CLI and has decided
+to use this skill, create or join a named
+`team/prototype-<project>/` Workspace **before** beginning Architecture.
+Load and follow `fulcra-workspaces` for the exact OKF layout and inbox
+lifecycle. Do not wait until the runtime/control harness is scaffolded:
+that loses the intake/architecture decisions and makes later control-harness
+state non-portable and dashboard-invisible.
+
+At minimum establish durable team root state now:
+
+```text
+team/prototype-<project>/role.md
+team/prototype-<project>/progress.md
+team/prototype-<project>/log.md
+team/prototype-<project>/task/rapid-prototype.md
+team/prototype-<project>/knowledge/
+```
+
+Record the project goal, current phase, user decisions, and next question in
+team progress/task state. Upload or synchronize every approved Grill-Me
+artifact as it is created (`intake/brief.md`, `architecture.md`, `plan.md`)
+to the team knowledge area. This early workspace is the durable tracker for
+the harness-building engagement; later Step 7 extends it with the full
+control-harness member/decision/verdict structure rather than replacing it.
+
+If the user is not yet authenticated to Fulcra, use the documented
+non-blocking device-login flow and make that account setup the first
+explicit blocker; do not silently use local-only state as a substitute.
+
 ### 1. Run fulcra-prototype-grill-me through its Plan phase
 
 Load `fulcra-prototype-grill-me` and run its Intake -> Interview ->
@@ -96,7 +127,10 @@ plan.md
 
 If upstream Grill-Me creates any additional interview artifact, retain it.
 If the user already has recent approved artifacts, confirm they remain
-current rather than rerunning discovery from scratch.
+current rather than rerunning discovery from scratch. As each artifact is
+created or approved, synchronize it to the Step 0 Workspace knowledge area
+and update `progress.md`/`task/rapid-prototype.md`; local git is not the
+only record of this engagement.
 
 ### 2. Confirm the bundled scaffold is available
 
