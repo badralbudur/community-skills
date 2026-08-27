@@ -78,17 +78,26 @@ layer, or projects with no Fulcra involvement at all.
 
 ## The flow (follow these steps in order)
 
-### 0. Set up the Fulcra Workspace tracker before requirements deepen
+### 1. Run fulcra-prototype-grill-me through Intake & Interview
 
-As soon as the user has a Fulcra account/authenticated CLI and has decided
-to use this skill, create or join a named
+Load `fulcra-prototype-grill-me` and run its Grill-Me Intake & Interview
+phase with the user: exactly one clear question at a time, until the initial
+project goal, reasons for building it, and core requirements are understood.
+Do **not** begin that skill's Architecture phase yet.
+
+This phase gives the user a clear reason to create/use their Fulcra account
+and tells us what to name the durable project tracker. Commit and retain the
+resulting Intake/Interview artifacts, especially `intake/brief.md`.
+
+### 2. Create the Fulcra Workspace tracker and immediately store Grill-Me results
+
+Once the initial Grill-Me result exists and the user has a Fulcra
+account/authenticated CLI, create or join a named
 `team/prototype-<project>/` Workspace **before** beginning Architecture.
 Load and follow `fulcra-workspaces` for the exact OKF layout and inbox
-lifecycle. Do not wait until the runtime/control harness is scaffolded:
-that loses the intake/architecture decisions and makes later control-harness
-state non-portable and dashboard-invisible.
+lifecycle.
 
-At minimum establish durable team root state now:
+At minimum establish:
 
 ```text
 team/prototype-<project>/role.md
@@ -98,24 +107,19 @@ team/prototype-<project>/task/rapid-prototype.md
 team/prototype-<project>/knowledge/
 ```
 
-Record the project goal, current phase, user decisions, and next question in
-team progress/task state. Upload or synchronize every approved Grill-Me
-artifact as it is created (`intake/brief.md`, `architecture.md`, `plan.md`)
-to the team knowledge area. This early workspace is the durable tracker for
-the harness-building engagement; later Step 7 extends it with the full
-control-harness member/decision/verdict structure rather than replacing it.
+Immediately upload/synchronize the completed Grill-Me intake/interview
+artifacts to Workspace knowledge and record the project goal, current phase,
+user decisions, and next Architecture question in team progress/task state.
+This makes the early reasoning portable and observable before it deepens
+into architecture. If authentication is not set up, use the documented
+non-blocking device-login flow now; do not substitute local-only state.
 
-If the user is not yet authenticated to Fulcra, use the documented
-non-blocking device-login flow and make that account setup the first
-explicit blocker; do not silently use local-only state as a substitute.
+### 3. Resume fulcra-prototype-grill-me through Architecture & Plan
 
-### 1. Run fulcra-prototype-grill-me through its Plan phase
-
-Load `fulcra-prototype-grill-me` and run its Intake -> Interview ->
-Architecture -> Plan phases with the user, exactly as that skill specifies
-(including its Architecture user gate — do not skip it). Stop before that
-skill's own Prototype/Build phases: this skill's generated harness replaces
-those phases for a project that wants a custom harness.
+Continue `fulcra-prototype-grill-me` through its Architecture and Plan
+phases exactly as specified, including the Architecture user gate. Stop
+before its Prototype/Build phases: this skill's generated runtime/control
+harness replaces those phases for a project that wants a custom harness.
 
 By the end, the rapid-prototype project git repo should have:
 
@@ -125,27 +129,24 @@ architecture.md   (approved by the user)
 plan.md
 ```
 
-If upstream Grill-Me creates any additional interview artifact, retain it.
-If the user already has recent approved artifacts, confirm they remain
-current rather than rerunning discovery from scratch. As each artifact is
-created or approved, synchronize it to the Step 0 Workspace knowledge area
-and update `progress.md`/`task/rapid-prototype.md`; local git is not the
-only record of this engagement.
+Synchronize each Architecture/Plan artifact to Workspace knowledge as it is
+created/approved, and update `progress.md`/`task/rapid-prototype.md`. Local
+git is not the only record of this engagement.
 
-### 2. Confirm the bundled scaffold is available
+### 4. Confirm the bundled scaffold is available
 
 This skill's scaffolding logic ships beside this `SKILL.md`, in `scripts/`,
 `engine/`, and `templates/`. Confirm `scripts/scaffold.py` is present
 relative to the skill directory before proceeding; do not rely on a sibling
 clone existing at a guessed path.
 
-### 3. Decide where the new project will live
+### 5. Decide where the new project will live
 
 Ask the user where the new project's own repo/directory should be created.
 Normally use a new sibling directory, **not** the skill directory (the skill
 stays a reusable template, not a place real projects accumulate).
 
-### 4. Run the scaffold script
+### 6. Run the scaffold script
 
 ```bash
 cd <this skill's own directory>
@@ -176,7 +177,7 @@ History-preserving mode clones directly into `--output-dir`, so that path
 must not exist at all. Pick a fresh target or remove/rename the old target
 before running it.
 
-### 5. Verify the scaffold actually works before handoff
+### 7. Verify the scaffold actually works before handoff
 
 Do **not** claim success merely because scaffolding exits 0. At the first
 actual runtime verification point, get the user authenticated to a
@@ -214,7 +215,7 @@ A known fast-successive-write bytecode-cache artifact in the git-commit-gate
 smoke test may be resolved by clearing `app/**/__pycache__` and running that
 test once again; do not use this as an excuse for unrelated failures.
 
-### 6. Hand off the verified scaffold
+### 8. Hand off the verified scaffold
 
 Point the user at:
 
@@ -227,7 +228,7 @@ Point the user at:
 Then either run the first task (`python -m harness.run_task task_001_*.md`)
 if the user wants a demonstration, or hand the verified scaffold over.
 
-### 7. Scaffold the portable outer control harness
+### 9. Scaffold the portable outer control harness
 
 The bundled runtime harness is the inner model/tool loop. If the project
 will use independent generation/evaluation, milestone branches, durable
@@ -248,7 +249,7 @@ and bootstrap a Fulcra Workspace team. Keep it separate from the generated
 deliverable repo: the control harness governs work; the deliverable is the
 artifact being evaluated.
 
-### 8. Set up the harness dashboard (recommended; public deployment optional)
+### 10. Set up the harness dashboard (recommended; public deployment optional)
 
 Once the control harness has a Workspace team, invoke
 **`fulcra-harness-dashboard`** as the normal manager/operator visibility
