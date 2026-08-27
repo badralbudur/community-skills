@@ -105,25 +105,39 @@ Show only current unresolved items:
 Remove or mark resolved an item once its user decision is recorded and the
 approved spec/config reflects it. Do not retain stale “open” items forever.
 
-## Publication adapter
+## Publication adapter (normal flow; explicit user gate)
 
-A dashboard is optional and outside the portable control harness. If an
-operator publishes one:
+The normal harness-dashboard flow is **private-by-unguessability
+publication**: deploy the curated `public/` dashboard to an unguessable
+URL so the same status view is available across users/agents/sessions.
+Surge is the preferred simple default, but another host is acceptable if it
+supports the same safety contract.
 
-- build an isolated `public/` directory containing only UI assets and
-  explicitly curated `dashboard-data.json`;
-- never publish inboxes, full raw verdicts, credentials, private-repo
-  content, or raw Fulcra downloads;
-- add `noindex,nofollow` to publication HTML;
-- use an unguessable deployment URL if the user requests private-by-URL
-  sharing;
-- print the exact publication manifest and get user confirmation before
-  deployment;
-- make dashboard publish failure visible but never let it mask the actual
-  harness outcome.
+Before every first deployment (and whenever the public manifest changes):
 
-A Coordinator may call an optional dashboard publish hook after terminal
-outcomes. The hook must first confirm durable status upload succeeded.
+1. Build an isolated `public/` directory containing only UI assets and
+   explicitly curated `dashboard-data.json`.
+2. Copy `templates/public/noindex-head.html` into the `<head>` of
+   `public/index.html`, producing:
+   ```html
+   <meta name="robots" content="noindex, nofollow">
+   ```
+3. Print the exact public manifest and tell the user plainly: **the
+   dashboard is publicly reachable by anyone with the URL**. An unguessable
+   URL and noindex/nofollow directives reduce discovery; they are **not
+   access control**.
+4. Obtain explicit user confirmation for that exact manifest.
+5. Deploy with `templates/publish_surge.sh` (or an equivalent host adapter)
+   using a random/unguessable domain. Keep the URL in the durable harness
+   status/dashboard configuration, not in a credential file.
+
+Never publish inboxes, full raw verdicts, credentials, private-repo content,
+or raw Fulcra downloads. Make dashboard publish failure visible but never
+let it mask the actual harness outcome.
+
+A Coordinator may call a dashboard publish hook after terminal outcomes,
+but the hook must first confirm durable status upload succeeded and must
+deploy only the already-approved curated public manifest.
 
 ## What this skill does not change
 

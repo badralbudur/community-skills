@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Publish an already-reviewed harness dashboard public/ directory to Surge.
+#
+# Required before running:
+#   1. The user has explicitly approved the exact public manifest.
+#   2. public/index.html contains <meta name="robots" content="noindex, nofollow">.
+#   3. Surge is installed/authenticated (npm install -g surge).
+#
+# This is private-by-unguessability only. Anyone with the URL can access it.
+set -euo pipefail
+
+PUBLIC_DIR="${1:-public}"
+DOMAIN="${HARNESS_DASHBOARD_DOMAIN:?Set HARNESS_DASHBOARD_DOMAIN to an unguessable *.surge.sh domain}"
+
+if [ ! -d "$PUBLIC_DIR" ]; then
+  echo "ERROR: public directory not found: $PUBLIC_DIR" >&2
+  exit 2
+fi
+if ! grep -q 'name="robots" content="noindex, nofollow"' "$PUBLIC_DIR/index.html"; then
+  echo "ERROR: public/index.html lacks required noindex,nofollow directive." >&2
+  exit 2
+fi
+if ! command -v surge >/dev/null 2>&1; then
+  echo "ERROR: surge is not installed/authenticated. Install with: npm install -g surge" >&2
+  exit 2
+fi
+
+echo "PUBLIC MANIFEST (review before deployment):"
+find "$PUBLIC_DIR" -type f -printf '%P %s bytes\n' | sort
+cat <<'WARNING'
+WARNING: This dashboard is publicly reachable by anyone with the URL. The
+unguessable domain plus noindex,nofollow reduces discovery but is NOT access
+control. Confirm the manifest contains only intentionally curated data.
+WARNING
+
+surge "$PUBLIC_DIR" "$DOMAIN"
+printf 'Published harness dashboard: https://%s\n' "$DOMAIN"

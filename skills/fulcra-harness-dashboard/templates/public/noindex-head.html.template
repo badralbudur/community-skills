@@ -1,0 +1,7 @@
+<!-- Copy into <head> of the isolated public/index.html. -->
+<meta name="robots" content="noindex, nofollow">
+<!--
+This prevents cooperative search engines from indexing/following the page.
+It is not access control. The deployed dashboard remains publicly reachable
+to anyone who knows or obtains its URL.
+-->
