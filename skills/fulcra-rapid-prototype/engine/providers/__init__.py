@@ -35,6 +35,15 @@ This module is intentionally the ONLY place that knows about all three
 providers and how to choose between them -- loop.py just imports
 `call_model` from here and stays provider-agnostic, exactly as it was
 when only gemini.py existed.
+
+Manual override: set `HARNESS_PROVIDER` to `anthropic`, `gemini`, or
+`openai` to force a specific provider, bypassing the auto-detection
+order above entirely (e.g. if you're authenticated to more than one and
+want the OTHER one, or you're debugging a specific adapter). This is
+read before any of the detection strategies below run, so setting it
+guarantees that exact provider is used, or a clear error if that
+provider's own credentials aren't actually configured -- it does not
+silently fall through to a different provider on its own.
 """
 
 import os
@@ -43,6 +52,9 @@ import os
 class NoProviderConfiguredError(RuntimeError):
     """Raised when no provider's credentials could be found by any of the
     detection strategies in this module."""
+
+
+_VALID_PROVIDERS = ("anthropic", "gemini", "openai")
 
 
 def _has_claude_oauth() -> bool:
@@ -85,7 +97,20 @@ def select_provider() -> str:
     perform any network calls; only inspects environment variables that
     the corresponding CLI/`gcloud` login flow would have already set or
     that the user was asked to put in `.env`.
+
+    `HARNESS_PROVIDER`, if set, short-circuits all of the above and is
+    returned directly (after validating it names a real provider) -- see
+    this module's docstring for the manual-override rationale.
     """
+    override = os.environ.get("HARNESS_PROVIDER")
+    if override:
+        if override not in _VALID_PROVIDERS:
+            raise ValueError(
+                f"HARNESS_PROVIDER={override!r} is not a recognized "
+                f"provider. Expected one of: {', '.join(_VALID_PROVIDERS)}."
+            )
+        return override
+
     if _has_claude_oauth():
         return "anthropic"
     if _has_gemini_adc():
@@ -108,6 +133,9 @@ def select_provider() -> str:
         "GOOGLE_CLOUD_PROJECT in .env.\n"
         "  3. GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY in "
         ".env, as a fallback if neither OAuth path is available.\n"
+        "You can also force a specific provider by setting "
+        "HARNESS_PROVIDER to 'anthropic', 'gemini', or 'openai' -- but "
+        "that provider's own credentials still need to be configured. "
         "See harness/providers/<provider>.py module docstrings for "
         "details on each."
     )
@@ -120,10 +148,12 @@ def call_model(*args, **kwargs):
     signature by design, `max_tokens` on the Anthropic adapter aside,
     which has a default and is rarely passed explicitly).
 
-    An explicit `provider=` override (not one of the underlying adapters'
-    real parameters) can be passed to skip auto-selection, e.g. for
-    tests or a user who wants to force a specific provider regardless of
-    what's ambiently available.
+    An explicit `provider=` kwarg (not one of the underlying adapters'
+    real parameters) can be passed to skip auto-selection programmatically
+    -- e.g. for tests. This takes precedence even over HARNESS_PROVIDER;
+    HARNESS_PROVIDER is the operator-facing override (set once in .env,
+    applies to every call), `provider=` is the caller-facing one (this
+    specific call only).
     """
     provider = kwargs.pop("provider", None) or select_provider()
 
@@ -136,7 +166,7 @@ def call_model(*args, **kwargs):
     else:
         raise ValueError(
             f"Unknown provider {provider!r}. Expected one of: "
-            f"'anthropic', 'gemini', 'openai'."
+            f"{', '.join(_VALID_PROVIDERS)}."
         )
 
     return _call(*args, **kwargs)

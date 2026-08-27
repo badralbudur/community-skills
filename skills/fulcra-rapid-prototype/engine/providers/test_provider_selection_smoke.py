@@ -18,6 +18,7 @@ from harness.providers import NoProviderConfiguredError, select_provider
 # from a genuinely clean slate regardless of what's set in the real
 # environment/.env this test happens to run in.
 _RELEVANT_VARS = [
+    "HARNESS_PROVIDER",
     "CLAUDE_CODE_OAUTH_TOKEN",
     "ANTHROPIC_AUTH_TOKEN",
     "GOOGLE_CLOUD_PROJECT",
@@ -128,6 +129,25 @@ def main():
         except NoProviderConfiguredError as exc:
             assert "claude setup-token" in str(exc)
             assert "gcloud auth application-default login" in str(exc)
+    print("OK")
+
+    print("\n--- Test 7: HARNESS_PROVIDER overrides auto-detection entirely ---")
+    with _clean_env():
+        # Even with Claude Code OAuth present (which would normally win),
+        # an explicit HARNESS_PROVIDER=openai must take precedence.
+        os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = "fake-token"
+        os.environ["HARNESS_PROVIDER"] = "openai"
+        assert select_provider() == "openai"
+    print("OK")
+
+    print("\n--- Test 8: HARNESS_PROVIDER rejects an unrecognized value ---")
+    with _clean_env():
+        os.environ["HARNESS_PROVIDER"] = "not-a-real-provider"
+        try:
+            select_provider()
+            raise AssertionError("expected ValueError for invalid HARNESS_PROVIDER")
+        except ValueError as exc:
+            assert "not-a-real-provider" in str(exc)
     print("OK")
 
     print("\nAll provider-selection smoke checks passed.")
