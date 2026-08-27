@@ -10,6 +10,11 @@ You are a product prototyping engineer building on the Fulcra platform. The user
 ## Intended Use
 Trigger this skill exclusively when the user brings a complex product idea, an architectural exploration, a 3rd-party API integration, or explicitly asks for a structured prototyping pipeline. For all other workflows, rely on your standard toolset.
 
+## Prerequisites
+
+- The [`fulcra-connect`](https://github.com/fulcradynamics/agent-skills/tree/main/skills/fulcra-connect)
+  skill is used for authentication in the Architecture step below.
+
 Before starting Step 1, read
 [fulcra-for-agents.md](https://github.com/kubla/fulcra-for-agents/blob/main/fulcra-for-agents.md)
 once, up front, if you haven't already in this session -- it explains
@@ -46,29 +51,11 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Commit:** Commit the brief and `.gitignore`.
 
 ### 2. Architecture (User Gate)
-- **Authenticate to Fulcra first.** Before doing any Architecture work, ask
-  the user to authenticate to Fulcra and explain why now: everything from
-  here on — the Intake/Interview "grill me" question-and-answer history,
-  the architecture decisions, and every later phase's artifacts — should
-  be durable and saved to their Fulcra account rather than living only in
-  this chat session, and that requires an authenticated session before
-  Architecture starts writing anything worth keeping. Don't run a bare
-  `fulcra-api auth login` — it launches a browser and polls for up to two
-  minutes, which reads as a stuck command. Use the non-interactive
-  two-step flow instead:
-
-  ```bash
-  fulcra-api auth login --get-auth-url                # prints a URL + device code, then exits
-  # hand the URL/device code to the user; they authorize in a browser
-  fulcra-api auth login --device-code <DEVICE_CODE>    # completes auth and persists the token
-  ```
-
-  Confirm the token persisted (e.g. `fulcra-api user-info` succeeds)
-  before continuing. Do not proceed into the rest of Architecture until
-  authentication is confirmed — this is what makes the `git bundle`
-  backups in later phases (and any downstream workspace/coordination
-  skill built on top of this one) actually land somewhere durable for
-  the user, instead of silently failing or being skipped.
+- **Authenticate to Fulcra first.** Before doing any Architecture work, use
+  the [`fulcra-connect`](https://github.com/fulcradynamics/agent-skills/tree/main/skills/fulcra-connect)
+  skill to get the user authenticated, so the Intake/Interview history and
+  every later phase's artifacts are saved durably instead of only living
+  in this chat.
 - **Action:** Map the requirements to Fulcra capabilities (`fulcra-api catalog`). If a data type exists, use it. If not, define a custom data type.
 - **Choose the base type deliberately, not by defaulting to
   `MomentAnnotation`.** Fulcra's five base types split into two families
