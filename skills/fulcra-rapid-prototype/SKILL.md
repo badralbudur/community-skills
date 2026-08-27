@@ -89,13 +89,14 @@ This phase gives the user a clear reason to create/use their Fulcra account
 and tells us what to name the durable project tracker. Commit and retain the
 resulting Intake/Interview artifacts, especially `intake/brief.md`.
 
-### 2. Create the Fulcra Workspace tracker and immediately store Grill-Me results
+### 2. Reuse the Grill-Me Fulcra Workspace tracker and immediately store results
 
-Once the initial Grill-Me result exists and the user has a Fulcra
-account/authenticated CLI, create or join a named
-`team/prototype-<project>/` Workspace **before** beginning Architecture.
-Load and follow `fulcra-workspaces` for the exact OKF layout and inbox
-lifecycle.
+`fulcra-prototype-grill-me` should have created the named
+`team/prototype-<project>/` Workspace immediately after Intake & Interview.
+Confirm/join that **same Workspace** here; do not create a second rapid-
+prototype tracker. If the Grill-Me workspace is absent (for example,
+resuming an older project), create it now using the same `fulcra-workspaces`
+flow before beginning Architecture.
 
 At minimum establish:
 
@@ -107,12 +108,13 @@ team/prototype-<project>/task/rapid-prototype.md
 team/prototype-<project>/knowledge/
 ```
 
-Immediately upload/synchronize the completed Grill-Me intake/interview
-artifacts to Workspace knowledge and record the project goal, current phase,
-user decisions, and next Architecture question in team progress/task state.
-This makes the early reasoning portable and observable before it deepens
-into architecture. If authentication is not set up, use the documented
-non-blocking device-login flow now; do not substitute local-only state.
+Verify the completed Grill-Me intake/interview artifacts are in Workspace
+knowledge and the project goal, current phase, user decisions, and next
+Architecture question are in team progress/task state. Backfill them now if
+this is an older/resumed project. This makes the early reasoning portable
+and observable before it deepens into architecture. If authentication is
+not set up, use the documented non-blocking device-login flow now; do not
+substitute local-only state.
 
 ### 3. Resume fulcra-prototype-grill-me through Architecture & Plan
 
