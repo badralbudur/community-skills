@@ -69,7 +69,7 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
   backups in later phases (and any downstream workspace/coordination
   skill built on top of this one) actually land somewhere durable for
   the user, instead of silently failing or being skipped.
-- **Action:** Map the requirements to Fulcra capabilities (`fulcra-api data-type list`). If a data type exists, use it. If not, define a custom data type.
+- **Action:** Map the requirements to Fulcra capabilities (`fulcra-api catalog`). If a data type exists, use it. If not, define a custom data type.
 - **Choose the base type deliberately, not by defaulting to
   `MomentAnnotation`.** Fulcra's five base types split into two families
   with genuinely different record shapes -- compare them before picking
