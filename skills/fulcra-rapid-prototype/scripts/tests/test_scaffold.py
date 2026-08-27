@@ -128,6 +128,80 @@ def test_extract_first_plan_milestone_raises_on_no_headings():
         scaffold.extract_first_plan_milestone("just some prose, no headings at all")
 
 
+# Regression test for #52: a plan.md with a preamble (Objective, Ranked
+# risks) before its actual "Production milestones" section must not have
+# its preamble picked as if it were the first milestone -- that produced
+# a real bug where the generated task covered the ENTIRE rest of the
+# plan instead of one bounded milestone.
+FAKE_PLAN_WITH_PREAMBLE = (
+    "# Plan\n\n"
+    "## Objective\n"
+    "Ship a working calendar digest end to end.\n\n"
+    "## Ranked technical risks and spikes\n"
+    "1. Fulcra calendar API pagination behavior is unverified.\n"
+    "2. Digest formatting for empty days is unspecified.\n\n"
+    "## Production milestones\n\n"
+    "### M1 — Project shell and calendar fetch\n"
+    "Scaffold the project and fetch tomorrow's CalendarEvent records.\n\n"
+    "### M2 — Digest generation and storage\n"
+    "Summarize the fetched events and record a DailyDigest annotation.\n"
+)
+
+
+def test_extract_first_plan_milestone_skips_preamble_sections():
+    """The core #52 regression: 'Objective' and 'Ranked technical risks
+    and spikes' must never be picked as the first milestone just because
+    they appear before it in document order."""
+    title, body = scaffold.extract_first_plan_milestone(FAKE_PLAN_WITH_PREAMBLE)
+    assert title == "M1 — Project shell and calendar fetch"
+    assert "Objective" not in body
+    assert "Ranked technical risks" not in body
+    assert "M2" not in body  # body should stop before the next heading
+
+
+def test_extract_first_plan_milestone_matches_milestone_word_form():
+    plan = (
+        "# Plan\n\n"
+        "## Objective\nShip it.\n\n"
+        "## Milestone 1: Do the thing\n"
+        "The actual first bounded piece of work.\n\n"
+        "## Milestone 2: Do the other thing\n"
+        "Later work.\n"
+    )
+    title, body = scaffold.extract_first_plan_milestone(plan)
+    assert title == "Milestone 1: Do the thing"
+    assert "actual first bounded" in body
+    assert "Milestone 2" not in body
+
+
+def test_extract_first_plan_milestone_case_insensitive_and_emphasis_stripped():
+    plan = (
+        "# Plan\n\n"
+        "## Objective\nShip it.\n\n"
+        "### **m1** — bolded milestone heading\n"
+        "Body text for the bolded milestone.\n"
+    )
+    title, body = scaffold.extract_first_plan_milestone(plan)
+    assert title == "**m1** — bolded milestone heading"
+    assert "Body text" in body
+
+
+def test_extract_first_plan_milestone_raises_when_no_heading_looks_like_a_milestone():
+    """If nothing in plan.md reads like an explicit milestone marker,
+    fail loudly and actionably rather than guessing a preamble heading
+    (the exact silent-wrongness #52 reported)."""
+    plan = (
+        "# Plan\n\n"
+        "## Objective\nShip it.\n\n"
+        "## Ranked technical risks and spikes\n"
+        "1. Some risk.\n\n"
+        "## Production milestones\n"
+        "Nothing here explicitly labeled as a milestone heading.\n"
+    )
+    with pytest.raises(scaffold.ScaffoldError, match="explicit milestone marker"):
+        scaffold.extract_first_plan_milestone(plan)
+
+
 def test_read_required_artifact_raises_clear_error_when_missing(tmp_path: Path):
     missing_path = tmp_path / "does_not_exist.md"
     with pytest.raises(scaffold.ScaffoldError, match="Architecture"):
