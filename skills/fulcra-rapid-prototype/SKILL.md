@@ -1,429 +1,196 @@
 ---
 name: fulcra-rapid-prototype
-description: "Scaffolds a running, project-specific Fulcra agent harness (control loop + sandboxed tools + provider adapter), then operates it with an inspectable task-specific iteration discipline: immutable user-approved specs, separate generation/evaluation, milestone-sized loops, durable Fulcra Workspace state, bounded liveness/retry, and reviewable git/PR gates. Depends on fulcra-prototype-grill-me for requirements gathering."
+description: "Scaffold a project-specific Fulcra runtime harness and its separate control harness. Orchestrates fulcra-prototype-grill-me, one shared Fulcra Workspace, milestone/PR evaluation, and the recommended harness dashboard without duplicating those skills' detailed contracts."
 author: schr3b3r
-version: 1.1.0
+version: 1.2.0
 metadata:
-  tags: [fulcra, agent-harness, scaffolding, meta, rapid-prototype, evaluation, milestones]
+  tags: [fulcra, agent-harness, scaffolding, rapid-prototype, evaluation, milestones]
 ---
 
 # Fulcra Rapid Prototype
 
-This skill turns a project idea into a **running, project-specific agent
-harness** — a small, hand-rolled control loop (model call -> tool
-dispatch -> feedback -> repeat) with sandboxed file/git/shell tools, a
-system prompt describing the specific project, and a first real task
-prompt to run against it.
+Use this skill when the user wants an inspectable, project-specific Fulcra
+agent harness — not merely a one-off agent coding session.
 
-It has two complementary responsibilities:
+It composes four components rather than reimplementing each one:
 
-1. **Scaffold the runtime harness.** The bundled `engine/`, `scripts/`,
-   and `templates/` create an inspectable reference harness with a provider
-   adapter and sandboxed tools. This is upstream's concrete starter
-   implementation, not hypothetical documentation.
-2. **Operate/evolve it reliably.** Once a project is scaffolded, use the
-   task-specific iteration discipline in this document so the harness
-   builds work in small verifiable increments instead of making one large,
-   unreviewed model attempt.
+```text
+fulcra-prototype-grill-me  → requirements + early project Workspace
+runtime harness scaffold    → inner model/tool execution loop
+control harness             → milestones + Generator/Evaluator + Workspace state
+fulcra-harness-dashboard    → operator visibility + curated publication
+```
 
-It does not directly build the user's whole project in one opaque session;
-it builds and governs the thing that will build the project.
+The **runtime harness** is the inner model/tool loop that executes a task.
+The **control harness** is the outer project loop that decides which bounded
+task runs, evaluates it independently, records state, and merges only
+approved work.
 
-This exists as a reference implementation of building on Fulcra with an
-agent harness — see
-[fulcra-for-agents.md](https://github.com/kubla/fulcra-for-agents/blob/main/fulcra-for-agents.md)
-for the architectural patterns (Context-Compute Separation, Derived
-Context, Resumable Discovery, etc.) this skill's generated
-`ENGINEERING_STANDARDS.md` encodes as concrete rules.
+## Use it when
 
-## When to use this skill
+- the project is built on Fulcra and needs a custom, inspectable agent loop;
+- the user wants durable progress/decision history across sessions;
+- the work needs milestone branches, independent evaluation, or unattended
+  operation.
 
-Trigger this when the user explicitly wants to:
-
-- Build a new application/tool on top of Fulcra using a **custom agent
-  harness** they control and can inspect/modify (not just "have Claude
-  Code build it directly").
-- Learn agent-harness engineering fundamentals by having a real, minimal
-  reference implementation to study and extend.
-- Run a project-specific generation/evaluation loop with durable state,
-  reviewable artifacts, and an escalation path.
-
-Do NOT use this for quick one-off scripts, tasks where the user just wants
-you (Claude Code) to build something directly without a separate harness
-layer, or projects with no Fulcra involvement at all.
+Do not use it for one-off scripts, projects with no Fulcra role, or a task
+where the user wants an agent to build directly without a separate harness.
 
 ## Prerequisites
 
-- The `fulcra-prototype-grill-me` skill must be available. This skill
-  depends on it for Intake/Interview/Architecture/Plan; it does not
-  duplicate that requirements-gathering logic.
-- Provider credentials will be needed eventually to actually run the
-  harness (Anthropic, Gemini, or OpenAI — see
-  `engine/providers/__init__.py`'s module docstring for the full
-  auto-selection order). **Do not ask for them yet.** Intake, Interview,
-  Architecture, Plan, dry-run scaffolding, and static artifact review do
-  not need them. Ask only at the first point the generated runtime harness
-  is actually verified/run — and even then, prefer OAuth over an API key:
-  if the user already has a Claude subscription, `claude setup-token`
-  needs no separate API key at all; similarly `gcloud auth
-  application-default login` covers Gemini via Vertex AI. Only fall back
-  to asking for a raw `GEMINI_API_KEY`/`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`
-  if neither OAuth path is available. The adapter set is an extension
-  point, not a permanent provider limitation.
-- For multi-agent evaluation or a different provider, adapt the provider
-  invocation layer while retaining the operational contract below. Do not
-  make project specs or durable coordination depend on one CLI/provider.
+- `fulcra-prototype-grill-me`
+- `fulcra-workspaces` and `fulcra-connect` (used by Grill-Me Step 1b)
+- `fulcra-harness-dashboard` (recommended visibility layer)
 
-# Part I — Scaffold the Runtime Harness
+Do not request model credentials during intake, architecture, plan, or
+dry-run scaffolding. Request/configure a provider only immediately before
+verifying the inner runtime harness. Prefer an already-authenticated provider
+path when one is available; see the generated `.env.example` and
+`harness/providers/` docs for current options.
 
-## The flow (follow these steps in order)
+# Flow
 
-### 1. Run fulcra-prototype-grill-me through Intake, Interview, **and Step 1b**
+Follow these steps in order. Each referenced skill/template owns its detailed
+rules; do not duplicate or weaken them here.
 
-Load `fulcra-prototype-grill-me` and run its Grill-Me Intake & Interview
-phase with the user: exactly one clear question at a time, until the initial
-project goal, reasons for building it, and core requirements are understood.
-Then run Grill-Me **Step 1b (Create the project Workspace and persist the
-Grill-Me result)** as part of this step. Do **not** begin that skill's
-Architecture phase yet.
+## 1. Establish requirements and one shared project Workspace
 
-This phase gives the user a clear reason to create/use their Fulcra account
-and tells us what to name the durable project tracker. Commit and retain the
-resulting Intake/Interview artifacts, especially `intake/brief.md`.
+Run `fulcra-prototype-grill-me` through:
 
-### 2. Reuse the Grill-Me Fulcra Workspace tracker and immediately store results
+1. Intake & Interview;
+2. its Step 1b Workspace/authentication step;
+3. Architecture (with its user gate);
+4. Plan.
 
-`fulcra-prototype-grill-me` should have created the named
-`team/prototype-<project>/` Workspace immediately after Intake & Interview.
-Confirm/join that **same Workspace** here; do not create a second rapid-
-prototype tracker. If the Grill-Me workspace is absent (for example,
-resuming an older project), create it now using the same `fulcra-workspaces`
-flow before beginning Architecture.
-
-At minimum establish:
+The single Workspace is:
 
 ```text
-team/prototype-<project>/role.md
-team/prototype-<project>/progress.md
-team/prototype-<project>/log.md
-team/prototype-<project>/task/rapid-prototype.md
-team/prototype-<project>/knowledge/
+team/prototype-<project>/
 ```
 
-Verify the completed Grill-Me intake/interview artifacts are in Workspace
-knowledge and the project goal, current phase, user decisions, and next
-Architecture question are in team progress/task state. Backfill them now if
-this is an older/resumed project. This makes the early reasoning portable
-and observable before it deepens into architecture. If authentication is
-not set up, use the documented non-blocking device-login flow now; do not
-substitute local-only state.
+It must contain the Grill-Me intake/interview result before Architecture
+begins, then receive approved architecture and plan artifacts as they are
+created. On resume, confirm existing approved artifacts are current and
+backfill missing Workspace records instead of rerunning discovery.
 
-### 3. Resume fulcra-prototype-grill-me through Architecture & Plan
+Stop before Grill-Me's Prototype/Build phases: the runtime/control harness
+below replaces them.
 
-Continue `fulcra-prototype-grill-me` through its Architecture and Plan
-phases exactly as specified, including the Architecture user gate. Stop
-before its Prototype/Build phases: this skill's generated runtime/control
-harness replaces those phases for a project that wants a custom harness.
-
-By the end, the rapid-prototype project git repo should have:
+Required local artifacts after this step:
 
 ```text
 intake/brief.md
-architecture.md   (approved by the user)
+architecture.md   # user approved
 plan.md
 ```
 
-Synchronize each Architecture/Plan artifact to Workspace knowledge as it is
-created/approved, and update `progress.md`/`task/rapid-prototype.md`. Local
-git is not the only record of this engagement. If the project already has
-recent approved Grill-Me artifacts from a prior session, confirm they remain
-current and reuse them rather than rerunning Intake/Interview/Architecture
-from scratch; backfill the shared Workspace records if they are absent.
+## 2. Scaffold the inner runtime harness
 
-### 4. Confirm the bundled scaffold is available
-
-This skill's scaffolding logic ships beside this `SKILL.md`, in `scripts/`,
-`engine/`, and `templates/`. Confirm `scripts/scaffold.py` is present
-relative to the skill directory before proceeding; do not rely on a sibling
-clone existing at a guessed path.
-
-### 5. Decide where the new project will live
-
-Ask the user where the new project's own repo/directory should be created.
-Normally use a new sibling directory, **not** the skill directory (the skill
-stays a reusable template, not a place real projects accumulate).
-
-### 6. Run the scaffold script
+Locate this skill directory, then run the bundled scaffold script with
+`--dry-run` first:
 
 ```bash
-cd <this skill's own directory>
 python scripts/scaffold.py \
-  --project-name "<Human-readable project name>" \
-  --rapid-prototype-dir <path to repo with intake/, architecture.md, plan.md> \
-  --output-dir <path to new project directory> \
-  --domain-library-guidance "- For X: use library Y, not a hand-rolled Z."
-```
-
-Run with `--dry-run` first and show the user what would be written before
-the real run.
-
-`--domain-library-guidance` is optional but useful when Architecture
-surfaced an obvious domain (for example, audio processing or a web backend).
-If omitted, the generated `ENGINEERING_STANDARDS.md` contains a visible
-TODO; that is acceptable when no sensible library choice exists yet.
-
-**Git history:** default `--history=auto` preserves
-`fulcra-prototype-grill-me`'s phase history when `--rapid-prototype-dir` is
-a git working tree. That lets future sessions inspect genuine
-Intake/Architecture/Plan decisions via `git log` rather than a flattened
-snapshot. A bundle can be unpacked first with `git clone <bundle> <dir>`.
-If the source is not a git repo, auto falls back to copy mode; use
-`--history=preserve` only when lack of history should be a hard error.
-
-History-preserving mode clones directly into `--output-dir`, so that path
-must not exist at all. Pick a fresh target or remove/rename the old target
-before running it.
-
-### 7. Scaffold and bootstrap the outer control plane **before any inner runtime task**
-
-Do this immediately after the runtime project scaffold exists, and before
-running `harness.run_task`, asking for runtime provider credentials, or
-letting the inner model/tool loop begin deliverable work.
-
-```bash
-cd <this skill's own directory>
-python scripts/scaffold_control_harness.py \
-  --project-name "<Human-readable project name>" \
-  --output-dir <new sibling path such as ../<project>-control> \
+  --project-name "<Project name>" \
+  --rapid-prototype-dir <approved Grill-Me repo> \
+  --output-dir <new project directory> \
   --dry-run
-# repeat without --dry-run after user review
 ```
 
-Fill the generated control harness's `spec.md`/`milestones.md` from the
-approved Grill-Me artifacts, configure separate Generator/Evaluator
-adapters, then run its `./bootstrap.sh <team-name> --deliverable <project>`
-and `./doctor.sh`. This must establish durable Fulcra Workspace tracking,
-member state, milestones, decisions, verdicts, and status before inner
-runtime work begins. Keep the control harness separate from the deliverable
-repo: it governs work; the deliverable is the artifact being evaluated.
+After user review of the dry-run manifest, run it without `--dry-run`.
+The script preserves Grill-Me git history when possible (`--history=auto`).
+Use `--history=preserve` only when loss of that history should be a hard
+error.
 
-### 8. Set up the harness dashboard before runtime work (recommended)
+The output project contains the concrete inner loop, provider adapters,
+sandboxed tools, prompts, app skeleton, and smoke tests. Read the generated
+README for its exact layout and setup instructions.
 
-Once the control harness has a Workspace team, invoke
-**`fulcra-harness-dashboard`** as the normal manager/operator visibility
-step. It builds on **`fulcra-project-dashboard`** and renders the
-milestone flight plan, run evidence timeline, checkpoint, decision requests,
-escalations, and next bearing.
+## 3. Scaffold and bootstrap the outer control harness **before inner runtime work**
 
-The normal flow is to publish the curated dashboard to an **unguessable
-URL** (Surge is the preferred simple default) after printing the isolated
-public manifest, adding `noindex,nofollow`, warning that anyone with the
-URL can access it, and receiving explicit user confirmation. This is not
-access control; never publish raw inboxes, full verdict archives,
-credentials, or private repository data.
-
-### 9. Verify the scaffold actually works before handoff
-
-Do **not** claim success merely because scaffolding exits 0. At the first
-actual runtime verification point, get the user authenticated to a
-provider and write the result into the new project's `.env`. Prefer
-OAuth over an API key: if the user already has a Claude subscription,
-`claude setup-token` needs no separate API key; `gcloud auth
-application-default login` similarly covers Gemini via Vertex AI. Only
-fall back to asking for a raw API key
-(`GEMINI_API_KEY`/`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`) if neither OAuth
-path applies — see `.env.example` and `engine/providers/__init__.py`'s
-module docstring for the full menu and auto-selection order. Then run:
+Before asking for runtime provider credentials, running inner smoke tests, or
+calling `harness.run_task`, create a sibling portable control-harness repo:
 
 ```bash
-cd <new project dir>
-git log --oneline
-# commit generated scaffold if the script did not preserve/create the repo
-# history itself
-python -m venv .venv && .venv/bin/pip install -e .
-# If venv creation fails with an ensurepip/venv error ("The virtual
-# environment was not created successfully because ensurepip is not
-# available" -- common on minimal/PEP 668-style environments), use uv
-# instead; it needs no ensurepip and produces an equivalent .venv/:
-#   uv venv --clear .venv && uv pip install --python .venv/bin/python -e .
-cp .env.example .env
-.venv/bin/python -m harness.test_loop_smoke
-.venv/bin/python -m harness.test_context_smoke
-.venv/bin/python -m harness.tools.test_filesystem_smoke
-.venv/bin/python -m harness.tools.test_git_smoke
-.venv/bin/python -m harness.tools.test_git_commit_gate_smoke
-.venv/bin/python -m harness.tools.test_run_command_smoke
+python scripts/scaffold_control_harness.py \
+  --project-name "<Project name>" \
+  --output-dir <new sibling control directory> \
+  --dry-run
 ```
 
-All six must pass. If any fails, fix the scaffold before saying it is ready.
-A known fast-successive-write bytecode-cache artifact in the git-commit-gate
-smoke test may be resolved by clearing `app/**/__pycache__` and running that
-test once again; do not use this as an excuse for unrelated failures.
+Review the dry-run, then scaffold it. Fill its `spec.md` and
+`coordinator/milestones.md` from the approved Grill-Me artifacts. Configure
+genuinely separate Generator and Evaluator adapter commands, then run:
 
-### 10. Hand off the verified scaffold
-
-Point the user at:
-
-- generated `harness/prompts/system_prompt.md` and
-  `harness/prompts/task_001_*.md` — heuristic starting points to inspect,
-  not guaranteed finished prompts;
-- the generated project `README.md` for getting started;
-- `app/CONTEXT.md` and `app/features/` for runtime context/progress.
-
-Then either run the first task (`python -m harness.run_task task_001_*.md`)
-if the user wants a demonstration, or hand the verified scaffold over.
-
-# Part II — Operate the Scaffold as a Reliable Task Harness
-
-The bundled runtime loop may be single-agent. That does **not** remove the
-need for independent project-level evaluation. Treat its output as a
-Generator artifact and run a separate Evaluator session/process against it.
-
-## Universal operational invariants
-
-1. **Separate Generator from Evaluator.** Generator builds the current
-   artifact; Evaluator independently tests/grades it. Do not use one
-   session switching personas as a substitute for independent evaluation.
-2. **Immutable approved spec during a run.** Requirements change only after
-   a user decision. Do not patch output to make a verdict disappear.
-3. **Milestones, not whole-spec attempts.** Build exactly one bounded,
-   independently gradeable work item per Coordinator invocation. Supply
-   the whole spec for invariants, but scope actual work narrowly.
-4. **Durable state is not chat memory.** Fulcra Workspace files record
-   status, milestone state, requests, verdicts, escalations, and summaries.
-5. **Bounded retry/liveness.** Manual mode should normally attempt once and
-   return control. Unattended mode may retry within a visible bound. Watch
-   activity (file/output changes) plus a hard wall clock; never let a
-   process appear to run forever.
-6. **Fix the process, not one output.** Repeated failures modify prompts,
-   schemas, permissions, provider adapters, milestone scope, or evaluation
-   logic — not just a single generated file.
-7. **Git is the review/audit trail.** Keep the portable control harness and
-   deliverable/project in separate repositories. Use milestone branches and
-   PRs; merge only after evaluator approval.
-
-## Required portable control-harness contract
-
-Alongside the scaffolded project, maintain a portable control-harness repo
-(or a clearly separated `prototype-control/` directory) containing:
-
-```text
-spec.md                    # approved requirements; immutable during a run
-decisions.md               # append-only raw user decisions
-knowledge/                 # earned domain/process findings
-roles/manifest.md          # active roles, not hardcoded pair names
-roles/generator.md
-roles/evaluator.md
-schemas/message.md
-schemas/verdict.md
-schemas/decision-request.md
-coordinator/milestones.md
-coordinator/policy.md
-coordinator/unattended-recovery.md
-RUNBOOK.md
-HARNESS_GOVERNANCE.md
-bootstrap.sh
-doctor.sh
+```bash
+./bootstrap.sh <team-name> --deliverable <project directory>
+./doctor.sh
 ```
 
-Keep three boundaries distinct:
+This **extends the same Grill-Me Workspace**, adding role member state,
+control artifacts, milestone tracking, decisions, verdicts, and status. It
+does not create a second project tracker.
 
-- **Control harness:** portable process/spec/roles/schemas/knowledge; no
-  execution history or deliverable code.
-- **Fulcra Workspace team:** durable run state, inboxes, progress, verdicts,
-  decisions, escalations, session summaries, dashboard source data.
-- **Deliverable:** generated project/runtime-harness/app code in its own git
-  repo and PR history.
+Use the control harness README/RUNBOOK as the source of truth for:
 
-A fresh `bootstrap.sh <team>` must provision a new Workspace from only the
-control-harness contents. If it needs old inboxes or local memory, the
-harness is not portable.
+- provider/host adapters;
+- branch/PR lifecycle;
+- executable test-runner gate;
+- retries, timeouts, and provider-limit handling;
+- decision requests;
+- interrupted-work recovery.
 
-## Decision and governance contract
+## 4. Set up the harness dashboard (recommended)
 
-- `decisions.md` preserves chronological raw user answers; `spec.md` is the
-  formalized target derived from those decisions.
-- Only the user may change `spec.md` or `decisions.md`.
-- A distinct Harness Maintainer may automatically append evidence-backed
-  knowledge, improve milestone decomposition, and fix control-harness
-  mechanics. It must never edit deliverable code or user requirements.
-- A role that discovers a user-only judgment emits a structured
-  `decision_request: true` record (one question, context, options,
-  priority). Coordinator persists it under `team/<team>/decision/`, writes
-  `DECISION REQUIRED` status/dashboard state, reports it to the origin, and
-  pauses blocking work. Never bury such a request in prose or auto-retry it.
+Invoke `fulcra-harness-dashboard` after control-harness Workspace bootstrap.
+It adapts `fulcra-project-dashboard` to show the milestone flight plan, run
+timeline, checkpoint, decisions, escalations, and next bearing.
 
-## Milestone execution and evaluation
+The normal flow is a curated dashboard deployed to an **unguessable URL**.
+Before deployment:
 
-1. Define ordered milestones with scope, requirement IDs, explicit done
-   criteria, dependencies, and intentionally-out-of-scope later work.
-2. Coordinator creates/resumes a `milestone/<id>-<slug>` deliverable branch.
-   Generator receives the narrowest required tool permissions (for example,
-   git stage/commit/push and declared test runner), commits/pushes only that
-   branch, and never merges.
-3. GitHub cannot create a zero-diff PR. After Generator's first pushed
-   commit, Coordinator creates/resumes the PR before Evaluator runs.
-4. Evaluator grades committed branch state, not an uncommitted worktree. It
-   emits exact `overall: PASS` or `overall: FAIL`.
-5. If a declared test runner exists, Evaluator must execute it independently
-   and emit exact `test_runner: PASS` or `test_runner: FAIL` with command/
-   count evidence. A permission block is a FAIL/escalation, never a reason
-   to replace executable testing with code reading.
-6. `UNTESTABLE` must distinguish later-milestone scope (document when it
-   will be tested) from genuine in-scope ambiguity (decision request and
-   halt). Only an all-in-scope PASS plus passing executable evidence may
-   merge the PR.
-7. On PASS, merge, update `milestone-progress.md`, and write a concise
-   `status-summary.md`: where we are, where we are going, next bearing.
+1. create an isolated `public/` manifest;
+2. add `noindex,nofollow`;
+3. show the exact manifest and state that anyone with the URL can access it;
+4. obtain explicit user confirmation.
 
-## Safe recovery and unattended operation
+An unguessable URL and robots directive reduce discovery; they are **not
+access control**. Never publish raw inboxes, full verdicts, credentials, or
+private repository data.
 
-Before any branch switch, remove only documented ephemeral test caches
-(e.g. Python `__pycache__/`). Never broadly clean untracked files.
+## 5. Verify the inner runtime harness
 
-- Meaningful dirty work on the exact current milestone branch is resumed in
-  place so Generator can inspect/test/commit it.
-- Meaningful work on another branch is preserved in a named `git stash -u`
-  plus Workspace handoff record before checkout/reset.
-- Never discard source work, force-push, or let a verifier directly repair
-  deliverable code/tests.
+Now configure a provider using the generated `.env.example`, install the
+project environment, and run the generated smoke tests. Use the documented
+`uv` fallback if `python -m venv` fails because `ensurepip` is unavailable.
 
-For unattended work, pair the Coordinator with a delayed verifier on the
-same cadence. The verifier checks scheduler history, Workspace state,
-branch/PR state, and dashboard evidence — not chat history or a scheduler
-"completed" flag alone. It may repair control-harness/branch/worktree state
-through the safe recovery protocol, then prove one clean Coordinator
-preflight. Provider/session/rate limits are transient capacity escalations:
-retain their evidence but allow a later scheduled retry after reset; keep
-real spec/decision/state blockers paused.
+Do not report the runtime harness ready until its smoke tests pass. A single
+known bytecode-cache artifact may be cleared and retried once; unrelated
+failures are real failures.
 
-Durable status, decision, milestone-progress, and escalation uploads are
-required records. Retry them boundedly and surface a critical visibility
-failure; never silently claim dashboard/status is current after a failed
-upload.
+## 6. Operate through the control harness
 
-## Optional dashboard
+Do not start deliverable work by directly invoking the inner runtime loop.
+The control harness chooses one milestone, creates/resumes its branch, sends
+Generator work, requires a committed artifact, invokes Evaluator, and records
+durable Workspace state.
 
-A dashboard is outside the portable control harness by default. If a
-project wants a visual harness view, invoke **`fulcra-harness-dashboard`**
-after the Workspace tracking contract exists. That skill is an adapter on
-top of **`fulcra-project-dashboard`**: it supplies the harness-specific
-flight plan, run timeline, checkpoint, Open Items, refresh contract, and
-safe-publication adaptations without replacing the base dashboard shell.
+The non-negotiable operating rules are:
 
-Read only durable Workspace summaries/progress, publish only explicitly
-curated data, never raw inboxes/verdict archives/credentials/private repo
-contents, and make deployment history reviewable. A dashboard publish
-failure must not mask the actual harness result.
+- user-approved spec and raw decisions change only by user decision;
+- Generator and Evaluator are separate sessions/processes;
+- one bounded milestone per invocation;
+- declared test runner must pass before a PASS can merge;
+- decision requests pause work and notify the user one question at a time;
+- preserve/recover interrupted work; never discard source or let verifier
+  roles patch deliverable code;
+- use the delayed verifier pattern for unattended schedules.
 
-## What this skill deliberately does NOT do
+# What this skill does not do
 
-- It does not duplicate requirements gathering; that remains
-  `fulcra-prototype-grill-me`.
-- It does not treat the bundled Gemini adapter as the only provider choice.
-- It does not turn a single runtime-agent loop into a claim of independently
-  evaluated work; use the operational Generator/Evaluator contract above.
-- It does not permit unattended verifier/maintainer roles to edit
-  deliverable code/tests or user-owned requirements directly.
-- It does not use a general-purpose templating engine for every scaffold
-  file; `scripts/scaffold.py` intentionally uses plain substitution.
+- It does not replace Grill-Me requirements gathering.
+- It does not hardcode one model provider or PR host.
+- It does not run unreviewed inner-loop tasks before the control plane exists.
+- It does not treat dashboard publication as access control.
+- It does not duplicate implementation detail already maintained in the
+  scaffold scripts, templates, or dependency skills.
