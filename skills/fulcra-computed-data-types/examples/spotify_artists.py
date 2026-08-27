@@ -21,7 +21,7 @@ def process_spotify_files(files_to_process, output_file):
     print("Fetching all existing tags from Fulcra...", file=sys.stderr)
     tag_cache = {}
     try:
-        result = subprocess.run(["uv", "tool", "run", "fulcra-api", "tag", "list"], capture_output=True, text=True, check=True)
+        result = subprocess.run(["uvx", "fulcra-api", "tag", "list"], capture_output=True, text=True, check=True)
         tags_data = json.loads(result.stdout)
         for t in tags_data:
             tag_cache[t["name"].lower()] = t["id"]
