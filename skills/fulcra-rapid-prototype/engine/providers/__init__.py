@@ -13,8 +13,13 @@ non-API-key, already-authenticated session available":
    the surrounding environment, so reusing that avoids asking them to
    separately go get a Gemini/OpenAI API key for a harness whose whole
    point is to stay out of their way.
-2. **Vertex AI / Gemini ADC** (`GOOGLE_CLOUD_PROJECT` env var set, implying
-   `gcloud auth application-default login` has already been run).
+2. **Vertex AI / Gemini ADC** (`GOOGLE_CLOUD_PROJECT` env var set AND
+   `google.auth.default()` actually resolves real credentials -- both
+   conditions are checked; see `_has_gemini_adc` below. Just having the
+   env var set is not enough: a stray `GOOGLE_CLOUD_PROJECT` with no real
+   `gcloud auth application-default login` behind it would otherwise
+   cause this to select Gemini and then fail outright, instead of
+   correctly falling through to an available API-key provider).
 3. **`GEMINI_API_KEY`** set (existing behavior, preserved for backward
    compatibility with projects scaffolded before this module existed).
 4. **`ANTHROPIC_API_KEY`** set.
@@ -47,7 +52,29 @@ def _has_claude_oauth() -> bool:
 
 
 def _has_gemini_adc() -> bool:
-    return bool(os.environ.get("GOOGLE_CLOUD_PROJECT"))
+    """True only if GOOGLE_CLOUD_PROJECT is set AND
+    `google.auth.default()` actually resolves real, usable credentials --
+    not just "the env var happens to be set". This does a real (local,
+    no-network) credential resolution check via the same `google-auth`
+    machinery `genai.Client(vertexai=True, ...)` uses internally, so a
+    project var left over from an unrelated GCP setup with no completed
+    `gcloud auth application-default login` correctly falls through to
+    the next provider instead of being selected and then failing at
+    call_model time.
+    """
+    if not os.environ.get("GOOGLE_CLOUD_PROJECT"):
+        return False
+    try:
+        import google.auth
+        from google.auth.exceptions import DefaultCredentialsError
+    except ImportError:
+        # google-auth not installed at all -- can't be a usable ADC path.
+        return False
+    try:
+        google.auth.default()
+        return True
+    except DefaultCredentialsError:
+        return False
 
 
 def select_provider() -> str:

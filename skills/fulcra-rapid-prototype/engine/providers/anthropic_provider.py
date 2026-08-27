@@ -86,8 +86,19 @@ def _get_client() -> anthropic.Anthropic:
 def _to_anthropic_messages(messages: list[dict]) -> list[dict]:
     """Translate our normalized message list into Anthropic's message
     param shape. Anthropic has no separate "tool" role -- tool results are
-    a `tool_result` content block inside a `user` turn, and tool calls are
-    `tool_use` content blocks inside an `assistant` turn."""
+    `tool_result` content blocks inside a `user` turn, and tool calls are
+    `tool_use` content blocks inside an `assistant` turn.
+
+    Anthropic's API requires ALL `tool_result` blocks answering one
+    assistant turn's `tool_use` blocks to live in a SINGLE following user
+    message, not one user message per result -- our loop.py appends one
+    normalized {"role": "tool", ...} message per call, in turn-call order,
+    so consecutive "tool" messages here are merged into one user message
+    with one tool_result block each, in the same order. Splitting them
+    into separate user messages (an earlier version of this function did
+    that) is accepted by the SDK client-side but rejected by the API for
+    any turn with more than one tool call.
+    """
     result = []
     for msg in messages:
         role = msg["role"]
@@ -100,15 +111,27 @@ def _to_anthropic_messages(messages: list[dict]) -> list[dict]:
             if msg.get("content"):
                 content.append({"type": "text", "text": msg["content"]})
             for call in msg.get("tool_calls", []):
+                call_id = call.get("id")
+                if not call_id:
+                    raise ValueError(
+                        f"Tool call for {call['name']!r} is missing an 'id' "
+                        f"-- Anthropic requires a stable tool_use id echoed "
+                        f"back in the paired tool_result on the next turn. "
+                        f"This should never happen for a call this adapter "
+                        f"itself produced (see call_model's response "
+                        f"parsing); if you're constructing tool_calls by "
+                        f"hand (e.g. in a test), include an 'id'."
+                    )
                 content.append(
                     {
                         "type": "tool_use",
                         # Anthropic requires a stable id per tool_use block,
-                        # echoed back in the paired tool_result. We don't
-                        # otherwise need one, so synthesize it from the
-                        # call's position -- see the "tool" branch below for
-                        # where it's read back.
-                        "id": call.get("id") or f"toolu_{id(call)}",
+                        # echoed back in the paired tool_result. This is the
+                        # real id Anthropic itself generated for this call
+                        # (see call_model's response parsing below) -- not
+                        # synthesized here, since a synthesized id would not
+                        # match what the API expects on the next turn.
+                        "id": call_id,
                         "name": call["name"],
                         "input": call.get("args", {}),
                     }
@@ -116,18 +139,38 @@ def _to_anthropic_messages(messages: list[dict]) -> list[dict]:
             result.append({"role": "assistant", "content": content or [{"type": "text", "text": ""}]})
 
         elif role == "tool":
-            result.append(
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": msg.get("tool_use_id") or msg["name"],
-                            "content": str(msg["content"]),
-                        }
-                    ],
-                }
-            )
+            tool_call_id = msg.get("tool_call_id")
+            if not tool_call_id:
+                raise ValueError(
+                    f"Tool result for {msg['name']!r} is missing "
+                    f"'tool_call_id' -- Anthropic requires the real "
+                    f"tool_use id to be echoed back, not the tool name. "
+                    f"This should never happen when messages come from "
+                    f"harness.loop.run (which now carries the id through "
+                    f"from the original tool call -- see loop.py's tool "
+                    f"execution loop); if you're constructing messages "
+                    f"by hand, include 'tool_call_id'."
+                )
+            tool_result_block = {
+                "type": "tool_result",
+                "tool_use_id": tool_call_id,
+                "content": str(msg["content"]),
+            }
+            # Merge into the previous user message if loop.py just emitted
+            # one for a prior tool result in this same turn (i.e. the
+            # previous entry in `result` is itself a merged tool_result
+            # user message, not an ordinary user-authored turn) -- see
+            # this function's docstring for why merging is required.
+            if (
+                result
+                and result[-1]["role"] == "user"
+                and isinstance(result[-1]["content"], list)
+                and result[-1]["content"]
+                and result[-1]["content"][0].get("type") == "tool_result"
+            ):
+                result[-1]["content"].append(tool_result_block)
+            else:
+                result.append({"role": "user", "content": [tool_result_block]})
 
         else:
             raise ValueError(f"Unsupported message role: {msg['role']!r}")

@@ -21,6 +21,7 @@ _RELEVANT_VARS = [
     "CLAUDE_CODE_OAUTH_TOKEN",
     "ANTHROPIC_AUTH_TOKEN",
     "GOOGLE_CLOUD_PROJECT",
+    "GOOGLE_APPLICATION_CREDENTIALS",
     "GEMINI_API_KEY",
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
@@ -54,12 +55,51 @@ def main():
         assert select_provider() == "anthropic"
     print("OK")
 
-    print("\n--- Test 2: Gemini ADC (GOOGLE_CLOUD_PROJECT) wins over API keys ---")
+    print("\n--- Test 2: Gemini ADC (GOOGLE_CLOUD_PROJECT) wins over API keys, IF ADC is real ---")
+    # Whether real ADC is available depends on this machine (e.g. GCE
+    # metadata server, or a completed `gcloud auth application-default
+    # login`) -- ground-truth it directly via the same google-auth call
+    # _has_gemini_adc() uses, rather than assuming either way, so this
+    # test is honest in both environments instead of only passing on
+    # boxes that happen to have ambient ADC.
     with _clean_env():
         os.environ["GOOGLE_CLOUD_PROJECT"] = "some-project"
         os.environ["GEMINI_API_KEY"] = "fake-key"
         os.environ["ANTHROPIC_API_KEY"] = "fake-key"
-        assert select_provider() == "gemini"
+        try:
+            import google.auth
+
+            google.auth.default()
+            adc_actually_available = True
+        except Exception:
+            adc_actually_available = False
+        expected = "gemini" if adc_actually_available else "anthropic"
+        assert select_provider() == expected, (
+            f"expected {expected!r} (adc_actually_available="
+            f"{adc_actually_available!r}), got {select_provider()!r}"
+        )
+    print(f"OK (adc_actually_available={adc_actually_available})")
+
+    print(
+        "\n--- Test 2b: a stray GOOGLE_CLOUD_PROJECT with genuinely broken "
+        "credentials must NOT be selected (regression) ---"
+    )
+    with _clean_env():
+        os.environ["GOOGLE_CLOUD_PROJECT"] = "fake-project"
+        # Point ADC at a credentials file that cannot possibly exist, so
+        # google.auth.default() fails deterministically regardless of
+        # this machine's ambient credentials (GCE metadata, etc.) --
+        # this is the exact bug caught in review: a stray project var
+        # with no real login behind it must fall through, not get
+        # selected and fail later at call_model time.
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = (
+            "/nonexistent/path/does-not-exist.json"
+        )
+        os.environ["ANTHROPIC_API_KEY"] = "fake-key"
+        assert select_provider() == "anthropic", (
+            "a broken GOOGLE_CLOUD_PROJECT/ADC combination must fall "
+            "through to the next available provider, not be selected"
+        )
     print("OK")
 
     print("\n--- Test 3: falls back to GEMINI_API_KEY when no OAuth/ADC present ---")

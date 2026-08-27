@@ -236,11 +236,30 @@ history to preserve), install it, run all six harness smoke tests against
 a real Gemini API key, confirm all pass. The Anthropic and OpenAI
 provider adapters' message/tool translation logic and credential
 detection are covered by real, executed tests (see
-`engine/providers/test_provider_selection_smoke.py` and each adapter's
+`engine/providers/test_provider_selection_smoke.py`,
+`engine/providers/test_tool_call_id_regression.py`, and each adapter's
 own `test_*_smoke.py`); the OAuth-token code path against a live
 Anthropic API call has not yet been exercised end-to-end (it requires
 an interactive `claude setup-token` login) — see PR feedback / follow-up
 for that verification.
+
+Code review on the initial multi-provider PR (#51) caught a real bug
+before merge: `harness/loop.py` was dropping each provider's tool-call
+id before appending the tool-result message, and the Anthropic adapter
+was emitting one user message per tool result instead of merging all
+results from one assistant turn into a single following user message
+(required by Anthropic's API). Both are fixed — `loop.py` now threads
+a normalized `tool_call_id` through, both adapters raise a clear error
+if it's ever missing instead of silently falling back to the tool name,
+and `test_tool_call_id_regression.py` exercises the exact multi-tool-
+call-in-one-turn shape that exposed the bug. Gemini ADC selection was
+also hardened: `select_provider()` now calls `google.auth.default()` to
+confirm real, usable credentials exist before preferring Gemini, rather
+than treating a bare `GOOGLE_CLOUD_PROJECT` env var as sufficient proof
+(a stray project var with no completed `gcloud auth
+application-default login` behind it previously would have been
+selected and then failed outright instead of falling through to an
+available API-key provider).
 
 Not yet done: no automated CI for this skill itself; the
 `--domain-library-guidance` CLI flag is a manual convenience, not derived

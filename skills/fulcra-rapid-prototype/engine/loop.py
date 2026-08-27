@@ -154,7 +154,26 @@ def run(
             if verbose:
                 print(f"[loop] tool result: {result!r}")
 
-            messages.append({"role": "tool", "name": name, "content": str(result)})
+            # Carry the provider's own tool-call id through to the result
+            # message under one normalized key ("tool_call_id"), so each
+            # adapter can map it back to whatever field its API actually
+            # requires (Anthropic: tool_use_id: OpenAI: tool_call_id
+            # directly). Providers that don't need an id (Gemini matches
+            # function_response by name) simply ignore this field.
+            # Losing this was a real bug caught in review: dropping it
+            # here meant the follow-up request couldn't reliably
+            # associate a tool result with the call that produced it,
+            # since falling back to the tool NAME is not a valid id and
+            # breaks multi-call turns where the same tool is called more
+            # than once.
+            messages.append(
+                {
+                    "role": "tool",
+                    "name": name,
+                    "content": str(result),
+                    "tool_call_id": call.get("id"),
+                }
+            )
 
     if verbose:
         print(f"[loop] stopped: hit max_iterations ({max_iterations})")

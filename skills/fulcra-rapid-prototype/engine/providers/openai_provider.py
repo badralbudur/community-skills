@@ -64,24 +64,47 @@ def _to_openai_messages(messages: list[dict]) -> list[dict]:
             out = {"role": "assistant", "content": msg.get("content")}
             calls = msg.get("tool_calls", [])
             if calls:
+                for call in calls:
+                    if not call.get("id"):
+                        raise ValueError(
+                            f"Tool call for {call['name']!r} is missing an "
+                            f"'id' -- OpenAI requires a stable tool_call id "
+                            f"echoed back in the paired tool result message "
+                            f"on the next turn. This should never happen "
+                            f"for a call this adapter itself produced (see "
+                            f"call_model's response parsing); if you're "
+                            f"constructing tool_calls by hand (e.g. in a "
+                            f"test), include an 'id'."
+                        )
                 out["tool_calls"] = [
                     {
-                        "id": call.get("id") or f"call_{i}",
+                        "id": call["id"],
                         "type": "function",
                         "function": {
                             "name": call["name"],
                             "arguments": _json_dumps(call.get("args", {})),
                         },
                     }
-                    for i, call in enumerate(calls)
+                    for call in calls
                 ]
             result.append(out)
 
         elif role == "tool":
+            tool_call_id = msg.get("tool_call_id")
+            if not tool_call_id:
+                raise ValueError(
+                    f"Tool result for {msg['name']!r} is missing "
+                    f"'tool_call_id' -- OpenAI requires the real tool_call "
+                    f"id to be echoed back, not the tool name. This should "
+                    f"never happen when messages come from harness.loop.run "
+                    f"(which now carries the id through from the original "
+                    f"tool call); if you're constructing messages by hand, "
+                    f"include 'tool_call_id'."
+                )
             result.append(
                 {
                     "role": "tool",
-                    "tool_call_id": msg.get("tool_call_id") or msg["name"],
+                    "tool_call_id": tool_call_id,
                     "content": str(msg["content"]),
                 }
             )
