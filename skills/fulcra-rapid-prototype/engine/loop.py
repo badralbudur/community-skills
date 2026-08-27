@@ -14,8 +14,12 @@ Stop conditions, deliberately explicit rather than "loop forever":
   - The model produces a turn with no tool calls (natural completion).
 
 Everything here is provider-agnostic at the call_model boundary — this file
-does not know Gemini exists. If you ever add a second provider, only the
-`provider` argument's target module changes, not this loop.
+does not know Gemini, Claude, or OpenAI exist; it only calls
+`harness.providers.call_model`, which auto-selects whichever provider this
+environment is already authenticated for (see harness/providers/__init__.py)
+and dispatches to the matching adapter module. If you ever add another
+provider, add a new adapter module + a branch in providers/__init__.py's
+dispatch — this file does not change.
 
 This file is 100% project-agnostic. It has no knowledge of what app is
 being built — that lives entirely in the system prompt and app/CONTEXT.md,
@@ -27,7 +31,7 @@ the system prompt or a tool instead.
 
 from dataclasses import dataclass, field
 
-from harness.providers.gemini import call_model
+from harness.providers import call_model
 from harness.prompts import load_app_context, load_system_prompt
 from harness.tools import ALL_TOOLS
 

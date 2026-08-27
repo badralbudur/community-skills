@@ -5,6 +5,12 @@ description = "A small, hand-rolled agent harness for building/running/extending
 requires-python = ">=3.11"
 dependencies = [
     "google-genai>=0.3.0",
+    # anthropic's OAuth/credentials-chain support (auth_token=, profile
+    # files, default_credentials()) is a relatively recent SDK feature --
+    # floor pinned to the version verified against while writing
+    # anthropic_provider.py, not an arbitrary older minimum.
+    "anthropic>=1.0.0",
+    "openai>=1.50.0",
     "python-dotenv>=1.0.0",
     "pytest>=7.0.0",
     "fulcra-api>=0.1.40",
