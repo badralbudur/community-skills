@@ -196,6 +196,23 @@ and bootstrap a Fulcra Workspace team. Keep it separate from the generated
 deliverable repo: the control harness governs work; the deliverable is the
 artifact being evaluated.
 
+### 8. Set up the harness dashboard (recommended; public deployment optional)
+
+Once the control harness has a Workspace team, invoke
+**`fulcra-harness-dashboard`** as the normal manager/operator visibility
+step. It builds on **`fulcra-project-dashboard`** and renders the
+actionable harness state that a project dashboard alone does not make
+explicit: milestone flight plan, run evidence timeline, current checkpoint,
+decision requests, escalations, and next bearing.
+
+Dashboard setup is recommended because durable status is part of the
+control-harness contract and an operator needs to see it across sessions.
+**Publishing** the dashboard is optional: a local/private dashboard is
+sufficient until the user explicitly approves an isolated, curated public
+export and its deployment manifest. Follow `fulcra-harness-dashboard` for
+the refresh/publish adapter; never publish raw inboxes, full verdict
+archives, credentials, or private repository data.
+
 # Part II — Operate the Scaffold as a Reliable Task Harness
 
 The bundled runtime loop may be single-agent. That does **not** remove the
