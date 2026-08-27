@@ -161,6 +161,11 @@ git log --oneline
 # commit generated scaffold if the script did not preserve/create the repo
 # history itself
 python -m venv .venv && .venv/bin/pip install -e .
+# If venv creation fails with an ensurepip/venv error ("The virtual
+# environment was not created successfully because ensurepip is not
+# available" -- common on minimal/PEP 668-style environments), use uv
+# instead; it needs no ensurepip and produces an equivalent .venv/:
+#   uv venv --clear .venv && uv pip install --python .venv/bin/python -e .
 cp .env.example .env
 .venv/bin/python -m harness.test_loop_smoke
 .venv/bin/python -m harness.test_context_smoke

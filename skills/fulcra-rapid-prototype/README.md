@@ -49,6 +49,9 @@ git add -A && git commit -m "Scaffold harness + app"
 # Otherwise (no source git repo was found), initialize fresh instead:
 #   git init && git add -A && git commit -m "Initial scaffold"
 python -m venv .venv && .venv/bin/pip install -e .
+# If venv creation fails with an ensurepip/venv error (common on minimal/
+# PEP 668-style environments), use uv instead -- no ensurepip needed:
+#   uv venv --clear .venv && uv pip install --python .venv/bin/python -e .
 # Ask the user to authenticate at this point (this is the first moment it's
 # actually needed -- see SKILL.md's Prerequisites section for why it's
 # deliberately not asked for any earlier). Prefer OAuth over an API key --

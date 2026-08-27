@@ -4,15 +4,18 @@
 
 ## Layout
 
-- `harness/` — the agent harness. Talks to the Google Gemini API directly
-  (no agent framework), runs its own control loop, and manages its own
-  state. Scaffolded from the
+- `harness/` — the agent harness. Talks directly to a model provider API
+  (Anthropic, Gemini, or OpenAI -- see `providers/` below; no agent
+  framework), runs its own control loop, and manages its own state.
+  Scaffolded from the
   [fulcra-rapid-prototype](https://github.com/fulcradynamics/community-skills/tree/main/skills/fulcra-rapid-prototype)
   skill — see that skill's README for how this was generated and how to
   regenerate/update the generic parts.
-  - `providers/` — model-provider adapters (Gemini currently; structured so
-    a second provider could be added later without touching the control
-    loop or tools).
+  - `providers/` — model-provider adapters (Anthropic, Gemini, and OpenAI;
+    auto-selects whichever provider the environment is already
+    authenticated for, preferring OAuth over an API key -- see
+    `providers/__init__.py`'s module docstring for the exact order, and
+    set `HARNESS_PROVIDER` to force a specific one).
   - `tools/` — the explicit set of actions the agent is allowed to take,
     all sandboxed to `app/`: `read_file`/`write_file`/`list_files`,
     `git_diff`/`git_commit`, and `run_command`.
@@ -44,7 +47,25 @@
 cd harness  # or wherever this README lives relative to the venv
 python -m venv .venv
 .venv/bin/pip install -e .
-cp .env.example .env  # then fill in GEMINI_API_KEY
+```
+
+If `python -m venv` fails with an error like "The virtual environment
+was not created successfully because ensurepip is not available" (common
+on minimal/PEP 668-style environments where `ensurepip`/`venv` support
+isn't installed), use `uv` instead -- it needs no `ensurepip` and produces
+an equivalent `.venv/`:
+
+```bash
+uv venv --clear .venv
+uv pip install --python .venv/bin/python -e .
+```
+
+Either way, once the venv exists:
+
+```bash
+cp .env.example .env  # see .env.example for provider auth options --
+                       # OAuth (no API key) is preferred; see
+                       # harness/providers/__init__.py's module docstring
 .venv/bin/python -m harness.test_loop_smoke      # confirm the harness itself works
 .venv/bin/python -m harness.run_task task_001_*.md  # run the first real task
 ```

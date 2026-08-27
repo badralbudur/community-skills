@@ -193,18 +193,47 @@ def extract_first_plan_milestone(plan_md: str) -> tuple[str, str]:
 
     fulcra-prototype-grill-me's plan.md format is prose/markdown, not a
     strict machine-readable schema, so this is intentionally a
-    best-effort heuristic (first level-2 or level-3 heading, plus the
-    paragraph(s) under it) rather than a strict parser. It is expected
+    best-effort heuristic rather than a strict parser. It is expected
     that whoever runs this script will read the generated task file
     afterward and correct/expand it by hand if the heuristic picked a
     poor starting point — this saves you from writing the first task
     prompt entirely from scratch, it doesn't need to be perfect.
 
+    That said, "best effort" must not mean "silently wrong": an earlier
+    version of this function returned the first H1-H3 heading after
+    skipping only the document's own top-level title, with no regard
+    for what that heading actually WAS. For a plan.md that opens with a
+    preamble -- "## Objective", "## Ranked technical risks and spikes"
+    -- before its actual "## Production milestones" section, that
+    heuristic picked "Objective" and handed the harness the ENTIRE rest
+    of the plan as one task, defeating the one-bounded-milestone-per-
+    invocation discipline this skill's operating invariants require.
+
+    Fixed heuristic: only ever select a heading that EXPLICITLY reads
+    like a milestone marker -- "Milestone 1", "Milestone #2", "M1", "M3"
+    (case-insensitive, optional leading markdown emphasis like `**`/`*`/
+    backticks stripped before matching), anywhere in the document, in
+    document order. A plan preamble section ("Objective", "Risks", a
+    "Production milestones" section heading itself with no digit) never
+    matches this pattern, so it can never be mistaken for the milestone
+    to extract. If plan.md's build-plan headings don't use one of these
+    explicit forms, this raises ScaffoldError with an actionable message
+    instead of guessing -- see this function's docstring reference in
+    that error text for exactly what to add.
+
     Returns:
         (title, body) — title is the heading text, body is everything
-        until the next heading of the same or higher level.
+        through any MORE-nested headings (e.g. an "### Acceptance
+        criteria" sub-section under a "## Milestone 1" heading), stopping
+        only at the next heading of the SAME OR SHALLOWER level than the
+        selected milestone heading. An earlier version of this function
+        stopped at the very next heading regardless of level, which
+        silently dropped exactly this kind of nested milestone content
+        (acceptance criteria, sub-steps) -- caught in review once this
+        function became explicitly responsible for producing the whole
+        first bounded task prompt, not just picking a title.
     """
-    heading_pattern = re.compile(r"^(#{1,3})\s+(.+)$", re.MULTILINE)
+    heading_pattern = re.compile(r"^(#{1,6})\s+(.+)$", re.MULTILINE)
     headings = list(heading_pattern.finditer(plan_md))
 
     if not headings:
@@ -216,22 +245,45 @@ def extract_first_plan_milestone(plan_md: str) -> tuple[str, str]:
             "this script to generate it."
         )
 
-    # Skip a top-level "# Plan" title if present; look for the first
-    # heading that reads like an actual milestone/spike, not the doc title.
+    milestone_heading_re = re.compile(
+        r"^(?:milestone\s*#?\s*\d+|m\s*#?\s*\d+)\b", re.IGNORECASE
+    )
+
     for i, match in enumerate(headings):
         level = len(match.group(1))
         title = match.group(2).strip()
-        if level == 1 and i == 0 and len(headings) > 1:
-            continue  # likely just the document's own top-level title
+        # Strip common markdown emphasis wrapping ("**M1**", "`M1`", "_M1_")
+        # before testing, so a bolded/coded milestone heading still matches.
+        normalized_title = title.strip("*_` ").strip()
+        if not milestone_heading_re.match(normalized_title):
+            continue
         start = match.end()
-        end = headings[i + 1].start() if i + 1 < len(headings) else len(plan_md)
+        # Find the next heading at the SAME OR SHALLOWER level (a smaller
+        # or equal '#' count) -- a deeper heading (e.g. this milestone's
+        # own "### Acceptance criteria" sub-section) is content belonging
+        # to this milestone's body, not a boundary that ends it.
+        end = len(plan_md)
+        for later_match in headings[i + 1:]:
+            if len(later_match.group(1)) <= level:
+                end = later_match.start()
+                break
         body = plan_md[start:end].strip()
         return title, body
 
-    # Only one heading total and it was a level-1 -- use it anyway.
-    title = headings[0].group(2).strip()
-    body = plan_md[headings[0].end():].strip()
-    return title, body
+    raise ScaffoldError(
+        "plan.md has headings, but none look like an explicit milestone "
+        "marker (e.g. '## Milestone 1: ...' or '### M1 — ...'). Found "
+        f"headings: {[m.group(2).strip() for m in headings]!r}. This "
+        "script refuses to guess a plan preamble heading (like "
+        "'Objective' or 'Ranked technical risks and spikes') as if it "
+        "were the first milestone -- that produced a real bug where the "
+        "generated first task ended up covering the ENTIRE rest of the "
+        "plan instead of one bounded milestone. Add an explicit "
+        "'Milestone 1: ...' or 'M1 — ...' style heading for the first "
+        "concrete piece of work in plan.md's production build plan "
+        "section, or write harness/prompts/task_001_*.md by hand instead "
+        "of relying on this script to generate it."
+    )
 
 
 def extract_brief_description(brief_md: str) -> str:
@@ -691,7 +743,12 @@ def main() -> int:
         else:
             print(f"  {step}. git init && git add -A && git commit -m 'Initial scaffold'")
         step += 1
-        print(f"  {step}. python -m venv .venv && .venv/bin/pip install -e .")
+        print(
+            f"  {step}. python -m venv .venv && .venv/bin/pip install -e .  "
+            f"# if this fails with an ensurepip/venv error (common on "
+            f"minimal/PEP 668 environments), use the uv fallback instead: "
+            f"uv venv --clear .venv && uv pip install --python .venv/bin/python -e ."
+        )
         step += 1
         print(
             f"  {step}. cp .env.example .env  # see .env.example for provider "
