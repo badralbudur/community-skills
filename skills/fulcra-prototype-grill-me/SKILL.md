@@ -63,7 +63,7 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
   fulcra-api auth login --device-code <DEVICE_CODE>    # completes auth and persists the token
   ```
 
-  Confirm the token persisted (e.g. `fulcra-api data-type list` succeeds)
+  Confirm the token persisted (e.g. `fulcra-api user-info` succeeds)
   before continuing. Do not proceed into the rest of Architecture until
   authentication is confirmed — this is what makes the `git bundle`
   backups in later phases (and any downstream workspace/coordination
