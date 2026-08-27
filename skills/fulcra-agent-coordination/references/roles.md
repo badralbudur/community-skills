@@ -61,7 +61,7 @@ Write `roles/<name>.md` with `type: Role` plus policy/SLA/maintainer. The engine
 `roles/` directory listing, so a `roles/index.md` is optional human courtesy, not a requirement.
 
 ```bash
-uv tool run fulcra-api file upload /tmp/reviewer.md "team/<team>/roles/reviewer.md"
+uvx fulcra-api file upload /tmp/reviewer.md "team/<team>/roles/reviewer.md"
 ```
 
 ### Claim / hold
@@ -145,10 +145,10 @@ When `escalation_due` is true, perform the single-file actions (reliable as pros
 
 ```bash
 # 1. first-writer-wins daily marker (dedupe)
-uv tool run fulcra-api file upload /tmp/escalation.md \
+uvx fulcra-api file upload /tmp/escalation.md \
   "team/<team>/roles/reviewer/escalations/$(date -u +%Y-%m-%d).md"
 # 2. notify the maintainer via the teams inbox lifecycle
-uv tool run fulcra-api file upload /tmp/notice.md \
+uvx fulcra-api file upload /tmp/notice.md \
   "team/<team>/member/<maintainer>/inbox/$(date -u +%Y%m%d-%H%M%S)_<you>_role-vacant-reviewer.md"
 ```
 
