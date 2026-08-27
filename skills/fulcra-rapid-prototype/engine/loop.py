@@ -14,8 +14,12 @@ Stop conditions, deliberately explicit rather than "loop forever":
   - The model produces a turn with no tool calls (natural completion).
 
 Everything here is provider-agnostic at the call_model boundary — this file
-does not know Gemini exists. If you ever add a second provider, only the
-`provider` argument's target module changes, not this loop.
+does not know Gemini, Claude, or OpenAI exist; it only calls
+`harness.providers.call_model`, which auto-selects whichever provider this
+environment is already authenticated for (see harness/providers/__init__.py)
+and dispatches to the matching adapter module. If you ever add another
+provider, add a new adapter module + a branch in providers/__init__.py's
+dispatch — this file does not change.
 
 This file is 100% project-agnostic. It has no knowledge of what app is
 being built — that lives entirely in the system prompt and app/CONTEXT.md,
@@ -27,7 +31,7 @@ the system prompt or a tool instead.
 
 from dataclasses import dataclass, field
 
-from harness.providers.gemini import call_model
+from harness.providers import call_model
 from harness.prompts import load_app_context, load_system_prompt
 from harness.tools import ALL_TOOLS
 
@@ -150,7 +154,26 @@ def run(
             if verbose:
                 print(f"[loop] tool result: {result!r}")
 
-            messages.append({"role": "tool", "name": name, "content": str(result)})
+            # Carry the provider's own tool-call id through to the result
+            # message under one normalized key ("tool_call_id"), so each
+            # adapter can map it back to whatever field its API actually
+            # requires (Anthropic: tool_use_id: OpenAI: tool_call_id
+            # directly). Providers that don't need an id (Gemini matches
+            # function_response by name) simply ignore this field.
+            # Losing this was a real bug caught in review: dropping it
+            # here meant the follow-up request couldn't reliably
+            # associate a tool result with the call that produced it,
+            # since falling back to the tool NAME is not a valid id and
+            # breaks multi-call turns where the same tool is called more
+            # than once.
+            messages.append(
+                {
+                    "role": "tool",
+                    "name": name,
+                    "content": str(result),
+                    "tool_call_id": call.get("id"),
+                }
+            )
 
     if verbose:
         print(f"[loop] stopped: hit max_iterations ({max_iterations})")

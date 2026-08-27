@@ -693,7 +693,11 @@ def main() -> int:
         step += 1
         print(f"  {step}. python -m venv .venv && .venv/bin/pip install -e .")
         step += 1
-        print(f"  {step}. cp .env.example .env  # fill in GEMINI_API_KEY")
+        print(
+            f"  {step}. cp .env.example .env  # see .env.example for provider "
+            f"options -- OAuth (claude setup-token / gcloud auth "
+            f"application-default login) needs no API key and is preferred"
+        )
         step += 1
         print(f"  {step}. .venv/bin/python -m harness.test_loop_smoke  # confirm the harness works")
         step += 1

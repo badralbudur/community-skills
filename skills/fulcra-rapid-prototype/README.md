@@ -49,10 +49,14 @@ git add -A && git commit -m "Scaffold harness + app"
 # Otherwise (no source git repo was found), initialize fresh instead:
 #   git init && git add -A && git commit -m "Initial scaffold"
 python -m venv .venv && .venv/bin/pip install -e .
-# Ask the user for a Gemini API key at this point (this is the first
-# moment it's actually needed -- see SKILL.md's Prerequisites section
-# for why it's deliberately not asked for any earlier) and write it
-# into GEMINI_API_KEY yourself rather than leaving it to the user:
+# Ask the user to authenticate at this point (this is the first moment it's
+# actually needed -- see SKILL.md's Prerequisites section for why it's
+# deliberately not asked for any earlier). Prefer OAuth over an API key --
+# no key needed if the user already has a Claude subscription
+# (`claude setup-token`) or Google Cloud ADC
+# (`gcloud auth application-default login`); see .env.example for the full
+# menu of options and harness/providers/__init__.py for the auto-selection
+# order this harness uses:
 cp .env.example .env
 .venv/bin/python -m harness.test_loop_smoke   # confirm it actually works
 
@@ -77,8 +81,15 @@ fulcra-rapid-prototype/
 │   ├── loop.py              # the control loop (model -> tools -> repeat)
 │   ├── run_task.py           # entry point: run a real task
 │   ├── providers/
-│   │   └── gemini.py           # the only file that knows about Gemini's
-│   │                            SDK shapes; swap/add providers here
+│   │   ├── __init__.py          # auto-selects a provider (preferring
+│   │   │                          OAuth/ADC over API keys) and dispatches
+│   │   │                          to the matching adapter below
+│   │   ├── gemini.py             # Gemini adapter (Vertex AI ADC or
+│   │   │                          GEMINI_API_KEY)
+│   │   ├── anthropic_provider.py # Claude adapter (claude setup-token
+│   │   │                          OAuth or ANTHROPIC_API_KEY)
+│   │   └── openai_provider.py     # OpenAI adapter (OPENAI_API_KEY only --
+│   │                                no OAuth path exists for the public API)
 │   ├── tools/
 │   │   ├── filesystem.py       # sandboxed read/write/list, scoped to app/
 │   │   ├── git_tool.py          # git_diff / git_commit (with a test-gate:
@@ -222,7 +233,33 @@ including coverage of both history-preserving and history-flattening
 paths against real git repos) and has been manually verified end-to-end:
 scaffold a fake project (with and without a real rapid-prototype git
 history to preserve), install it, run all six harness smoke tests against
-a real Gemini API key, confirm all pass.
+a real Gemini API key, confirm all pass. The Anthropic and OpenAI
+provider adapters' message/tool translation logic and credential
+detection are covered by real, executed tests (see
+`engine/providers/test_provider_selection_smoke.py`,
+`engine/providers/test_tool_call_id_regression.py`, and each adapter's
+own `test_*_smoke.py`); the OAuth-token code path against a live
+Anthropic API call has not yet been exercised end-to-end (it requires
+an interactive `claude setup-token` login) — see PR feedback / follow-up
+for that verification.
+
+Code review on the initial multi-provider PR (#51) caught a real bug
+before merge: `harness/loop.py` was dropping each provider's tool-call
+id before appending the tool-result message, and the Anthropic adapter
+was emitting one user message per tool result instead of merging all
+results from one assistant turn into a single following user message
+(required by Anthropic's API). Both are fixed — `loop.py` now threads
+a normalized `tool_call_id` through, both adapters raise a clear error
+if it's ever missing instead of silently falling back to the tool name,
+and `test_tool_call_id_regression.py` exercises the exact multi-tool-
+call-in-one-turn shape that exposed the bug. Gemini ADC selection was
+also hardened: `select_provider()` now calls `google.auth.default()` to
+confirm real, usable credentials exist before preferring Gemini, rather
+than treating a bare `GOOGLE_CLOUD_PROJECT` env var as sufficient proof
+(a stray project var with no completed `gcloud auth
+application-default login` behind it previously would have been
+selected and then failed outright instead of falling through to an
+available API-key provider).
 
 Not yet done: no automated CI for this skill itself; the
 `--domain-library-guidance` CLI flag is a manual convenience, not derived

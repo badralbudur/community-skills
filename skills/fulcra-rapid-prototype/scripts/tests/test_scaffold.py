@@ -272,6 +272,10 @@ def test_real_run_produces_expected_files(fake_rapid_prototype_dir: Path, tmp_pa
     assert (output_dir / "harness" / "loop.py").is_file()
     assert (output_dir / "harness" / "tools" / "filesystem.py").is_file()
     assert (output_dir / "harness" / "providers" / "gemini.py").is_file()
+    assert (output_dir / "harness" / "providers" / "anthropic_provider.py").is_file()
+    assert (output_dir / "harness" / "providers" / "openai_provider.py").is_file()
+    assert (output_dir / "harness" / "providers" / "__init__.py").is_file()
+    assert (output_dir / "harness" / "providers" / "test_tool_call_id_regression.py").is_file()
 
     # app/fulcra_client.py: copied verbatim (real, working, project-
     # agnostic code, not a template needing per-project hydration) --

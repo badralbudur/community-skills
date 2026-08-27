@@ -57,12 +57,19 @@ layer, or projects with no Fulcra involvement at all.
 - The `fulcra-prototype-grill-me` skill must be available. This skill
   depends on it for Intake/Interview/Architecture/Plan; it does not
   duplicate that requirements-gathering logic.
-- A Gemini API key will be needed eventually for the bundled default
-  `google-genai` provider adapter. **Do not ask for it yet.** Intake,
-  Interview, Architecture, Plan, dry-run scaffolding, and static artifact
-  review do not need it. Ask only at the first point the generated runtime
-  harness is actually verified/run. The adapter is an extension point, not
-  a permanent provider limitation.
+- Provider credentials will be needed eventually to actually run the
+  harness (Anthropic, Gemini, or OpenAI — see
+  `engine/providers/__init__.py`'s module docstring for the full
+  auto-selection order). **Do not ask for them yet.** Intake, Interview,
+  Architecture, Plan, dry-run scaffolding, and static artifact review do
+  not need them. Ask only at the first point the generated runtime harness
+  is actually verified/run — and even then, prefer OAuth over an API key:
+  if the user already has a Claude subscription, `claude setup-token`
+  needs no separate API key at all; similarly `gcloud auth
+  application-default login` covers Gemini via Vertex AI. Only fall back
+  to asking for a raw `GEMINI_API_KEY`/`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`
+  if neither OAuth path is available. The adapter set is an extension
+  point, not a permanent provider limitation.
 - For multi-agent evaluation or a different provider, adapt the provider
   invocation layer while retaining the operational contract below. Do not
   make project specs or durable coordination depend on one CLI/provider.
@@ -138,9 +145,15 @@ before running it.
 ### 5. Verify the scaffold actually works before handoff
 
 Do **not** claim success merely because scaffolding exits 0. At the first
-actual runtime verification point, ask for the Gemini key (or configure the
-user's chosen provider adapter) and write it into the new project's `.env`.
-Then run:
+actual runtime verification point, get the user authenticated to a
+provider and write the result into the new project's `.env`. Prefer
+OAuth over an API key: if the user already has a Claude subscription,
+`claude setup-token` needs no separate API key; `gcloud auth
+application-default login` similarly covers Gemini via Vertex AI. Only
+fall back to asking for a raw API key
+(`GEMINI_API_KEY`/`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`) if neither OAuth
+path applies — see `.env.example` and `engine/providers/__init__.py`'s
+module docstring for the full menu and auto-selection order. Then run:
 
 ```bash
 cd <new project dir>
