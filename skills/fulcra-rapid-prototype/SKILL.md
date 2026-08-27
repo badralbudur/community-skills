@@ -207,11 +207,15 @@ decision requests, escalations, and next bearing.
 
 Dashboard setup is recommended because durable status is part of the
 control-harness contract and an operator needs to see it across sessions.
-**Publishing** the dashboard is optional: a local/private dashboard is
-sufficient until the user explicitly approves an isolated, curated public
-export and its deployment manifest. Follow `fulcra-harness-dashboard` for
-the refresh/publish adapter; never publish raw inboxes, full verdict
-archives, credentials, or private repository data.
+The normal flow is to publish the curated dashboard to an **unguessable
+URL** (Surge is the preferred simple default) so all authorized players or
+operators can open the same view. This is not access control: make clear to
+the user that the dashboard is publicly reachable by anyone who has the
+URL. Before deploying, print the exact isolated `public/` manifest, confirm
+it contains only intended curated files, add `noindex,nofollow`, and obtain
+explicit user confirmation. Follow `fulcra-harness-dashboard` for the
+refresh/publish adapter; never publish raw inboxes, full verdict archives,
+credentials, or private repository data.
 
 # Part II — Operate the Scaffold as a Reliable Task Harness
 
