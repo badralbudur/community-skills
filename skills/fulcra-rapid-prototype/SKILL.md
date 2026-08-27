@@ -78,12 +78,14 @@ layer, or projects with no Fulcra involvement at all.
 
 ## The flow (follow these steps in order)
 
-### 1. Run fulcra-prototype-grill-me through Intake & Interview
+### 1. Run fulcra-prototype-grill-me through Intake, Interview, **and Step 1b**
 
 Load `fulcra-prototype-grill-me` and run its Grill-Me Intake & Interview
 phase with the user: exactly one clear question at a time, until the initial
 project goal, reasons for building it, and core requirements are understood.
-Do **not** begin that skill's Architecture phase yet.
+Then run Grill-Me **Step 1b (Create the project Workspace and persist the
+Grill-Me result)** as part of this step. Do **not** begin that skill's
+Architecture phase yet.
 
 This phase gives the user a clear reason to create/use their Fulcra account
 and tells us what to name the durable project tracker. Commit and retain the
@@ -133,7 +135,10 @@ plan.md
 
 Synchronize each Architecture/Plan artifact to Workspace knowledge as it is
 created/approved, and update `progress.md`/`task/rapid-prototype.md`. Local
-git is not the only record of this engagement.
+git is not the only record of this engagement. If the project already has
+recent approved Grill-Me artifacts from a prior session, confirm they remain
+current and reuse them rather than rerunning Intake/Interview/Architecture
+from scratch; backfill the shared Workspace records if they are absent.
 
 ### 4. Confirm the bundled scaffold is available
 
