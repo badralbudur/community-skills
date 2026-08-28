@@ -333,6 +333,46 @@ def test_noop_generator_commit_guard_and_remote_branch_resume(tmp_path: Path, mo
     assert ["git", "-C", str(deliverable), "checkout", "-B", "remote-branch", "origin/remote-branch"] in calls
 
 
+def test_same_milestone_dirty_worktree_resumes_in_place(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Meaningful interrupted Generator work on its current milestone branch
+    is resumed, while no fetch, checkout, stash, or reset can discard it."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+    module = _load_run_milestone_module(target)
+    deliverable = tmp_path / "deliverable"
+    deliverable.mkdir()
+    branch = "milestone/m1-input-contract"
+    calls: list[list[str]] = []
+
+    def fake_run(cmd, *args, **kwargs):
+        calls.append(cmd)
+        if "status" in cmd:
+            return type("R", (), {"stdout": " M app/main.ts\n", "returncode": 0})()
+        if "branch" in cmd:
+            return type("R", (), {"stdout": f"{branch}\n", "returncode": 0})()
+        if "rev-parse" in cmd and cmd[-1] == "HEAD":
+            return type("R", (), {"stdout": "resume-sha\n", "returncode": 0})()
+        raise AssertionError(f"Unexpected command during same-branch resume: {cmd}")
+
+    monkeypatch.setattr(module, "run", fake_run)
+    assert module.ensure_milestone_branch(deliverable, branch) == "resume-sha"
+    assert not any("fetch" in cmd or "checkout" in cmd for cmd in calls)
+
+
+def test_control_scaffold_includes_codex_oauth_role_adapter(tmp_path: Path) -> None:
+    """The portable control scaffold exposes Codex CLI OAuth without
+    pretending its subscription token is a public OpenAI API credential."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+    adapter = target / "adapters" / "codex_role.py"
+    assert adapter.is_file()
+    text = adapter.read_text()
+    assert '"codex",' in text
+    assert '"exec",' in text
+    assert "OpenAI API key" in text
+    assert "OPENAI_API_KEY" not in text
+
+
 def test_templates_exclude_runtime_cache_copy() -> None:
     """The scaffold loop must only copy explicit .template source files;
     runtime __pycache__/pyc artifacts must never become harness files."""

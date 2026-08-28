@@ -53,6 +53,27 @@ export HARNESS_EVALUATOR_CMD='your-independent-evaluator ...'
 python coordinator/run_milestone.py --milestone M1 --deliverable ../project
 ```
 
+### Codex CLI OAuth adapter
+
+The included `adapters/codex_role.py` invokes an already-authenticated Codex
+CLI session. It does not read or store an OpenAI API key: ChatGPT/Codex OAuth
+is usable by the Codex CLI, not by the public OpenAI API used by this skill's
+inner runtime adapter. Install the Codex CLI, authenticate once with
+`codex login --device-auth`, then configure separate Generator and Evaluator
+processes:
+
+```bash
+export HARNESS_GENERATOR_CMD='python3 /path/to/control-harness/adapters/codex_role.py'
+export HARNESS_EVALUATOR_CMD='python3 /path/to/control-harness/adapters/codex_role.py'
+./doctor.sh
+```
+
+The coordinator gives each process its role, milestone, immutable spec,
+context, and deliverable through `HARNESS_*` environment variables. The
+adapter keeps Generator and Evaluator separate, asks Generator to commit only
+its milestone branch, and requires Evaluator to emit the structured verdict
+lines required by this harness.
+
 Each command receives `HARNESS_ROLE`, `HARNESS_MILESTONE`,
 `HARNESS_SPEC`, `HARNESS_CONTEXT`, and `HARNESS_DELIVERABLE` environment
 variables. Generator must commit/push only its milestone branch; Evaluator

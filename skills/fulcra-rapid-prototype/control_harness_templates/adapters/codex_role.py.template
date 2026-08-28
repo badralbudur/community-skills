@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""Run one outer control-harness role through an authenticated Codex CLI session.
+
+Authentication is delegated to ``codex login``. This adapter does not read,
+accept, or persist an OpenAI API key: ChatGPT/Codex OAuth is scoped to the
+Codex CLI, rather than the public OpenAI API used by the inner runtime adapter.
+"""
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+
+def required(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"{name} is required")
+    return value
+
+
+def prompt_for(role: str, milestone: str, spec: Path, context: str, deliverable: Path) -> str:
+    common = f"""You are the {role} in a controlled software-delivery harness.
+
+Deliverable repository: {deliverable}
+Current milestone: {milestone}
+Immutable project specification: {spec}
+Milestone scope and done criteria:
+{context}
+
+Read the full specification and your role instructions in the control harness before acting. Work only on the current milestone. Never modify the control-harness specification or user decisions.
+"""
+    if role == "generator":
+        return common + """
+You are the Generator. Inspect the existing deliverable before changing it. Implement only the current milestone, run the declared relevant test/build checks, then commit the completed work on the current milestone branch. Do not merge, force-push, or leave uncommitted deliverable changes. If a blocking user-only choice is genuinely required, emit a decision request matching the control-harness schema and stop. In your final response, state files changed, commands run, results, and commit SHA.
+"""
+    if role == "evaluator":
+        return common + """
+You are the independent Evaluator. Do not modify deliverable source code. Inspect the committed branch state, execute the declared relevant test/build checks yourself, and evaluate only the current milestone plus regressions. Your final response must include exact standalone lines:
+
+test_runner: PASS
+or
+test_runner: FAIL
+
+overall: PASS
+or
+overall: FAIL
+
+If user input blocks a correct evaluation, also include `decision_request: true` and explain the single decision required. Include concise executable evidence before the verdict lines.
+"""
+    raise RuntimeError(f"Unsupported HARNESS_ROLE: {role!r}")
+
+
+def main() -> int:
+    role = required("HARNESS_ROLE")
+    milestone = required("HARNESS_MILESTONE")
+    spec = Path(required("HARNESS_SPEC")).resolve()
+    context = required("HARNESS_CONTEXT")
+    deliverable = Path(required("HARNESS_DELIVERABLE")).resolve()
+    if not spec.is_file():
+        raise RuntimeError(f"Spec does not exist: {spec}")
+    if not deliverable.is_dir():
+        raise RuntimeError(f"Deliverable does not exist: {deliverable}")
+
+    prompt = prompt_for(role, milestone, spec, context, deliverable)
+    with tempfile.TemporaryDirectory(prefix="codex-role-") as temp_dir:
+        final_message = Path(temp_dir) / "final.md"
+        result = subprocess.run(
+            [
+                "codex",
+                "exec",
+                "--ephemeral",
+                "--sandbox",
+                "workspace-write",
+                "--output-last-message",
+                str(final_message),
+                prompt,
+            ],
+            cwd=deliverable,
+            text=True,
+            capture_output=True,
+        )
+        if result.returncode:
+            sys.stderr.write(result.stderr or result.stdout or "Codex role command failed.\n")
+            return result.returncode
+        if not final_message.is_file():
+            sys.stderr.write("Codex completed without producing a final message.\n")
+            return 1
+        print(final_message.read_text().strip())
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except RuntimeError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        raise SystemExit(2)
