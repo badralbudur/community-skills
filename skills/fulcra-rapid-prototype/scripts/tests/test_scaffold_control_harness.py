@@ -31,6 +31,7 @@ SCRIPT = SCRIPT_DIR / "scaffold_control_harness.py"
 REQUIRED_FILES = [
     "spec.md",
     "decisions.md",
+    "dashboard-decision.md",
     "roles/manifest.md",
     "roles/generator.md",
     "roles/evaluator.md",
@@ -164,6 +165,10 @@ def test_doctor_sh_fails_on_fresh_unfilled_scaffold(tmp_path: Path) -> None:
     )
     assert result.returncode != 0
     assert "problem(s) found" in result.stdout
+    assert "dashboard decision is pending or invalid" in result.stdout
+    decision_template = (target / "dashboard-decision.md").read_text()
+    assert "choice: create_and_publish" in decision_template
+    assert "publication: confirmed" in decision_template
 
 
 def test_run_milestone_extracts_correct_milestone_context(tmp_path: Path) -> None:

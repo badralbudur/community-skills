@@ -124,12 +124,12 @@ genuinely separate Generator and Evaluator adapter commands, then run:
 
 ```bash
 ./bootstrap.sh <team-name> --deliverable <project directory>
-./doctor.sh
 ```
 
-This **extends the same Grill-Me Workspace**, adding role member state,
-control artifacts, milestone tracking, decisions, verdicts, and status. It
-does not create a second project tracker.
+Do not run `./doctor.sh` yet: the dashboard decision in Step 4 is a
+required readiness gate. This **extends the same Grill-Me Workspace**,
+adding role member state, control artifacts, milestone tracking, decisions,
+verdicts, and status. It does not create a second project tracker.
 
 Use the control harness README/RUNBOOK as the source of truth for:
 
@@ -140,23 +140,50 @@ Use the control harness README/RUNBOOK as the source of truth for:
 - decision requests;
 - interrupted-work recovery.
 
-## 4. Set up the harness dashboard (recommended)
+## 4. Decide and record the harness dashboard path (required gate)
 
-Invoke `fulcra-harness-dashboard` after control-harness Workspace bootstrap.
-It adapts `fulcra-project-dashboard` to show the milestone flight plan, run
-timeline, checkpoint, decisions, escalations, and next bearing.
+Ask the user exactly one question:
 
-The normal flow is a curated dashboard deployed to an **unguessable URL**.
-Before deployment:
+> The recommended path is to create and publish the curated harness dashboard
+> at an unguessable URL. Do you confirm that path, defer it, or decline it
+> for this project?
 
-1. create an isolated `public/` manifest;
-2. add `noindex,nofollow`;
-3. show the exact manifest and state that anyone with the URL can access it;
-4. obtain explicit user confirmation.
+Record the raw answer in `decisions.md`, then resolve
+`dashboard-decision.md` with one of:
 
-An unguessable URL and robots directive reduce discovery; they are **not
-access control**. Never publish raw inboxes, full verdicts, credentials, or
-private repository data.
+```text
+choice: create_and_publish
+publication: confirmed
+
+choice: defer
+publication: deferred
+
+choice: decline
+publication: declined
+```
+
+Synchronize that resolved decision to the shared Workspace decision/status
+state. **Do not proceed to runtime verification or deliverable work while
+this file is pending/invalid.** Run `./doctor.sh` after recording the
+choice; it enforces this gate.
+
+- **create_and_publish:** invoke `fulcra-harness-dashboard`. It adapts
+  `fulcra-project-dashboard` to show the flight plan, run timeline,
+  checkpoint, decisions, escalations, and next bearing. If the skill is not
+  locally available, say so explicitly and offer the user an install/invoke
+  path; do not silently skip the decision. Build the isolated public
+  manifest, show it, and obtain the separate explicit deployment
+  confirmation before recording `publication: confirmed`.
+- **defer / decline:** preserve the user reason in `decisions.md` and
+  Workspace state. Do not repeatedly re-ask unless the user reopens it.
+
+Creating a local dashboard does **not** authorize publication. The normal
+publication flow is an isolated curated dashboard at an **unguessable URL**.
+Before publishing: add `noindex,nofollow`, print the exact `public/` manifest,
+state that anyone with the URL can access it, and obtain explicit user
+confirmation. An unguessable URL and robots directive reduce discovery; they
+are **not access control**. Never publish raw inboxes, full verdicts,
+credentials, or private repository data.
 
 ## 5. Verify the inner runtime harness
 
