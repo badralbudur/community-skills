@@ -34,11 +34,11 @@ Read the full specification and your role instructions in the control harness be
 """
     if role == "generator":
         return common + """
-You are the Generator. Inspect the existing deliverable before changing it. Implement only the current milestone, run the declared relevant test/build checks, then commit the completed work on the current milestone branch. Do not merge, force-push, or leave uncommitted deliverable changes. If a blocking user-only choice is genuinely required, emit a decision request matching the control-harness schema and stop. In your final response, state files changed, commands run, results, and commit SHA.
+You are the Generator. Inspect the existing deliverable before changing it. Implement only the current milestone and make coherent incremental commits as work becomes durable; do not wait to put the whole milestone in one commit. Before requesting evaluation, run the declared relevant test/build checks, leave a clean worktree, and put this exact trailer in the final candidate commit message: `Harness-Candidate: {os.environ.get("HARNESS_CANDIDATE_ID", "<missing-candidate-id>")}`. Do not merge, force-push, or change remotes. If a blocking user-only choice is genuinely required, emit a decision request matching the control-harness schema and stop. In your final response, state files changed, commands run, results, commit SHAs, and the final candidate SHA.
 """
     if role == "evaluator":
         return common + """
-You are the independent Evaluator. Do not modify deliverable source code. Inspect the committed branch state, execute the declared relevant test/build checks yourself, and evaluate only the current milestone plus regressions. Your final response must include exact standalone lines:
+You are the independent Evaluator. Do not modify deliverable source code. Inspect the fixed candidate commit in `HARNESS_CANDIDATE_SHA` (identified by `HARNESS_CANDIDATE_ID`), not a mutable branch head. You may retrieve relevant host/CI evidence yourself when your runner permits it. Execute the declared relevant test/build checks yourself, and evaluate only the current milestone plus regressions. Your final response must include exact standalone lines:
 
 test_runner: PASS
 or

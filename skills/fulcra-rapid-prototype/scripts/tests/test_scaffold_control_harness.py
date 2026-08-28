@@ -365,6 +365,110 @@ def test_same_milestone_dirty_worktree_resumes_in_place(tmp_path: Path, monkeypa
     assert not any("fetch" in cmd or "checkout" in cmd for cmd in calls)
 
 
+def test_local_mode_uses_mandatory_candidate_tag_and_integrates_multiple_commits(tmp_path: Path) -> None:
+    """A local harness needs neither GitHub nor origin: it evaluates a tagged
+    immutable candidate, then creates a separately identifiable completion merge."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+    deliverable = tmp_path / "deliverable"
+    deliverable.mkdir()
+    git_env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "Test",
+        "GIT_AUTHOR_EMAIL": "test@example.invalid",
+        "GIT_COMMITTER_NAME": "Test",
+        "GIT_COMMITTER_EMAIL": "test@example.invalid",
+    }
+    subprocess.run(["git", "init", "-b", "main", str(deliverable)], check=True, env=git_env, capture_output=True, text=True)
+    (deliverable / "README.md").write_text("base\n")
+    subprocess.run(["git", "-C", str(deliverable), "add", "."], check=True, env=git_env, capture_output=True, text=True)
+    subprocess.run(["git", "-C", str(deliverable), "commit", "-m", "base"], check=True, env=git_env, capture_output=True, text=True)
+    (target / "coordinator" / "milestones.md").write_text("# Milestones\n\n## M1: Local candidate\n\nScope.\n")
+    generator = tmp_path / "generator.sh"
+    generator.write_text("""#!/usr/bin/env bash
+set -euo pipefail
+cd "$HARNESS_DELIVERABLE"
+printf 'first\\n' > generated.txt
+git add generated.txt
+git commit -m 'feat: first incremental change'
+printf 'second\\n' >> generated.txt
+git add generated.txt
+git commit -m $'feat: ready for evaluation\\n\\nHarness-Candidate: '"$HARNESS_CANDIDATE_ID"
+""")
+    generator.chmod(0o755)
+    evaluator = tmp_path / "evaluator.sh"
+    evaluator.write_text("#!/usr/bin/env bash\nset -euo pipefail\nprintf 'test_runner: PASS\\noverall: PASS\\n'\n")
+    evaluator.chmod(0o755)
+    result = subprocess.run(
+        [sys.executable, str(target / "coordinator" / "run_milestone.py"), "--milestone", "M1", "--deliverable", str(deliverable), "--git-mode", "local", "--integration-branch", "main"],
+        env={**git_env, "HARNESS_GENERATOR_CMD": str(generator), "HARNESS_EVALUATOR_CMD": str(evaluator)},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    candidate = "harness/m1-candidate-1"
+    tagged_sha = subprocess.run(["git", "-C", str(deliverable), "rev-list", "-n", "1", candidate], check=True, env=git_env, capture_output=True, text=True).stdout.strip()
+    head_sha = subprocess.run(["git", "-C", str(deliverable), "rev-parse", "main"], check=True, env=git_env, capture_output=True, text=True).stdout.strip()
+    message = subprocess.run(["git", "-C", str(deliverable), "log", "-1", "--format=%B", candidate], check=True, env=git_env, capture_output=True, text=True).stdout
+    assert tagged_sha != head_sha
+    assert f"Harness-Candidate: {candidate}" in message
+    assert (deliverable / "generated.txt").read_text() == "first\nsecond\n"
+    merge_parents = subprocess.run(["git", "-C", str(deliverable), "show", "-s", "--format=%P", "main"], check=True, env=git_env, capture_output=True, text=True).stdout.split()
+    merge_message = subprocess.run(["git", "-C", str(deliverable), "log", "-1", "--format=%B", "main"], check=True, env=git_env, capture_output=True, text=True).stdout
+    completion_sha = subprocess.run(["git", "-C", str(deliverable), "rev-list", "-n", "1", "harness/m1"], check=True, env=git_env, capture_output=True, text=True).stdout.strip()
+    assert len(merge_parents) == 2
+    assert tagged_sha in merge_parents
+    assert merge_message.startswith("harness/m1: complete milestone")
+    assert completion_sha == head_sha
+
+
+def test_repository_bundles_are_uploaded_after_a_harness_run(tmp_path: Path) -> None:
+    """Portable full-history bundles for both repositories are written to the
+    stable Workspace paths; the latter replace prior full bundles by design."""
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+    module = _load_run_milestone_module(target)
+    deliverable = tmp_path / "deliverable"
+    deliverable.mkdir()
+    git_env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "Test",
+        "GIT_AUTHOR_EMAIL": "test@example.invalid",
+        "GIT_COMMITTER_NAME": "Test",
+        "GIT_COMMITTER_EMAIL": "test@example.invalid",
+    }
+    for repo in (target, deliverable):
+        subprocess.run(["git", "init", "-b", "main", str(repo)], check=True, env=git_env, capture_output=True, text=True)
+        (repo / "tracked.txt").write_text("tracked\n")
+        subprocess.run(["git", "-C", str(repo), "add", "."], check=True, env=git_env, capture_output=True, text=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-m", "initial"], check=True, env=git_env, capture_output=True, text=True)
+    uploads = tmp_path / "uploads"
+    uploader = tmp_path / "fake-fulcra"
+    uploader.write_text("""#!/usr/bin/env python3
+import os
+import shutil
+import sys
+if sys.argv[1:3] != ['file', 'upload']:
+    raise SystemExit(2)
+destination = os.path.join(os.environ['HARNESS_TEST_UPLOADS'], sys.argv[4])
+os.makedirs(os.path.dirname(destination), exist_ok=True)
+shutil.copyfile(sys.argv[3], destination)
+""")
+    uploader.chmod(0o755)
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setenv("HARNESS_TEST_UPLOADS", str(uploads))
+    try:
+        module.archive_repositories([str(uploader)], "demo", "M1", deliverable, retention=3, pruning_approved=False)
+    finally:
+        monkeypatch.undo()
+    for label in ("control-harness", "deliverable"):
+        bundle = uploads / "team" / "demo" / "artifact" / "git-bundles" / "M1" / f"{label}-latest.bundle"
+        assert bundle.is_file()
+        repo = target if label == "control-harness" else deliverable
+        verified = subprocess.run(["git", "bundle", "verify", str(bundle)], cwd=repo, capture_output=True, text=True)
+        assert verified.returncode == 0, verified.stderr
+
+
 def test_control_scaffold_includes_codex_oauth_role_adapter(tmp_path: Path) -> None:
     """The portable control scaffold exposes Codex CLI OAuth without
     pretending its subscription token is a public OpenAI API credential."""

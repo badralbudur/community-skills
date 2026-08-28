@@ -134,7 +134,7 @@ verdicts, and status. It does not create a second project tracker.
 Use the control harness README/RUNBOOK as the source of truth for:
 
 - provider/host adapters;
-- branch/PR lifecycle;
+- local or remote Git lifecycle, candidate tags, and optional PR adapters;
 - executable test-runner gate;
 - retries, timeouts, and provider-limit handling;
 - decision requests;
@@ -208,7 +208,18 @@ The non-negotiable operating rules are:
 - user-approved spec and raw decisions change only by user decision;
 - Generator and Evaluator are separate sessions/processes;
 - one bounded milestone per invocation;
-- declared test runner must pass before a PASS can merge;
+- Generator may make coherent incremental milestone commits, but the final
+  candidate commit must carry the Coordinator-provided candidate identifier;
+- the Coordinator creates a mandatory same-named annotated tag and Evaluator
+  grades that fixed candidate SHA, never a mutable branch head;
+- declared test runner must pass before a PASS can integrate;
+- GitHub/PRs are optional: local Git mode integrates a PASS candidate through
+  a non-fast-forward completion merge and annotated `harness/<milestone>` tag;
+- after every harness run, upload full-history Git bundles of the control
+  harness and deliverable to the Fulcra Workspace; stable latest bundle names
+  may replace older full bundles because the newest contains history; retain
+  three File Store versions by default, but obtain and record explicit user
+  approval before any version pruning;
 - decision requests pause work and notify the user one question at a time;
 - preserve/recover interrupted work; never discard source or let verifier
   roles patch deliverable code;
