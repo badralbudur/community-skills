@@ -21,6 +21,9 @@ process itself catches you if you're not."
   test.
 - Prefer real, runnable tests (actually import and exercise the code)
   over tests that only check that a file exists or contains certain text.
+- For browser smoke tests, explicitly provision a supported browser runtime.
+  If that runtime is unavailable locally, keep the tests mandatory and run
+  them on a supported CI runner; never silently skip or mark them passed.
 - Prefer testing against real Fulcra data over mocks where practical (see
   "Prefer real Fulcra data in tests" below) — this project's harness has
   real Fulcra credentials available specifically so this is possible.

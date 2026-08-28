@@ -191,8 +191,20 @@ def ensure_milestone_branch(deliverable: Path, branch: str) -> str:
     that remote branch to preserve prior milestone work; otherwise branch
     from origin's advertised default branch, never a hardcoded `main`.
     """
-    if run(["git", "-C", str(deliverable), "status", "--porcelain"], check=False).stdout.strip():
-        raise MilestoneError("Deliverable is dirty before branch preparation; preserve/resume it via recovery protocol first.")
+    dirty = run(["git", "-C", str(deliverable), "status", "--porcelain"], check=False).stdout.strip()
+    current_branch = run(["git", "-C", str(deliverable), "branch", "--show-current"]).stdout.strip()
+    if dirty:
+        # A generator may time out or fail a prerequisite after producing
+        # meaningful work. Resume that work in place only when it is already
+        # on this exact milestone branch. Dirty work elsewhere stays blocked
+        # so the documented recovery protocol can preserve it safely.
+        if current_branch == branch:
+            print(f"Resuming dirty work on {branch} in place.")
+            return run(["git", "-C", str(deliverable), "rev-parse", "HEAD"]).stdout.strip()
+        raise MilestoneError(
+            "Deliverable is dirty on a different branch; preserve it through "
+            "the recovery protocol before branch preparation."
+        )
     run(["git", "-C", str(deliverable), "fetch", "origin"], check=False)
     local = run(["git", "-C", str(deliverable), "rev-parse", "--verify", branch], check=False).returncode == 0
     remote = run(["git", "-C", str(deliverable), "rev-parse", "--verify", f"origin/{branch}"], check=False).returncode == 0
