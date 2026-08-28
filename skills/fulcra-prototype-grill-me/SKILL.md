@@ -43,15 +43,34 @@ To ensure reliable agentic execution and prevent skipped steps, follow the 6-ste
 
 ## The 6-Step Pipeline
 
+```text
+[1] Intake & Interview -> [1b] Workspace -> [2] Architecture -> [3] Plan
+                                      -> [4] Prototype -> [5] Build -> [6] Retro
+```
+
+At each step, the `^ YOU ARE HERE` marker below identifies the current
+position. Complete the current step before advancing; do not treat the map as
+a replacement for the step's gate/artifact rules.
+
 Follow these phases sequentially. At the end of each phase, `git add . && git commit -m "chore: complete [phase] phase"`.
 
 ### 1. Intake & Interview (The "Grill Me" Approach)
+
+```text
+[1] Intake & Interview -> [1b] Workspace -> [2] Architecture -> [3] Plan
+ ^ YOU ARE HERE
+```
 - **Action:** Discuss the initial idea. Create a local project directory and run `git init`. Inspired by the "Grill Me" skill, act as an interrogator to shape the human's fuzzy idea into a clear requirement specification.
 - **Rule:** Ask exactly **ONE** clear, concise question at a time to narrow down the goal. Do not present a wall of 10 questions. Wait for the user's answer before asking the next.
 - **Artifact:** Write `intake/brief.md` (stated goals, implied product shape, data entities).
 - **Commit:** Commit the brief and `.gitignore`.
 
 ### 1b. Create the project Workspace and persist the Grill-Me result
+
+```text
+[1] Intake & Interview -> [1b] Workspace -> [2] Architecture -> [3] Plan
+                         ^ YOU ARE HERE
+```
 - **Authenticate to Fulcra now.** Before Architecture begins, use
   [`fulcra-connect`](https://github.com/fulcradynamics/agent-skills/tree/main/skills/fulcra-connect)
   to get the user authenticated. The just-completed Intake/Interview gives
@@ -78,6 +97,11 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
   later Architecture/Plan artifact approval.
 
 ### 2. Architecture (User Gate)
+
+```text
+[1] Intake -> [1b] Workspace -> [2] Architecture -> [3] Plan -> [4] Prototype
+                                ^ YOU ARE HERE
+```
 - **Confirm the Fulcra connection and Workspace state.** The 1b
   `fulcra-connect`/`fulcra-workspaces` setup must already be complete.
   Confirm `team/prototype-<project>/` contains the persisted Intake/
@@ -162,6 +186,11 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Commit:** Commit the architecture.
 
 ### 3. Plan
+
+```text
+[1] Intake -> [1b] Workspace -> [2] Architecture -> [3] Plan -> [4] Prototype
+                                                  ^ YOU ARE HERE
+```
 - **Action:** Define the sequential technical spikes needed to prove the hardest parts of the architecture.
 - **Artifact:** Write `plan.md` (ranked list of technical risks to spike, plus the production build plan).
 - **Workspace update:** Upload `plan.md` to the same project Workspace
@@ -170,6 +199,11 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Commit:** Commit the plan.
 
 ### 4. Prototype (The Spikes) (User Gate)
+
+```text
+[2] Architecture -> [3] Plan -> [4] Prototype -> [5] Build -> [6] Retro
+                                  ^ YOU ARE HERE
+```
 - **Action:** Tackle risks from `plan.md` *one at a time*. Write focused scripts using **real Fulcra data**.
 - **Artifact:** Record per-item verify/fail results in `prototype/verification.md`.
 - **Gate:** STOP and ask the user to review the verification record.
@@ -177,11 +211,21 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 - **Backup:** Run `git bundle create prototype.bundle --all` and `fulcra-api file upload prototype.bundle /prototypes/<project-name>.bundle`.
 
 ### 5. Build
+
+```text
+[3] Plan -> [4] Prototype -> [5] Build -> [6] Retro
+                             ^ YOU ARE HERE
+```
 - **Action:** Execute the production milestones from `plan.md`, turning the spikes into the final integrated software (e.g., a long-running service, a discord bot).
 - **Artifact:** Log progress to `build/log.md`.
 - **Commit:** Commit working milestones frequently (`feat: ...`, `fix: ...`).
 
 ### 6. Retro
+
+```text
+[4] Prototype -> [5] Build -> [6] Retro
+                             ^ YOU ARE HERE
+```
 - **Action:** Review the engagement. What worked? What platform gaps bit us?
 - **Artifact:** Write `retro.md`.
 - **Commit & Final Backup:** Commit the retro. Run the final `git bundle` and upload it to the Fulcra file store.

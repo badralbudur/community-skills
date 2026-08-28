@@ -50,10 +50,25 @@ path when one is available; see the generated `.env.example` and
 
 # Flow
 
+```text
+[1] Grill + Workspace -> [2] Runtime scaffold -> [3] Control plane
+                         -> [4] Dashboard gate -> [5] Verify runtime
+                         -> [6] Milestone operation -> [7] Scheduled operation
+```
+
+Each major step below repeats a compact `^ YOU ARE HERE` map. Complete the
+current gate/artifact before advancing; the map is orientation, not a
+replacement for the referenced skill/template contract.
+
 Follow these steps in order. Each referenced skill/template owns its detailed
 rules; do not duplicate or weaken them here.
 
 ## 1. Establish requirements and one shared project Workspace
+
+```text
+[1] Grill + Workspace -> [2] Runtime scaffold -> [3] Control plane
+ ^ YOU ARE HERE
+```
 
 Run `fulcra-prototype-grill-me` through:
 
@@ -86,6 +101,11 @@ plan.md
 
 ## 2. Scaffold the inner runtime harness
 
+```text
+[1] Grill + Workspace -> [2] Runtime scaffold -> [3] Control plane
+                         ^ YOU ARE HERE
+```
+
 Locate this skill directory, then run the bundled scaffold script with
 `--dry-run` first:
 
@@ -107,6 +127,11 @@ sandboxed tools, prompts, app skeleton, and smoke tests. Read the generated
 README for its exact layout and setup instructions.
 
 ## 3. Scaffold and bootstrap the outer control harness **before inner runtime work**
+
+```text
+[2] Runtime scaffold -> [3] Control plane -> [4] Dashboard gate -> [5] Verify
+                        ^ YOU ARE HERE
+```
 
 Before asking for runtime provider credentials, running inner smoke tests, or
 calling `harness.run_task`, create a sibling portable control-harness repo:
@@ -141,6 +166,11 @@ Use the control harness README/RUNBOOK as the source of truth for:
 - interrupted-work recovery.
 
 ## 4. Decide and record the harness dashboard path (required gate)
+
+```text
+[3] Control plane -> [4] Dashboard gate -> [5] Verify runtime -> [6] Operate
+                    ^ YOU ARE HERE
+```
 
 Ask the user exactly one question:
 
@@ -187,6 +217,11 @@ credentials, or private repository data.
 
 ## 5. Verify the inner runtime harness
 
+```text
+[4] Dashboard gate -> [5] Verify runtime -> [6] Operate -> [7] Schedule
+                       ^ YOU ARE HERE
+```
+
 Now configure a provider using the generated `.env.example`, install the
 project environment, and run the complete six-command readiness suite in the
 generated README's **Getting started** section. Use the documented `uv`
@@ -197,6 +232,11 @@ known bytecode-cache artifact may be cleared and retried once; unrelated
 failures are real failures.
 
 ## 6. Operate through the control harness
+
+```text
+[5] Verify runtime -> [6] Operate milestones -> [7] Schedule
+                       ^ YOU ARE HERE
+```
 
 Do not start deliverable work by directly invoking the inner runtime loop.
 The control harness chooses one milestone, creates/resumes its branch, sends
@@ -215,6 +255,11 @@ The non-negotiable operating rules are:
 - use the delayed verifier pattern for unattended schedules.
 
 ## 7. Offer independent scheduled operation (one-time user decision)
+
+```text
+[6] Operate milestones -> [7] Schedule + delayed verifier
+                           ^ YOU ARE HERE
+```
 
 After the first control-harness run is healthy, ask the user exactly once:
 
