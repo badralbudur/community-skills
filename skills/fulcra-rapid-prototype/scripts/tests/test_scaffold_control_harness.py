@@ -40,6 +40,7 @@ REQUIRED_FILES = [
     "coordinator/milestones.md",
     "coordinator/policy.md",
     "coordinator/unattended-recovery.md",
+    "coordinator/scheduled-operation.md",
     "coordinator/bootstrap.py",
     "coordinator/run_milestone.py",
     "RUNBOOK.md",

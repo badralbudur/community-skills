@@ -52,8 +52,11 @@ requirements before resuming.
 
 ## Unattended/scheduled operation
 
-See `coordinator/unattended-recovery.md` for the delayed-verifier
-pattern and what it may/may not repair on its own.
+Read `coordinator/scheduled-operation.md` before creating a scheduler job.
+After one explicit user scheduling decision, configure a main independent
+Coordinator runner and delayed verifier; the user does not need to approve or
+trigger each later milestone run. See `coordinator/unattended-recovery.md` for
+what the verifier may/may not repair on its own.
 
 ## Resuming on a fresh machine
 

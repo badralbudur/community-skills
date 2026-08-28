@@ -187,6 +187,20 @@ The non-negotiable operating rules are:
   roles patch deliverable code;
 - use the delayed verifier pattern for unattended schedules.
 
+## 7. Offer independent scheduled operation (one-time user decision)
+
+After the first control-harness run is healthy, ask the user exactly once:
+
+> Do you want this harness to run independently on a schedule? If so, what
+> cadence, operating window/end, and notification channel should it use?
+
+Record the answer in `decisions.md`, control-harness policy, Workspace status,
+and dashboard. If approved, follow `coordinator/scheduled-operation.md` to
+create a main Coordinator schedule plus delayed verifier. The user does not
+need to approve or trigger each later run; the scheduler owns the bounded
+milestone invocations. Defer/decline is valid and should not be repeatedly
+re-asked unless the user reopens it.
+
 # What this skill does not do
 
 - It does not replace Grill-Me requirements gathering.

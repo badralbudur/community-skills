@@ -24,7 +24,7 @@ check() {
 echo "--- Required files present ---"
 for f in spec.md decisions.md HARNESS_GOVERNANCE.md RUNBOOK.md README.md \
          coordinator/milestones.md coordinator/policy.md \
-         coordinator/unattended-recovery.md coordinator/bootstrap.py \
+         coordinator/unattended-recovery.md coordinator/scheduled-operation.md coordinator/bootstrap.py \
          coordinator/run_milestone.py schemas/verdict.md \
          schemas/decision-request.md schemas/message.md \
          roles/manifest.md roles/generator.md roles/evaluator.md; do
