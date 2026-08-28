@@ -51,21 +51,27 @@ path when one is available; see the generated `.env.example` and
 # Flow
 
 ```text
-+--------------------+    +-------------------+    +-------------------+
-| [1] ENTER GRILL-ME | -> | [2] RUNTIME SEED  | -> | [3] CONTROL PLANE |
-| (follow its map)   |    | inner loop        |    | roles + Workspace |
-+--------------------+    +-------------------+    +-------------------+
-          |                         |                         |
-          +----> [4] DASHBOARD -> [5] VERIFY -> [6] OPERATE -> [7] SCHEDULE
+╭──────────────────────────╮   ╭──────────────────────────╮   ╭──────────────────────────╮
+│ ① 💡 Shape your project  │ ⟶ │ ② 📦 Create a starting   │ ⟶ │ ③ 🧭 Set up reliable    │
+│    together              │   │    point for it           │   │    project guidance      │
+╰──────────────────────────╯   ╰──────────────────────────╯   ╰──────────────────────────╯
+                                      │
+                                      ▼
+              ④ 🗺️ Choose project view  ⟶  ⑤ ✅ Check it works
+                                      │
+                                      ▼
+              ⑥ 🛠️ Build in checked pieces  ⟶  ⑦ ⏱️ Let it continue
 ```
 
-Rapid Prototype's `[1]` is a **nested handoff**: enter the more detailed
-Grill-Me map, complete its Intake/Interview/Workspace/Architecture/Plan
-requirements, then return here at `[2]`. The two maps do not share step
-numbers; each owns its own scope. At each step below, the compact
-`^ YOU ARE HERE` marker identifies the current position. You may add a
-compact project-specific flourish (symbol, short label, motif), but preserve
-the numbered stages, handoff boundary, ordering, and current-step marker.
+Rapid Prototype's first outcome is completed by invoking Grill-Me internally:
+it helps the user shape the idea, save the shared project record, and agree on
+a design before the project moves to its own starting point. The user sees one
+continuous journey here; Grill-Me's internal numbering is not displayed.
+
+At each step below, the compact `✦ YOU ARE HERE` marker identifies the current
+outcome. You may add a compact project-specific flourish (symbol, short label,
+motif), but preserve the user-facing outcome, ordering, handoff boundary, and
+current-step marker.
 
 Follow these steps in order. Each referenced skill/template owns its detailed
 rules; do not duplicate or weaken them here.
@@ -73,8 +79,8 @@ rules; do not duplicate or weaken them here.
 ## 1. Establish requirements and one shared project Workspace
 
 ```text
-[1] Understand your project  ⟶  [2] Create the project starting point  ⟶  [3] Set up reliable guidance
-                                 ✦ YOU ARE HERE
+① 💡 Shape your project  ⟶  ② 📦 Create its starting point  ⟶  ③ 🧭 Set up reliable guidance
+   ✦ YOU ARE HERE
 ```
 
 Run `fulcra-prototype-grill-me` through:
@@ -109,8 +115,8 @@ plan.md
 ## 2. Scaffold the inner runtime harness
 
 ```text
-[1] Understand your project  ⟶  [2] Create project starting point  ⟶  [3] Set up reliable guidance
-                                  ✦ YOU ARE HERE
+① 💡 Shape your project  ⟶  ② 📦 Create its starting point  ⟶  ③ 🧭 Set up reliable guidance
+                              ✦ YOU ARE HERE
 ```
 
 Locate this skill directory, then run the bundled scaffold script with
@@ -136,8 +142,8 @@ README for its exact layout and setup instructions.
 ## 3. Scaffold and bootstrap the outer control harness **before inner runtime work**
 
 ```text
-[2] Create project start  ⟶  [3] Set up reliable guidance  ⟶  [4] Choose project view  ⟶  [5] Check it works
-                                 ✦ YOU ARE HERE
+② 📦 Start the project  ⟶  ③ 🧭 Set up reliable guidance  ⟶  ④ 🗺️ Choose project view  ⟶  ⑤ ✅ Check it works
+                              ✦ YOU ARE HERE
 ```
 
 Before asking for runtime provider credentials, running inner smoke tests, or
@@ -175,8 +181,8 @@ Use the control harness README/RUNBOOK as the source of truth for:
 ## 4. Decide and record the harness dashboard path (required gate)
 
 ```text
-[3] Set up guidance  ⟶  [4] Choose project view  ⟶  [5] Check it works  ⟶  [6] Build safely
-                             ✦ YOU ARE HERE
+③ 🧭 Set up guidance  ⟶  ④ 🗺️ Choose project view  ⟶  ⑤ ✅ Check it works  ⟶  ⑥ 🛠️ Build safely
+                              ✦ YOU ARE HERE
 ```
 
 Ask the user exactly one question:
@@ -225,7 +231,7 @@ credentials, or private repository data.
 ## 5. Verify the inner runtime harness
 
 ```text
-[4] Choose project view  ⟶  [5] Check it works  ⟶  [6] Build safely  ⟶  [7] Let it continue
+④ 🗺️ Choose project view  ⟶  ⑤ ✅ Check it works  ⟶  ⑥ 🛠️ Build safely  ⟶  ⑦ ⏱️ Let it continue
                                   ✦ YOU ARE HERE
 ```
 
@@ -241,7 +247,7 @@ failures are real failures.
 ## 6. Operate through the control harness
 
 ```text
-[5] Check it works  ⟶  [6] Build in small checked pieces  ⟶  [7] Let it continue
+⑤ ✅ Check it works  ⟶  ⑥ 🛠️ Build in checked pieces  ⟶  ⑦ ⏱️ Let it continue
                               ✦ YOU ARE HERE
 ```
 
@@ -264,8 +270,8 @@ The non-negotiable operating rules are:
 ## 7. Offer independent scheduled operation (one-time user decision)
 
 ```text
-[6] Build in small checked pieces  ⟶  [7] Let it continue on its own
-                                         ✦ YOU ARE HERE
+⑥ 🛠️ Build in checked pieces  ⟶  ⑦ ⏱️ Let it continue on its own
+                                      ✦ YOU ARE HERE
 ```
 
 After the first control-harness run is healthy, ask the user exactly once:
