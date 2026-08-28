@@ -2,7 +2,9 @@
   "project": {
     "name": "{{PROJECT_NAME}} Harness",
     "workspace": "team/{{TEAM_NAME}}",
-    "lastUpdated": null
+    "lastUpdated": null,
+    "publishedAt": null,
+    "publicationState": "not_published"
   },
   "overview": {
     "currentMilestone": null,

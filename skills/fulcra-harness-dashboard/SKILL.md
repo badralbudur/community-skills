@@ -132,6 +132,34 @@ Show only current unresolved items:
 Remove or mark resolved an item once its user decision is recorded and the
 approved spec/config reflects it. Do not retain stale “open” items forever.
 
+## Post-terminal refresh contract (required)
+
+After **every** terminal milestone outcome (PASS, FAIL, escalation, or
+decision-required), refresh the local curated dashboard only after the
+Coordinator has successfully persisted the canonical Workspace
+`status-summary.md`, milestone progress, and any terminal verdict/decision
+record. A dashboard must never silently keep showing an earlier completed
+milestone as current.
+
+1. Download the current durable status/progress inputs and refresh the
+   curated JSON. Add a concise run-timeline entry from the terminal outcome;
+   do not copy a raw verdict archive into `public/`.
+2. Compare the exact candidate public manifest (path, byte size, and
+   SHA-256) with the last deployed manifest, recorded durably at
+   `team/<team>/dashboard/state.md` together with the dashboard URL and
+   publication time.
+3. If the manifest is unchanged, retain the deployed dashboard and record a
+   successful refresh check. If it changed, write `refresh_pending` to the
+   durable dashboard state and surface an operator decision request with the
+   exact changed manifest.
+4. Never silently republish a changed manifest. Print the public-manifest
+   delta, restate that anyone with the URL can access it, and obtain a new
+   explicit user confirmation. After deployment, update the durable state
+   with the new URL (if changed), manifest SHA-256, and timestamp.
+
+The dashboard URL is durable operational state, not a credential. It belongs
+in the Workspace dashboard/status state rather than a local `.env` file.
+
 ## Publication adapter (normal flow; explicit user gate)
 
 The normal harness-dashboard flow is **private-by-unguessability
