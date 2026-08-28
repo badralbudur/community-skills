@@ -12,6 +12,7 @@ HARNESS_GIT_MODE=remote adds origin push and optional host PR adapters.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import re
 import shutil
@@ -25,6 +26,7 @@ from pathlib import Path
 
 CONTROL_HARNESS_ROOT = Path(__file__).resolve().parent.parent
 ROOT = CONTROL_HARNESS_ROOT
+BUNDLE_RETENTION = 3
 
 
 class MilestoneError(RuntimeError):
@@ -249,11 +251,11 @@ def validate_and_tag_candidate(deliverable: Path, branch: str, start_sha: str, c
 
 
 def candidate_record(milestone: str, candidate_id: str, sha: str, branch: str, start_sha: str, generator_output: str) -> str:
-    digest = __import__("hashlib").sha256(generator_output.encode()).hexdigest()
+    digest = hashlib.sha256(generator_output.encode()).hexdigest()
     return f"# Evaluation candidate\n\n- milestone: {milestone}\n- candidate_id: {candidate_id}\n- candidate_sha: {sha}\n- branch: {branch}\n- base_sha: {start_sha}\n- commit_range: {start_sha}..{sha}\n- generator_report_sha256: {digest}\n- status: ready_for_evaluation\n"
 
 
-def archive_repositories(cli: list[str] | None, team: str | None, milestone: str, deliverable: Path, retention: int, pruning_approved: bool) -> None:
+def archive_repositories(cli: list[str] | None, team: str | None, milestone: str, deliverable: Path, pruning_approved: bool) -> None:
     """Upload full-history bundles and optionally invoke a trusted version-pruner.
 
     Fulcra's portable CLI exposes upload/stat/restore/delete-file, but not a
@@ -272,14 +274,14 @@ def archive_repositories(cli: list[str] | None, team: str | None, milestone: str
             bundle.unlink(missing_ok=True)
     pruner = os.getenv("HARNESS_BUNDLE_PRUNE_CMD")
     if not pruning_approved:
-        print(f"Bundle retention is {retention}; no old versions deleted until the user explicitly approves pruning.")
+        print(f"Bundle retention is {BUNDLE_RETENTION}; no old versions deleted until the user explicitly approves pruning.")
         return
     if not pruner:
         raise MilestoneError("Bundle pruning was approved but HARNESS_BUNDLE_PRUNE_CMD is not configured for version-level deletion.")
     adapter(pruner, {
         "HARNESS_BUNDLE_TEAM": team,
         "HARNESS_BUNDLE_MILESTONE": milestone,
-        "HARNESS_BUNDLE_RETENTION": str(retention),
+        "HARNESS_BUNDLE_RETENTION": str(BUNDLE_RETENTION),
         "HARNESS_BUNDLE_PATH": f"team/{team}/artifact/git-bundles/{milestone}",
     }, "bundle-prune")
 
@@ -307,7 +309,6 @@ def main() -> int:
     parser.add_argument("--team", default=os.getenv("HARNESS_TEAM"))
     parser.add_argument("--git-mode", choices=("local", "remote"), default=os.getenv("HARNESS_GIT_MODE", "remote"))
     parser.add_argument("--integration-branch", default=os.getenv("HARNESS_INTEGRATION_BRANCH"))
-    parser.add_argument("--bundle-retention", type=int, default=int(os.getenv("HARNESS_BUNDLE_RETENTION", "3")))
     parser.add_argument("--approve-bundle-pruning", action="store_true", default=os.getenv("HARNESS_BUNDLE_PRUNING_APPROVED") == "1")
     parser.add_argument("--role-timeout", type=int, default=int(os.getenv("HARNESS_ROLE_TIMEOUT_SECONDS", "7200")))
     parser.add_argument("--max-retries", type=int, default=int(os.getenv("HARNESS_MAX_RETRIES", "3")))
@@ -317,8 +318,7 @@ def main() -> int:
     deliverable = args.deliverable.resolve()
     if not deliverable.is_dir():
         raise MilestoneError(f"Deliverable not found: {deliverable}")
-    if args.bundle_retention < 1:
-        raise MilestoneError("--bundle-retention must be at least 1")
+
     context = context_for(args.milestone)
     branch = branch_for(args.milestone, context)
     cli = resolve_fulcra() if args.team else None
@@ -371,7 +371,7 @@ def main() -> int:
         persist_status(cli, args.team, "PASS", args.milestone, f"Independent evaluator passed {candidate_id} ({candidate_sha}); completion {completion_tag}: {integration_sha}.", "The harness may advance to the next milestone.", "Advance to the next milestone.")
         return 0
     finally:
-        archive_repositories(cli, args.team, args.milestone, deliverable, args.bundle_retention, args.approve_bundle_pruning)
+        archive_repositories(cli, args.team, args.milestone, deliverable, args.approve_bundle_pruning)
 
 
 if __name__ == "__main__":

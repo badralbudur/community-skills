@@ -458,7 +458,7 @@ shutil.copyfile(sys.argv[3], destination)
     monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setenv("HARNESS_TEST_UPLOADS", str(uploads))
     try:
-        module.archive_repositories([str(uploader)], "demo", "M1", deliverable, retention=3, pruning_approved=False)
+        module.archive_repositories([str(uploader)], "demo", "M1", deliverable, pruning_approved=False)
     finally:
         monkeypatch.undo()
     for label in ("control-harness", "deliverable"):
