@@ -56,10 +56,10 @@ path when one is available; see the generated `.env.example` and
 ╰──────────────────────────────╯   ╰──────────────────────────────╯   ╰──────────────────────────────╯
                                        │
                                        ▼
-              ④ Set up control 🧰  ⟶  ⑤ Set up the live view 🗺️  ⟶  ⑥ Verify the runtime ✅
+              ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅
                                        │
                                        ▼
-              ⑦ Build in tested pieces 🛠️  ⟶  ╭──── ⑧ Let it loop ⏱️ ────╮
+              ⑥ Build in tested pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
                                                     ╰────── ∞ ──────╯
 ```
 
@@ -122,10 +122,10 @@ architecture.md   # user approved
 plan.md
 ```
 
-## 3. Scaffold the inner runtime harness
+## 3. Scaffold and bootstrap the harness **before inner runtime work**
 
 ```text
-② Architect the work 🧭  ⟶  ③ Scaffold the harness 📦  ⟶  ④ Set up control 🧰
+② Architect the work 🧭  ⟶  ③ Scaffold the harness 📦  ⟶  ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅
                                  ✦ YOU ARE HERE
 ```
 
@@ -149,15 +149,8 @@ The output project contains the concrete inner loop, provider adapters,
 sandboxed tools, prompts, app skeleton, and smoke tests. Read the generated
 README for its exact layout and setup instructions.
 
-## 4. Set up the outer control harness **before inner runtime work**
-
-```text
-③ Scaffold the harness 📦  ⟶  ④ Set up control 🧰  ⟶  ⑤ Set up the live view 🗺️  ⟶  ⑥ Verify the runtime ✅
-                                  ✦ YOU ARE HERE
-```
-
 Before asking for runtime provider credentials, running inner smoke tests, or
-calling `harness.run_task`, create a sibling portable control-harness repo:
+calling `harness.run_task`, also create a sibling portable control-harness repo:
 
 ```bash
 python scripts/scaffold_control_harness.py \
@@ -174,7 +167,7 @@ genuinely separate Generator and Evaluator adapter commands, then run:
 ./bootstrap.sh <team-name> --deliverable <project directory>
 ```
 
-Do not run `./doctor.sh` yet: the dashboard decision in Step 5 is a
+Do not run `./doctor.sh` yet: the dashboard decision in Step 4 is a
 required readiness gate. This **extends the same Grill-Me Workspace**,
 adding role member state, control artifacts, milestone tracking, decisions,
 verdicts, and status. It does not create a second project tracker.
@@ -188,11 +181,11 @@ Use the control harness README/RUNBOOK as the source of truth for:
 - decision requests;
 - interrupted-work recovery.
 
-## 5. Decide and record the harness dashboard path (required gate)
+## 4. Decide and record the harness dashboard path (required gate)
 
 ```text
-④ Set up control 🧰  ⟶  ⑤ Set up the live view 🗺️  ⟶  ⑥ Verify the runtime ✅  ⟶  ⑦ Build in tested pieces 🛠️
-                              ✦ YOU ARE HERE
+③ Scaffold the harness 📦  ⟶  ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build in tested pieces 🛠️
+                                 ✦ YOU ARE HERE
 ```
 
 Ask the user exactly one question:
@@ -238,10 +231,10 @@ confirmation. An unguessable URL and robots directive reduce discovery; they
 are **not access control**. Never publish raw inboxes, full verdicts,
 credentials, or private repository data.
 
-## 6. Verify the inner runtime harness
+## 5. Verify the inner runtime harness
 
 ```text
-⑤ Set up the live view 🗺️  ⟶  ⑥ Verify the runtime ✅  ⟶  ⑦ Build in tested pieces 🛠️  ⟶  ⑧ Let it loop ⏱️
+④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build in tested pieces 🛠️  ⟶  ⑦ Let it loop ⏱️
                                    ✦ YOU ARE HERE
 ```
 
@@ -254,10 +247,10 @@ Do not report the runtime harness ready until its smoke tests pass. A single
 known bytecode-cache artifact may be cleared and retried once; unrelated
 failures are real failures.
 
-## 7. Operate through the control harness
+## 6. Operate through the control harness
 
 ```text
-⑥ Verify the runtime ✅  ⟶  ⑦ Build in tested pieces 🛠️  ⟶  ⑧ Let it loop ⏱️
+⑤ Verify the runtime ✅  ⟶  ⑥ Build in tested pieces 🛠️  ⟶  ⑦ Let it loop ⏱️
                               ✦ YOU ARE HERE
 ```
 
@@ -277,10 +270,10 @@ The non-negotiable operating rules are:
   roles patch deliverable code;
 - use the delayed verifier pattern for unattended schedules.
 
-## 8. Offer independent scheduled operation (one-time user decision)
+## 7. Offer independent scheduled operation (one-time user decision)
 
 ```text
-⑦ Build in tested pieces 🛠️  ⟶  ╭──── ⑧ Let it loop ⏱️ ────╮
+⑥ Build in tested pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
                                     ╰────── ∞ ──────╯
                                          ✦ YOU ARE HERE
 ```
