@@ -94,6 +94,7 @@ def main() -> int:
     artifacts = [
         ("spec.md", "knowledge/harness/spec.md"),
         ("decisions.md", "knowledge/harness/decisions.md"),
+        ("dashboard-decision.md", "knowledge/harness/dashboard-decision.md"),
         ("HARNESS_GOVERNANCE.md", "knowledge/harness/HARNESS_GOVERNANCE.md"),
         ("RUNBOOK.md", "knowledge/harness/RUNBOOK.md"),
         ("coordinator/milestones.md", "knowledge/harness/coordinator/milestones.md"),

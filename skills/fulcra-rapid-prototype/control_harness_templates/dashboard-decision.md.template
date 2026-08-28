@@ -1,0 +1,35 @@
+# Harness Dashboard Decision
+
+This file is a required user gate before inner runtime/deliverable work
+begins. It is separate from publication consent: a local dashboard decision
+does **not** authorize public deployment.
+
+```text
+status: pending
+choice: create | defer | decline
+recorded_at: <ISO-8601 UTC>
+workspace_team: team/<team-name>
+reason: <user's raw reason or concise decision reference>
+```
+
+## Required flow
+
+1. Ask the user exactly one question after control-harness Workspace
+   bootstrap:
+
+   > Do you want to create the local harness dashboard now, defer it, or
+   > decline it for this project?
+
+2. If `create`, invoke/install `fulcra-harness-dashboard`, build the local
+   view, and record the chosen dashboard location.
+3. If `defer` or `decline`, record the user's raw decision in `decisions.md`
+   and why. Do not repeatedly re-ask unless the user reopens the choice.
+4. Copy this resolved decision into the shared Workspace decision/status
+   state before running the inner runtime harness.
+
+## Publication remains a separate gate
+
+If the user later wants the dashboard at an unguessable URL, first show the
+exact curated `public/` manifest, state that anyone with the URL can access
+it, verify `noindex,nofollow`, and obtain explicit deployment confirmation.
+Never treat `choice: create` as publication permission.
