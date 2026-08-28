@@ -52,21 +52,21 @@ path when one is available; see the generated `.env.example` and
 
 ```text
 ╭──────────────────────────────╮   ╭──────────────────────────────╮   ╭──────────────────────────────╮
-│ ① Shape the project 💡       │ ⟶ │ ② Scaffold the project 📦    │ ⟶ │ ③ Architect the work 🧭      │
+│ ① Shape the project 💡       │ ⟶ │ ② Architect the work 🧭      │ ⟶ │ ③ Scaffold the harness 📦    │
 ╰──────────────────────────────╯   ╰──────────────────────────────╯   ╰──────────────────────────────╯
                                        │
                                        ▼
-              ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅
+              ④ Set up control 🧰  ⟶  ⑤ Set up the live view 🗺️  ⟶  ⑥ Verify the runtime ✅
                                        │
                                        ▼
-              ⑥ Build in tested pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
+              ⑦ Build in tested pieces 🛠️  ⟶  ╭──── ⑧ Let it loop ⏱️ ────╮
                                                     ╰────── ∞ ──────╯
 ```
 
-Rapid Prototype's first outcome is completed by invoking Grill-Me internally:
-it helps the user shape the idea, save the shared project record, and agree on
-a design before the project moves to its own starting point. The user sees one
-continuous journey here; Grill-Me's internal numbering is not displayed.
+Rapid Prototype completes the first two outcomes by invoking Grill-Me
+internally: it helps the user shape the idea, save the shared project record,
+agree on the architecture, and plan the work. The user sees one continuous
+journey here; Grill-Me's internal numbering is not displayed.
 
 At each step below, the compact `✦ YOU ARE HERE` marker identifies the current
 outcome. You may add a compact project-specific flourish (symbol, short label,
@@ -79,44 +79,54 @@ rules; do not duplicate or weaken them here.
 ## 1. Establish requirements and one shared project Workspace
 
 ```text
-① Shape the project 💡  ⟶  ② Scaffold the project 📦  ⟶  ③ Architect the work 🧭
+① Shape the project 💡  ⟶  ② Architect the work 🧭  ⟶  ③ Scaffold the harness 📦
    ✦ YOU ARE HERE
 ```
 
-Run `fulcra-prototype-grill-me` through:
-
-1. Intake & Interview;
-2. its Step 1b Workspace/authentication step;
-3. Architecture (with its user gate);
-4. Plan.
-
-The single Workspace is:
+Run `fulcra-prototype-grill-me` through Intake & Interview and its Step 1b
+Workspace/authentication step. This establishes the project goal, captures the
+initial user context, and creates/joins the single project Workspace:
 
 ```text
 team/prototype-<project>/
 ```
 
 It must contain the Grill-Me intake/interview result before Architecture
-begins, then receive approved architecture and plan artifacts as they are
-created. On resume, confirm existing approved artifacts are current and
+begins. On resume, confirm the existing approved intake context is current and
 backfill missing Workspace records instead of rerunning discovery.
 
-Stop before Grill-Me's Prototype/Build phases: the runtime/control harness
-below replaces them.
+Stop before Grill-Me's Architecture phase; it is Rapid Prototype Step 2.
+
+Required local artifact after this step:
+
+```text
+intake/brief.md
+```
+
+## 2. Architect the work
+
+```text
+① Shape the project 💡  ⟶  ② Architect the work 🧭  ⟶  ③ Scaffold the harness 📦
+                               ✦ YOU ARE HERE
+```
+
+Continue `fulcra-prototype-grill-me` through its Architecture user gate and
+Plan phase. Store the approved architecture and plan artifacts in the same
+Workspace as they are created. Do not start Grill-Me's Prototype/Build phases:
+the harness below replaces them.
 
 Required local artifacts after this step:
 
 ```text
-intake/brief.md
 architecture.md   # user approved
 plan.md
 ```
 
-## 2. Scaffold the inner runtime harness
+## 3. Scaffold the inner runtime harness
 
 ```text
-① Shape the project 💡  ⟶  ② Scaffold the project 📦  ⟶  ③ Architect the work 🧭
-                              ✦ YOU ARE HERE
+② Architect the work 🧭  ⟶  ③ Scaffold the harness 📦  ⟶  ④ Set up control 🧰
+                                 ✦ YOU ARE HERE
 ```
 
 Locate this skill directory, then run the bundled scaffold script with
@@ -139,11 +149,11 @@ The output project contains the concrete inner loop, provider adapters,
 sandboxed tools, prompts, app skeleton, and smoke tests. Read the generated
 README for its exact layout and setup instructions.
 
-## 3. Scaffold and bootstrap the outer control harness **before inner runtime work**
+## 4. Set up the outer control harness **before inner runtime work**
 
 ```text
-② Scaffold the project 📦  ⟶  ③ Architect the work 🧭  ⟶  ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅
-                                 ✦ YOU ARE HERE
+③ Scaffold the harness 📦  ⟶  ④ Set up control 🧰  ⟶  ⑤ Set up the live view 🗺️  ⟶  ⑥ Verify the runtime ✅
+                                  ✦ YOU ARE HERE
 ```
 
 Before asking for runtime provider credentials, running inner smoke tests, or
@@ -164,7 +174,7 @@ genuinely separate Generator and Evaluator adapter commands, then run:
 ./bootstrap.sh <team-name> --deliverable <project directory>
 ```
 
-Do not run `./doctor.sh` yet: the dashboard decision in Step 4 is a
+Do not run `./doctor.sh` yet: the dashboard decision in Step 5 is a
 required readiness gate. This **extends the same Grill-Me Workspace**,
 adding role member state, control artifacts, milestone tracking, decisions,
 verdicts, and status. It does not create a second project tracker.
@@ -178,11 +188,11 @@ Use the control harness README/RUNBOOK as the source of truth for:
 - decision requests;
 - interrupted-work recovery.
 
-## 4. Decide and record the harness dashboard path (required gate)
+## 5. Decide and record the harness dashboard path (required gate)
 
 ```text
-③ Architect the work 🧭  ⟶  ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build safely 🛠️
-                                  ✦ YOU ARE HERE
+④ Set up control 🧰  ⟶  ⑤ Set up the live view 🗺️  ⟶  ⑥ Verify the runtime ✅  ⟶  ⑦ Build in tested pieces 🛠️
+                              ✦ YOU ARE HERE
 ```
 
 Ask the user exactly one question:
@@ -228,11 +238,11 @@ confirmation. An unguessable URL and robots directive reduce discovery; they
 are **not access control**. Never publish raw inboxes, full verdicts,
 credentials, or private repository data.
 
-## 5. Verify the inner runtime harness
+## 6. Verify the inner runtime harness
 
 ```text
-④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build safely 🛠️  ⟶  ⑦ Let it loop ⏱️
-                                      ✦ YOU ARE HERE
+⑤ Set up the live view 🗺️  ⟶  ⑥ Verify the runtime ✅  ⟶  ⑦ Build in tested pieces 🛠️  ⟶  ⑧ Let it loop ⏱️
+                                   ✦ YOU ARE HERE
 ```
 
 Now configure a provider using the generated `.env.example`, install the
@@ -244,11 +254,11 @@ Do not report the runtime harness ready until its smoke tests pass. A single
 known bytecode-cache artifact may be cleared and retried once; unrelated
 failures are real failures.
 
-## 6. Operate through the control harness
+## 7. Operate through the control harness
 
 ```text
-⑤ Verify the runtime ✅  ⟶  ⑥ Build in tested pieces 🛠️  ⟶  ⑦ Let it loop ⏱️
-                                 ✦ YOU ARE HERE
+⑥ Verify the runtime ✅  ⟶  ⑦ Build in tested pieces 🛠️  ⟶  ⑧ Let it loop ⏱️
+                              ✦ YOU ARE HERE
 ```
 
 Do not start deliverable work by directly invoking the inner runtime loop.
@@ -267,10 +277,10 @@ The non-negotiable operating rules are:
   roles patch deliverable code;
 - use the delayed verifier pattern for unattended schedules.
 
-## 7. Offer independent scheduled operation (one-time user decision)
+## 8. Offer independent scheduled operation (one-time user decision)
 
 ```text
-⑥ Build in tested pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
+⑦ Build in tested pieces 🛠️  ⟶  ╭──── ⑧ Let it loop ⏱️ ────╮
                                     ╰────── ∞ ──────╯
                                          ✦ YOU ARE HERE
 ```
