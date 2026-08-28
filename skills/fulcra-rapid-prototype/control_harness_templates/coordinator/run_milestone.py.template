@@ -223,17 +223,12 @@ def has_new_commit(deliverable: Path, start_sha: str) -> bool:
     return run(["git", "-C", str(deliverable), "rev-parse", "HEAD"]).stdout.strip() != start_sha
 
 
-def candidate_id_for(deliverable: Path, milestone: str) -> str:
-    # Keep candidate tags siblings of the completion tag (`harness/m1`): Git
-    # refs cannot be both a leaf and a directory, so `harness/m1/candidate-1`
-    # could not coexist with the required `harness/m1` completion tag.
-    prefix = f"harness/{milestone.lower()}-candidate-"
-    tags = run(["git", "-C", str(deliverable), "tag", "--list", f"{prefix}*"], check=False).stdout.splitlines()
-    numbers = [int(tag.removeprefix(prefix)) for tag in tags if tag.removeprefix(prefix).isdigit()]
-    return f"{prefix}{max(numbers, default=0) + 1}"
+def candidate_id_for(milestone: str) -> str:
+    """A stable, human-searchable marker; the candidate SHA is authoritative."""
+    return f"harness/{milestone.lower()}-candidate"
 
 
-def validate_and_tag_candidate(deliverable: Path, branch: str, start_sha: str, candidate_id: str) -> str:
+def validate_candidate(deliverable: Path, branch: str, start_sha: str, candidate_id: str) -> str:
     if run(["git", "-C", str(deliverable), "status", "--porcelain"], check=False).stdout.strip():
         raise MilestoneError("Generator returned with uncommitted work; final report is preserved before this gate.")
     if current_branch(deliverable) != branch:
@@ -244,9 +239,6 @@ def validate_and_tag_candidate(deliverable: Path, branch: str, start_sha: str, c
     message = run(["git", "-C", str(deliverable), "log", "-1", "--format=%B", sha]).stdout
     if f"Harness-Candidate: {candidate_id}" not in message:
         raise MilestoneError(f"Final candidate commit must include trailer: Harness-Candidate: {candidate_id}")
-    if run(["git", "-C", str(deliverable), "rev-parse", "--verify", candidate_id], check=False).returncode == 0:
-        raise MilestoneError(f"Candidate tag already exists: {candidate_id}")
-    run(["git", "-C", str(deliverable), "tag", "-a", candidate_id, sha, "-m", f"Harness evaluation candidate {candidate_id}\nMilestone: {branch}\nCommit: {sha}"])
     return sha
 
 
@@ -286,20 +278,12 @@ def archive_repositories(cli: list[str] | None, team: str | None, milestone: str
     }, "bundle-prune")
 
 
-def completion_tag_for(milestone: str) -> str:
-    return f"harness/{milestone.lower()}"
-
-
 def integrate_local(deliverable: Path, integration_branch: str, candidate_sha: str, milestone: str) -> str:
-    """Create the mandatory non-fast-forward milestone merge and completion tag."""
-    completion_tag = completion_tag_for(milestone)
-    if run(["git", "-C", str(deliverable), "rev-parse", "--verify", completion_tag], check=False).returncode == 0:
-        raise MilestoneError(f"Milestone completion tag already exists: {completion_tag}")
+    """Create the mandatory non-fast-forward milestone completion merge."""
+    completion_marker = f"harness/{milestone.lower()}"
     run(["git", "-C", str(deliverable), "checkout", integration_branch])
-    run(["git", "-C", str(deliverable), "merge", "--no-ff", candidate_sha, "-m", f"{completion_tag}: complete milestone"])
-    merge_sha = run(["git", "-C", str(deliverable), "rev-parse", "HEAD"]).stdout.strip()
-    run(["git", "-C", str(deliverable), "tag", "-a", completion_tag, merge_sha, "-m", f"Completed milestone {milestone}\nCandidate: {candidate_sha}"])
-    return merge_sha
+    run(["git", "-C", str(deliverable), "merge", "--no-ff", candidate_sha, "-m", f"{completion_marker}: complete milestone"])
+    return run(["git", "-C", str(deliverable), "rev-parse", "HEAD"]).stdout.strip()
 
 
 def main() -> int:
@@ -330,7 +314,7 @@ def main() -> int:
         raise MilestoneError("HARNESS_GENERATOR_CMD and HARNESS_EVALUATOR_CMD are required.")
     integration_branch = integration_branch_for(deliverable, args.git_mode, args.integration_branch)
     start_sha = ensure_milestone_branch(deliverable, branch, args.git_mode, integration_branch)
-    candidate_id = candidate_id_for(deliverable, args.milestone)
+    candidate_id = candidate_id_for(args.milestone)
     try:
         try:
             generator_output = role_command("generator", generator, args.milestone, context, deliverable, args.role_timeout, args.max_retries, candidate_id)
@@ -339,14 +323,13 @@ def main() -> int:
             raise
         if cli and args.team:
             write_workspace(cli, args.team, f"artifact/{args.milestone}-generator.md", generator_output)
-        candidate_sha = validate_and_tag_candidate(deliverable, branch, start_sha, candidate_id)
+        candidate_sha = validate_candidate(deliverable, branch, start_sha, candidate_id)
         if cli and args.team:
             write_workspace(cli, args.team, f"artifact/{args.milestone}-{candidate_id.replace('/', '-')}.md", candidate_record(args.milestone, candidate_id, candidate_sha, branch, start_sha, generator_output))
-        completion_tag = completion_tag_for(args.milestone)
-        host_env = {"HARNESS_BRANCH": branch, "HARNESS_MILESTONE": args.milestone, "HARNESS_DELIVERABLE": str(deliverable), "HARNESS_CANDIDATE_ID": candidate_id, "HARNESS_CANDIDATE_SHA": candidate_sha, "HARNESS_COMPLETION_TAG": completion_tag, "HARNESS_MERGE_MESSAGE": f"{completion_tag}: complete milestone"}
+        completion_marker = f"harness/{args.milestone.lower()}"
+        host_env = {"HARNESS_BRANCH": branch, "HARNESS_MILESTONE": args.milestone, "HARNESS_DELIVERABLE": str(deliverable), "HARNESS_CANDIDATE_ID": candidate_id, "HARNESS_CANDIDATE_SHA": candidate_sha, "HARNESS_MERGE_MESSAGE": f"{completion_marker}: complete milestone"}
         if args.git_mode == "remote":
             run(["git", "-C", str(deliverable), "push", "-u", "origin", branch])
-            run(["git", "-C", str(deliverable), "push", "origin", candidate_id])
             adapter(os.getenv("HARNESS_PR_CREATE_CMD"), host_env, "PR-create")
         run(["git", "-C", str(deliverable), "checkout", "--detach", candidate_sha])
         evaluator_output = role_command("evaluator", evaluator, args.milestone, context, deliverable, args.role_timeout, args.max_retries, candidate_id, candidate_sha)
@@ -359,16 +342,16 @@ def main() -> int:
             persist_status(cli, args.team, "DECISION REQUIRED", args.milestone, "Evaluator emitted a user decision request.", "The milestone is paused pending user input.", "Record user answer in decisions.md/spec before resuming.")
             return 1
         if not is_mergeable(verdict, test_runner_declared=not args.no_test_runner):
-            persist_status(cli, args.team, "FAIL", args.milestone, f"Evaluator verdict: {verdict}", "Candidate tag and branch remain available for a bounded corrective iteration.", "Resume the milestone branch and create a new candidate.")
+            persist_status(cli, args.team, "FAIL", args.milestone, f"Evaluator verdict: {verdict}", "Candidate commit and branch remain available for a bounded corrective iteration.", "Resume the milestone branch and create a new candidate.")
             return 1
         if args.git_mode == "local":
             integration_sha = integrate_local(deliverable, integration_branch, candidate_sha, args.milestone)
         else:
             adapter(os.getenv("HARNESS_PR_MERGE_CMD"), host_env, "PR-merge")
-            integration_sha = "host adapter responsible for non-fast-forward merge and completion tag"
+            integration_sha = "host adapter responsible for non-fast-forward completion merge"
         if cli and args.team:
             write_workspace(cli, args.team, "milestone-progress.md", f"current: <next milestone>\ncompleted: {args.milestone}\n")
-        persist_status(cli, args.team, "PASS", args.milestone, f"Independent evaluator passed {candidate_id} ({candidate_sha}); completion {completion_tag}: {integration_sha}.", "The harness may advance to the next milestone.", "Advance to the next milestone.")
+        persist_status(cli, args.team, "PASS", args.milestone, f"Independent evaluator passed {candidate_id} ({candidate_sha}); completion {completion_marker}: {integration_sha}.", "The harness may advance to the next milestone.", "Advance to the next milestone.")
         return 0
     finally:
         archive_repositories(cli, args.team, args.milestone, deliverable, args.approve_bundle_pruning)

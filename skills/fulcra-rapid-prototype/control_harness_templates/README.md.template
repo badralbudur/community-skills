@@ -79,19 +79,16 @@ Each command receives `HARNESS_ROLE`, `HARNESS_MILESTONE`,
 `HARNESS_SPEC`, `HARNESS_CONTEXT`, and `HARNESS_DELIVERABLE` environment
 variables. Generator may make coherent incremental commits on only its
 milestone branch, then identifies its clean final candidate with the required
-`Harness-Candidate: <candidate-tag>` commit trailer. The Coordinator creates
-the mandatory annotated tag with the same identifier and Evaluator evaluates
+`Harness-Candidate: <candidate-id>` commit trailer. The Coordinator evaluates
 its exact SHA. On PASS, the Coordinator creates a non-fast-forward merge
-commit named `harness/<milestone>: complete milestone` and an annotated
-completion tag such as `harness/m2` pointing to that merge. Evaluator must
-write a verdict matching `schemas/verdict.md`.
+commit named `harness/<milestone>: complete milestone`. Evaluator must write a
+verdict matching `schemas/verdict.md`.
 `run_milestone.py`
 enforces `test_runner: PASS` as a merge gate when a test runner is declared,
 persists terminal Workspace records with `--team`, and invokes optional
 `HARNESS_PR_CREATE_CMD` / `HARNESS_PR_MERGE_CMD` adapters after remote
 push/PASS. A remote merge adapter must create a merge commit (never
-fast-forward or rebase), use `HARNESS_MERGE_MESSAGE`, and create/push the
-annotated `HARNESS_COMPLETION_TAG`. Provide those adapters for your git host;
+fast-forward or rebase) and use `HARNESS_MERGE_MESSAGE`. Provide those adapters for your git host;
 the scaffold does not hardcode a specific hosting API.
 
 ## Git modes, candidates, and portable history
@@ -102,10 +99,10 @@ non-fast-forward merge commit. `--git-mode remote` adds `origin` push plus optio
 adapters. Set `--integration-branch` / `HARNESS_INTEGRATION_BRANCH` when it
 cannot be safely inferred.
 
-Every evaluation candidate has a mandatory annotated tag such as
-`harness/m2-candidate-1`; the final candidate commit contains the identical
-`Harness-Candidate:` trailer. The Coordinator records the tag/SHA/commit range
-in the Workspace and evaluates that fixed SHA, never a mutable branch head.
+Every evaluation candidate has a required, searchable commit trailer such as
+`Harness-Candidate: harness/m2-candidate`; the Coordinator records that
+identifier/SHA/commit range in the Workspace and evaluates the fixed SHA,
+never a mutable branch head.
 
 After every non-dry harness run, the Coordinator uploads full-history bundles
 for both the control harness and deliverable to

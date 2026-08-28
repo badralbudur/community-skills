@@ -14,8 +14,8 @@ declared test runner exists.
 - `HARNESS_CONTEXT`: path to this milestone's scope/done-criteria excerpt
 - `HARNESS_DELIVERABLE`: path to the deliverable repo, checked out on
   the detached immutable candidate commit
-- `HARNESS_CANDIDATE_ID` and `HARNESS_CANDIDATE_SHA`: the mandatory annotated
-  tag and exact commit being graded
+- `HARNESS_CANDIDATE_ID` and `HARNESS_CANDIDATE_SHA`: the searchable commit
+  marker and exact commit being graded
 
 ## Rules
 

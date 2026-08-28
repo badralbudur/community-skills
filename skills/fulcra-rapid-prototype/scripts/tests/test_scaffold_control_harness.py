@@ -365,9 +365,9 @@ def test_same_milestone_dirty_worktree_resumes_in_place(tmp_path: Path, monkeypa
     assert not any("fetch" in cmd or "checkout" in cmd for cmd in calls)
 
 
-def test_local_mode_uses_mandatory_candidate_tag_and_integrates_multiple_commits(tmp_path: Path) -> None:
-    """A local harness needs neither GitHub nor origin: it evaluates a tagged
-    immutable candidate, then creates a separately identifiable completion merge."""
+def test_local_mode_uses_searchable_candidate_commit_and_integrates_multiple_commits(tmp_path: Path) -> None:
+    """A local harness needs neither GitHub nor origin: it evaluates a fixed
+    candidate SHA, then creates a separately identifiable completion merge."""
     target = tmp_path / "control"
     _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
     deliverable = tmp_path / "deliverable"
@@ -406,20 +406,17 @@ git commit -m $'feat: ready for evaluation\\n\\nHarness-Candidate: '"$HARNESS_CA
         text=True,
     )
     assert result.returncode == 0, result.stderr
-    candidate = "harness/m1-candidate-1"
-    tagged_sha = subprocess.run(["git", "-C", str(deliverable), "rev-list", "-n", "1", candidate], check=True, env=git_env, capture_output=True, text=True).stdout.strip()
+    candidate = "harness/m1-candidate"
     head_sha = subprocess.run(["git", "-C", str(deliverable), "rev-parse", "main"], check=True, env=git_env, capture_output=True, text=True).stdout.strip()
-    message = subprocess.run(["git", "-C", str(deliverable), "log", "-1", "--format=%B", candidate], check=True, env=git_env, capture_output=True, text=True).stdout
-    assert tagged_sha != head_sha
+    message = subprocess.run(["git", "-C", str(deliverable), "log", "-1", "--format=%B", "milestone/m1-local-candidate"], check=True, env=git_env, capture_output=True, text=True).stdout
     assert f"Harness-Candidate: {candidate}" in message
     assert (deliverable / "generated.txt").read_text() == "first\nsecond\n"
     merge_parents = subprocess.run(["git", "-C", str(deliverable), "show", "-s", "--format=%P", "main"], check=True, env=git_env, capture_output=True, text=True).stdout.split()
     merge_message = subprocess.run(["git", "-C", str(deliverable), "log", "-1", "--format=%B", "main"], check=True, env=git_env, capture_output=True, text=True).stdout
-    completion_sha = subprocess.run(["git", "-C", str(deliverable), "rev-list", "-n", "1", "harness/m1"], check=True, env=git_env, capture_output=True, text=True).stdout.strip()
     assert len(merge_parents) == 2
-    assert tagged_sha in merge_parents
+    assert subprocess.run(["git", "-C", str(deliverable), "rev-parse", "milestone/m1-local-candidate"], check=True, env=git_env, capture_output=True, text=True).stdout.strip() in merge_parents
     assert merge_message.startswith("harness/m1: complete milestone")
-    assert completion_sha == head_sha
+    assert not subprocess.run(["git", "-C", str(deliverable), "tag", "--list"], check=True, env=git_env, capture_output=True, text=True).stdout.strip()
 
 
 def test_repository_bundles_are_uploaded_after_a_harness_run(tmp_path: Path) -> None:

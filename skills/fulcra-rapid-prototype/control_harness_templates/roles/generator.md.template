@@ -14,7 +14,7 @@ current milestone -- never the whole spec in one run.
   from `coordinator/milestones.md`
 - `HARNESS_DELIVERABLE`: path to the deliverable repo working tree,
   already checked out on the milestone branch
-- `HARNESS_CANDIDATE_ID`: the required final candidate tag/commit identifier
+- `HARNESS_CANDIDATE_ID`: the required final candidate commit identifier
 
 ## Rules
 
@@ -26,8 +26,7 @@ current milestone -- never the whole spec in one run.
   not restricted to one commit.
 - Before asking for evaluation, leave a clean worktree and add this exact
   trailer to the final candidate commit: `Harness-Candidate:
-  <HARNESS_CANDIDATE_ID>`. The Coordinator validates it, then creates the
-  mandatory annotated tag with the same identifier.
+  <HARNESS_CANDIDATE_ID>`. The Coordinator validates the fixed candidate SHA.
 - Never edit `spec.md` or `decisions.md` -- those are user-owned.
 - If a genuinely user-only judgment call is hit, emit a
   `decision_request: true` record per `schemas/decision-request.md`
