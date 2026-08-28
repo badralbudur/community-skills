@@ -1,0 +1,52 @@
+# Scheduled Control-Harness Operation
+
+A control harness may run independently after a **one-time user scheduling
+decision**. The user approves cadence, operating window, and notification
+channel once; they do not need to approve or trigger every milestone run.
+
+## Required scheduler contract
+
+A scheduler-owned run must:
+
+1. Read durable Workspace `milestone-progress.md`, `status-summary.md`,
+   decisions, and latest escalation before choosing work.
+2. Run exactly one bounded Coordinator/milestone invocation.
+3. Never run the inner runtime harness directly outside the control-harness
+   Generator/Evaluator path.
+4. Emit a non-silent terminal report to the configured origin channel.
+5. Persist status/verdict/decision/escalation records before claiming
+   completion.
+
+Schedule a second delayed verifier on the same cadence. It checks scheduler
+history, Workspace state, branch/PR state, and dashboard evidence; it may
+repair control-harness/worktree state through the recovery protocol, but
+never patches deliverable code or user requirements itself.
+
+## Hermes scheduler example
+
+When Hermes is the host, create a long-lived agent job after the user approves
+the schedule (example: every 6 hours):
+
+```bash
+hermes cron create --name "<project>-harness" --deliver origin \
+  --workdir <control-harness-dir> --continuity "every 6h" \
+  "Read the durable Workspace state, run exactly one control-harness milestone,
+   persist/report the terminal outcome, and follow RUNBOOK.md +
+   HARNESS_GOVERNANCE.md. Do not edit user specs/decisions or patch deliverable
+   code directly."
+```
+
+If the host enforces a short model-tool command timeout, schedule a direct
+no-agent runner script for the Coordinator and retain an agent verifier for
+recovery/review. This keeps the harness's own liveness limits authoritative.
+
+## User gate
+
+Before creating a schedule, ask one concise question:
+
+> Do you want this harness to run independently on a schedule? If so, what
+> cadence, end/window, and notification channel should it use?
+
+Record the answer in `decisions.md`, control-harness policy, Workspace status,
+and dashboard. Defer/decline is valid; once approved, do not re-ask before
+every run.

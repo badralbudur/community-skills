@@ -100,6 +100,7 @@ def main() -> int:
         ("coordinator/milestones.md", "knowledge/harness/coordinator/milestones.md"),
         ("coordinator/policy.md", "knowledge/harness/coordinator/policy.md"),
         ("coordinator/unattended-recovery.md", "knowledge/harness/coordinator/unattended-recovery.md"),
+        ("coordinator/scheduled-operation.md", "knowledge/harness/coordinator/scheduled-operation.md"),
         ("schemas/verdict.md", "knowledge/harness/schemas/verdict.md"),
         ("schemas/decision-request.md", "knowledge/harness/schemas/decision-request.md"),
         ("schemas/message.md", "knowledge/harness/schemas/message.md"),
