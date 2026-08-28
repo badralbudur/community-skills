@@ -16,8 +16,8 @@ It composes four components rather than reimplementing each one:
 
 ```text
 fulcra-prototype-grill-me  → requirements + early project Workspace
-runtime harness scaffold    → inner model/tool execution loop
-control harness             → milestones + Generator/Evaluator + Workspace state
+runtime harness scaffold   → inner model/tool execution loop
+control harness            → milestones + Generator/Evaluator + Workspace state
 fulcra-harness-dashboard    → operator visibility + curated publication
 ```
 
@@ -161,8 +161,9 @@ private repository data.
 ## 5. Verify the inner runtime harness
 
 Now configure a provider using the generated `.env.example`, install the
-project environment, and run the generated smoke tests. Use the documented
-`uv` fallback if `python -m venv` fails because `ensurepip` is unavailable.
+project environment, and run the complete six-command readiness suite in the
+generated README's **Getting started** section. Use the documented `uv`
+fallback if `python -m venv` fails because `ensurepip` is unavailable.
 
 Do not report the runtime harness ready until its smoke tests pass. A single
 known bytecode-cache artifact may be cleared and retried once; unrelated

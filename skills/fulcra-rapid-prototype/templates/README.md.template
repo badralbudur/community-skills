@@ -66,8 +66,17 @@ Either way, once the venv exists:
 cp .env.example .env  # see .env.example for provider auth options --
                        # OAuth (no API key) is preferred; see
                        # harness/providers/__init__.py's module docstring
-.venv/bin/python -m harness.test_loop_smoke      # confirm the harness itself works
-.venv/bin/python -m harness.run_task task_001_*.md  # run the first real task
+
+# Complete readiness suite: all six must pass before running real work.
+.venv/bin/python -m harness.test_loop_smoke
+.venv/bin/python -m harness.test_context_smoke
+.venv/bin/python -m harness.tools.test_filesystem_smoke
+.venv/bin/python -m harness.tools.test_git_smoke
+.venv/bin/python -m harness.tools.test_git_commit_gate_smoke
+.venv/bin/python -m harness.tools.test_run_command_smoke
+
+# Only after the readiness suite passes, run the first real task.
+.venv/bin/python -m harness.run_task task_001_*.md
 ```
 
 ## Status
