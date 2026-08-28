@@ -56,10 +56,10 @@ path when one is available; see the generated `.env.example` and
 ╰──────────────────────────────╯   ╰──────────────────────────────╯   ╰──────────────────────────────╯
                                        │
                                        ▼
-              ④ Set up the project view 🗺️  ⟶  ⑤ Verify the runtime ✅
+              ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅
                                        │
                                        ▼
-              ⑥ Build in checked pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
+              ⑥ Build in tested pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
                                                     ╰────── ∞ ──────╯
 ```
 
@@ -142,7 +142,7 @@ README for its exact layout and setup instructions.
 ## 3. Scaffold and bootstrap the outer control harness **before inner runtime work**
 
 ```text
-② Scaffold the project 📦  ⟶  ③ Architect the work 🧭  ⟶  ④ Set up the project view 🗺️  ⟶  ⑤ Verify the runtime ✅
+② Scaffold the project 📦  ⟶  ③ Architect the work 🧭  ⟶  ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅
                                  ✦ YOU ARE HERE
 ```
 
@@ -181,7 +181,7 @@ Use the control harness README/RUNBOOK as the source of truth for:
 ## 4. Decide and record the harness dashboard path (required gate)
 
 ```text
-③ Architect the work 🧭  ⟶  ④ Set up the project view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build safely 🛠️
+③ Architect the work 🧭  ⟶  ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build safely 🛠️
                                   ✦ YOU ARE HERE
 ```
 
@@ -231,7 +231,7 @@ credentials, or private repository data.
 ## 5. Verify the inner runtime harness
 
 ```text
-④ Set up the project view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build safely 🛠️  ⟶  ⑦ Let it loop ⏱️
+④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build safely 🛠️  ⟶  ⑦ Let it loop ⏱️
                                       ✦ YOU ARE HERE
 ```
 
@@ -247,7 +247,7 @@ failures are real failures.
 ## 6. Operate through the control harness
 
 ```text
-⑤ Verify the runtime ✅  ⟶  ⑥ Build in checked pieces 🛠️  ⟶  ⑦ Let it loop ⏱️
+⑤ Verify the runtime ✅  ⟶  ⑥ Build in tested pieces 🛠️  ⟶  ⑦ Let it loop ⏱️
                                  ✦ YOU ARE HERE
 ```
 
@@ -270,7 +270,7 @@ The non-negotiable operating rules are:
 ## 7. Offer independent scheduled operation (one-time user decision)
 
 ```text
-⑥ Build in checked pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
+⑥ Build in tested pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
                                     ╰────── ∞ ──────╯
                                          ✦ YOU ARE HERE
 ```
