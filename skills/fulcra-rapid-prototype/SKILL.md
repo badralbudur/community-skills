@@ -144,16 +144,22 @@ Use the control harness README/RUNBOOK as the source of truth for:
 
 Ask the user exactly one question:
 
-> Do you want to create the local harness dashboard now, defer it, or
-> decline it for this project?
+> The recommended path is to create and publish the curated harness dashboard
+> at an unguessable URL. Do you confirm that path, defer it, or decline it
+> for this project?
 
 Record the raw answer in `decisions.md`, then resolve
 `dashboard-decision.md` with one of:
 
 ```text
-choice: create
+choice: create_and_publish
+publication: confirmed
+
 choice: defer
+publication: deferred
+
 choice: decline
+publication: declined
 ```
 
 Synchronize that resolved decision to the shared Workspace decision/status
@@ -161,11 +167,13 @@ state. **Do not proceed to runtime verification or deliverable work while
 this file is pending/invalid.** Run `./doctor.sh` after recording the
 choice; it enforces this gate.
 
-- **create:** invoke `fulcra-harness-dashboard`. It adapts
+- **create_and_publish:** invoke `fulcra-harness-dashboard`. It adapts
   `fulcra-project-dashboard` to show the flight plan, run timeline,
   checkpoint, decisions, escalations, and next bearing. If the skill is not
   locally available, say so explicitly and offer the user an install/invoke
-  path; do not silently skip the decision.
+  path; do not silently skip the decision. Build the isolated public
+  manifest, show it, and obtain the separate explicit deployment
+  confirmation before recording `publication: confirmed`.
 - **defer / decline:** preserve the user reason in `decisions.md` and
   Workspace state. Do not repeatedly re-ask unless the user reopens it.
 

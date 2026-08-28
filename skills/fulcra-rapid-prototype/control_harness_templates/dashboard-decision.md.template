@@ -1,12 +1,14 @@
 # Harness Dashboard Decision
 
 This file is a required user gate before inner runtime/deliverable work
-begins. It is separate from publication consent: a local dashboard decision
-does **not** authorize public deployment.
+begins. The normal recommended path is to create the dashboard and publish a
+curated view at an unguessable URL. The user may explicitly defer or decline
+that path.
 
 ```text
 status: pending
-choice: create | defer | decline
+choice: create_and_publish | defer | decline
+publication: pending_manifest_confirmation | confirmed | deferred | declined
 recorded_at: <ISO-8601 UTC>
 workspace_team: team/<team-name>
 reason: <user's raw reason or concise decision reference>
@@ -17,19 +19,24 @@ reason: <user's raw reason or concise decision reference>
 1. Ask the user exactly one question after control-harness Workspace
    bootstrap:
 
-   > Do you want to create the local harness dashboard now, defer it, or
-   > decline it for this project?
+   > The recommended path is to create and publish the curated harness
+   > dashboard at an unguessable URL. Do you confirm that path, defer it,
+   > or decline it for this project?
 
-2. If `create`, invoke/install `fulcra-harness-dashboard`, build the local
-   view, and record the chosen dashboard location.
-3. If `defer` or `decline`, record the user's raw decision in `decisions.md`
-   and why. Do not repeatedly re-ask unless the user reopens the choice.
-4. Copy this resolved decision into the shared Workspace decision/status
-   state before running the inner runtime harness.
+2. If `create_and_publish`, invoke/install `fulcra-harness-dashboard`, build
+   the local view and isolated `public/` manifest, then show the exact
+   manifest and ask the separate final publication confirmation. Set
+   `publication: confirmed` only after that confirmation and deployment.
+3. If `defer` or `decline`, set the matching publication status, record the
+   user's raw decision in `decisions.md`, and do not repeatedly re-ask unless
+   the user reopens the choice.
+4. Copy the resolved decision into shared Workspace decision/status state
+   before running the inner runtime harness.
 
-## Publication remains a separate gate
+## Publication gate
 
-If the user later wants the dashboard at an unguessable URL, first show the
-exact curated `public/` manifest, state that anyone with the URL can access
-it, verify `noindex,nofollow`, and obtain explicit deployment confirmation.
-Never treat `choice: create` as publication permission.
+Before deployment, verify `noindex,nofollow` in `public/index.html` and state
+plainly that anyone with the URL can access the dashboard. An unguessable URL
+and search-engine directives reduce discovery; they are **not access control**.
+Never publish inboxes, full raw verdicts, credentials, private-repo content,
+or raw Fulcra downloads.
