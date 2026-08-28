@@ -35,7 +35,7 @@ python coordinator/run_milestone.py --milestone M1 --deliverable ../<deliverable
 This will:
 1. Create or resume the `milestone/m1-<slug>` branch in the deliverable repo.
 2. Run Generator against that branch with `HARNESS_ROLE=generator` and the milestone's scope/context, subject to configurable timeout/bounded retry behavior.
-3. Push Generator's commits to `origin` if any were made, then invoke `HARNESS_PR_CREATE_CMD` if configured.
+3. Push Generator's commits to `origin` if any were made. Only after the first pushed commit exists, invoke `HARNESS_PR_CREATE_CMD` if configured: GitHub cannot create a zero-diff PR, so never attempt PR creation before there is a commit to compare.
 4. Run Evaluator independently against the pushed branch state with `HARNESS_ROLE=evaluator`, parse its verdict, and persist it to Workspace when `--team` is supplied.
 5. Reject a merge-eligible PASS unless `overall: PASS` and, when declared, `test_runner: PASS` are both present.
 6. On PASS invoke `HARNESS_PR_MERGE_CMD` if configured, then persist milestone progress/status. On FAIL or decision request, persist the relevant Workspace status/artifact and leave branch/PR reviewable.
