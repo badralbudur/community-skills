@@ -44,27 +44,28 @@ To ensure reliable agentic execution and prevent skipped steps, follow the 6-ste
 ## The 6-Step Pipeline
 
 ```text
-+-------------------+    +----------------+    +----------------+    +-----------+
-| [1] ASK & SHAPE   | -> | [1b] ANCHOR    | -> | [2] ARCHITECT  | -> | [3] PLAN  |
-| Intake/Interview  |    | Workspace      |    | User gate      |    +-----------+
-+-------------------+    +----------------+    +----------------+
-       |                                                               |
-       +----------------> [4] PROTOTYPE -> [5] BUILD -> [6] RETRO ---+
+╭──────────────────────╮   ╭──────────────────────╮   ╭──────────────────────╮
+│ ① Understand the idea│ ⟶ │ ② Save project record │ ⟶ │ ③ Agree the design  │
+│    together          │   │    in Fulcra          │   │    (user gate)      │
+╰──────────────────────╯   ╰──────────────────────╯   ╰──────────────────────╯
+                                      │
+                                      ▼
+                         ④ Plan  ⟶  ⑤ Prove it  ⟶  ⑥ Build it  ⟶  ⑦ Reflect
 ```
 
-At each step, the `^ YOU ARE HERE` marker below identifies the current
-position. Complete the current step before advancing; do not treat the map as
+At each step, the `✦ YOU ARE HERE` marker below identifies the current
+outcome. Complete the current step before advancing; do not treat the map as
 a replacement for the step's gate/artifact rules. You may add a compact,
 project-appropriate flourish to these maps (a domain symbol, short label, or
-motif), but preserve the numbered stages, ordering, and current-step marker.
+motif), but preserve the numbered outcomes, ordering, and current-step marker.
 
 Follow these phases sequentially. At the end of each phase, `git add . && git commit -m "chore: complete [phase] phase"`.
 
 ### 1. Intake & Interview (The "Grill Me" Approach)
 
 ```text
-[1] Intake & Interview -> [1b] Workspace -> [2] Architecture -> [3] Plan
- ^ YOU ARE HERE
+① Understand the idea  ⟶  ② Save project record  ⟶  ③ Agree the design
+✦ YOU ARE HERE
 ```
 - **Action:** Discuss the initial idea. Create a local project directory and run `git init`. Inspired by the "Grill Me" skill, act as an interrogator to shape the human's fuzzy idea into a clear requirement specification.
 - **Rule:** Ask exactly **ONE** clear, concise question at a time to narrow down the goal. Do not present a wall of 10 questions. Wait for the user's answer before asking the next.
@@ -74,8 +75,8 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 ### 1b. Create the project Workspace and persist the Grill-Me result
 
 ```text
-[1] Intake & Interview -> [1b] Workspace -> [2] Architecture -> [3] Plan
-                         ^ YOU ARE HERE
+① Understand the idea  ⟶  ② Save project record  ⟶  ③ Agree the design
+                          ✦ YOU ARE HERE
 ```
 - **Authenticate to Fulcra now.** Before Architecture begins, use
   [`fulcra-connect`](https://github.com/fulcradynamics/agent-skills/tree/main/skills/fulcra-connect)
@@ -105,8 +106,8 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 ### 2. Architecture (User Gate)
 
 ```text
-[1] Intake -> [1b] Workspace -> [2] Architecture -> [3] Plan -> [4] Prototype
-                                ^ YOU ARE HERE
+① Understand  ⟶  ② Save record  ⟶  ③ Agree the design  ⟶  ④ Plan together
+                                      ✦ YOU ARE HERE
 ```
 - **Confirm the Fulcra connection and Workspace state.** The 1b
   `fulcra-connect`/`fulcra-workspaces` setup must already be complete.
@@ -194,8 +195,8 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 ### 3. Plan
 
 ```text
-[1] Intake -> [1b] Workspace -> [2] Architecture -> [3] Plan -> [4] Prototype
-                                                  ^ YOU ARE HERE
+③ Agree the design  ⟶  ④ Plan the proof  ⟶  ⑤ Prove it  ⟶  ⑥ Build it  ⟶  ⑦ Reflect
+                          ✦ YOU ARE HERE
 ```
 - **Action:** Define the sequential technical spikes needed to prove the hardest parts of the architecture.
 - **Artifact:** Write `plan.md` (ranked list of technical risks to spike, plus the production build plan).
@@ -207,8 +208,8 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 ### 4. Prototype (The Spikes) (User Gate)
 
 ```text
-[2] Architecture -> [3] Plan -> [4] Prototype -> [5] Build -> [6] Retro
-                                  ^ YOU ARE HERE
+④ Plan the proof  ⟶  ⑤ Prove it  ⟶  ⑥ Build it  ⟶  ⑦ Reflect
+                       ✦ YOU ARE HERE
 ```
 - **Action:** Tackle risks from `plan.md` *one at a time*. Write focused scripts using **real Fulcra data**.
 - **Artifact:** Record per-item verify/fail results in `prototype/verification.md`.
@@ -219,8 +220,8 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 ### 5. Build
 
 ```text
-[3] Plan -> [4] Prototype -> [5] Build -> [6] Retro
-                             ^ YOU ARE HERE
+⑤ Prove it  ⟶  ⑥ Build it  ⟶  ⑦ Reflect & improve
+                 ✦ YOU ARE HERE
 ```
 - **Action:** Execute the production milestones from `plan.md`, turning the spikes into the final integrated software (e.g., a long-running service, a discord bot).
 - **Artifact:** Log progress to `build/log.md`.
@@ -229,8 +230,8 @@ Follow these phases sequentially. At the end of each phase, `git add . && git co
 ### 6. Retro
 
 ```text
-[4] Prototype -> [5] Build -> [6] Retro
-                             ^ YOU ARE HERE
+⑥ Build it  ⟶  ⑦ Reflect & improve
+                ✦ YOU ARE HERE
 ```
 - **Action:** Review the engagement. What worked? What platform gaps bit us?
 - **Artifact:** Write `retro.md`.

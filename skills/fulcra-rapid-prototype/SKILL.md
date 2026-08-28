@@ -73,8 +73,8 @@ rules; do not duplicate or weaken them here.
 ## 1. Establish requirements and one shared project Workspace
 
 ```text
-[1] ENTER GRILL-ME -> [2] Runtime scaffold -> [3] Control plane
- ^ YOU ARE HERE
+[1] Understand your project  ⟶  [2] Create the project starting point  ⟶  [3] Set up reliable guidance
+                                 ✦ YOU ARE HERE
 ```
 
 Run `fulcra-prototype-grill-me` through:
@@ -109,8 +109,8 @@ plan.md
 ## 2. Scaffold the inner runtime harness
 
 ```text
-[1] Grill + Workspace -> [2] Runtime scaffold -> [3] Control plane
-                         ^ YOU ARE HERE
+[1] Understand your project  ⟶  [2] Create project starting point  ⟶  [3] Set up reliable guidance
+                                  ✦ YOU ARE HERE
 ```
 
 Locate this skill directory, then run the bundled scaffold script with
@@ -136,8 +136,8 @@ README for its exact layout and setup instructions.
 ## 3. Scaffold and bootstrap the outer control harness **before inner runtime work**
 
 ```text
-[2] Runtime scaffold -> [3] Control plane -> [4] Dashboard gate -> [5] Verify
-                        ^ YOU ARE HERE
+[2] Create project start  ⟶  [3] Set up reliable guidance  ⟶  [4] Choose project view  ⟶  [5] Check it works
+                                 ✦ YOU ARE HERE
 ```
 
 Before asking for runtime provider credentials, running inner smoke tests, or
@@ -175,8 +175,8 @@ Use the control harness README/RUNBOOK as the source of truth for:
 ## 4. Decide and record the harness dashboard path (required gate)
 
 ```text
-[3] Control plane -> [4] Dashboard gate -> [5] Verify runtime -> [6] Operate
-                    ^ YOU ARE HERE
+[3] Set up guidance  ⟶  [4] Choose project view  ⟶  [5] Check it works  ⟶  [6] Build safely
+                             ✦ YOU ARE HERE
 ```
 
 Ask the user exactly one question:
@@ -225,8 +225,8 @@ credentials, or private repository data.
 ## 5. Verify the inner runtime harness
 
 ```text
-[4] Dashboard gate -> [5] Verify runtime -> [6] Operate -> [7] Schedule
-                       ^ YOU ARE HERE
+[4] Choose project view  ⟶  [5] Check it works  ⟶  [6] Build safely  ⟶  [7] Let it continue
+                                  ✦ YOU ARE HERE
 ```
 
 Now configure a provider using the generated `.env.example`, install the
@@ -241,8 +241,8 @@ failures are real failures.
 ## 6. Operate through the control harness
 
 ```text
-[5] Verify runtime -> [6] Operate milestones -> [7] Schedule
-                       ^ YOU ARE HERE
+[5] Check it works  ⟶  [6] Build in small checked pieces  ⟶  [7] Let it continue
+                              ✦ YOU ARE HERE
 ```
 
 Do not start deliverable work by directly invoking the inner runtime loop.
@@ -264,8 +264,8 @@ The non-negotiable operating rules are:
 ## 7. Offer independent scheduled operation (one-time user decision)
 
 ```text
-[6] Operate milestones -> [7] Schedule + delayed verifier
-                           ^ YOU ARE HERE
+[6] Build in small checked pieces  ⟶  [7] Let it continue on its own
+                                         ✦ YOU ARE HERE
 ```
 
 After the first control-harness run is healthy, ask the user exactly once:
