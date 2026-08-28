@@ -1,0 +1,74 @@
+{
+ "player_id": "m-bel",
+ "city": "Belgrade",
+ "ballots": [
+  {
+   "round": 8,
+   "need": "in-007",
+   "your_notice": "A clerical error in Belgrade's orchard subsidy has produced a plum harvest roughly nine times the town's historical plum appetite. They are ripening on schedule and entirely without mercy.",
+   "you_asked_for": "Send Belgrade a use for ninety thousand plums, within the week.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "Salt, and every flat roof you can borrow. Eight hundred kilos of sea salt and two people who have never let a summer fruit go to the bin — halve, salt, three days of sun, and you're eating this harvest in February."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "Our fruit terminal handles an entire southern stone-fruit season, which means that this week our cold rooms are empty and eighty packers are painting their own houses out of boredom. Give us three days' notice and we'll put forty reefer containers on your siding with the crews already inside them — your plums leave as fruit, not as jam and not as brandy, and land in a hemisphere where it is February, it is dark at four, and a fresh plum sells for what a bottle of anything sells for."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Freeze them. We have eleven thousand cubic metres of trawler cold store sitting empty until the season turns, and a plum takes to a blast freezer better than anything we normally put in there. Ripe fruit is a problem that expires in nine days; frozen fruit is a problem you can have next year instead, in a month of your choosing, at a pace a town can actually drink."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "Nine days of guaranteed sun, forty of our drying racks on the next cargo flight, and eleven women out of the produce market who can turn ninety thousand of anything into something that keeps until Christmas. They will want half the dried weight and a chair each in the shade, and they will not want instructions."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "Plums won't wait, so stop trying to eat them. We'll put two truck-bed fruit presses and the crew who run our own March glut on a plane, plus a distiller whose entire philosophy is that fruit you can't sell is fruit you haven't got in a barrel yet -- pressed inside four days, in cask by Sunday, and it becomes next year's problem instead of this week's."
+    },
+    {
+     "ballot_ref": "F",
+     "offer": "We have geothermal heat we cannot switch off and eleven hundred square metres of glasshouse sitting empty above it until October. Put the plums on lorries by Thursday and you get them back nine days later as forty tonnes of dark fruit leather in wax paper, keeps two years, and we'll take the split ones as payment."
+    }
+   ]
+  },
+  {
+   "round": 15,
+   "need": "in-014",
+   "your_notice": "The roof of Belgrade's town hall is currently supported by scaffolding, three generations of temporary permits, and the shared belief that it will hold. Two of those three are expiring.",
+   "you_asked_for": "Send Belgrade something that can hold up a civic roof — structurally, financially, or spiritually.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "Sell the roof by the square metre and paint every buyer's name on the underside of it, in a good hand, big enough to read from the floor — we are sending Ronnie, who has lettered every shopfront on our main road for twenty years and can do eleven hundred names in a fortnight. People will not pay to fix a ceiling, but they will pay to be looked up at by their grandchildren, and a roof that everybody is named on gets its permits renewed by people who take it personally."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "We are a town that made its living insuring ships nobody expected to see again, so: one underwriter, seventy-one, who will write the roof a policy at a premium the council can actually pay and be sincerely astonished if it ever pays out. Beneath him, six lorries of white limestone off the plateau, which has held up every civic building we own, including two that were not supposed to survive the century."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "When our own hall was reroofed we kept the eleven trusses that came out — laminated timber, twenty-two metres, stacked in a heated shed doing nothing but staying dry. They're yours for the cost of the lorries, and we'll send the engineer who signed them off originally, who is retired, sharp, and would dearly love to be permanent about something."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "Two boatwrights, their own timber, no hurry. They make ribs that hold a hull shut against forty years of sea, and a roof is only a hull upside down and dry."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "Send us photographs of the trusses and we'll send three shipwrights. A roof is a hull upside down, and scarfing new timber into an old frame while the thing stays in use is the only job they've ever had -- fixed price agreed before the first cut, which will do more for your permits than the scaffolding ever did."
+    },
+    {
+     "ballot_ref": "F",
+     "offer": "We sit on a fault line, so every building we own is held up by something that was meant to be temporary in 1906 — the only real difference is that we stopped apologising for it and moved it into the budget under maintenance. We'll send four shipwrights and the yard foreman who reframe our roofs in laminated timber built to move rather than resist, Oregon pine enough for a span your size, and one piece of advice: name the scaffolding, give it a plaque and a line item, and it will outlast all three permits and very probably you."
+    },
+    {
+     "ballot_ref": "G",
+     "offer": "We are re-roofing our own market hall and have twelve glulam trusses coming out of it, eighteen metres clear span, sound and dry and ready in October — yours if you send the lorries. More usefully, we'll send the structural engineer who condemned them and have her put her name and stamp on the calculations for your span, because it isn't timber your expiring permits are short of, it's a signature."
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,42 @@
+{
+ "player_id": "m-kop",
+ "city": "Kópavogur",
+ "ballots": [
+  {
+   "round": 13,
+   "need": "in-012",
+   "your_notice": "Kópavogur's biggest employers run around the clock. Kópavogur's childcare runs 8 to 6. The gap is currently being covered by grandmothers, goodwill, and a rota taped inside a locker door.",
+   "you_asked_for": "Cover Kópavogur's night hours.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "Pay the grandmothers. Ours are on the payroll at the school's rate, it took one line in the budget, and we'll send you the line — plus the laminating machine, since the rota is the only part of this you got right."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "Our port has run a night crèche since the docks went round the clock: one warm room by the gate, eleven cots, a levy the employers pay per night-shift worker rather than per child, and a standing rule that the children sleep there and are carried home asleep at seven. We'll lend you, for a full season, the two women who have worked the ten-to-seven shift for a decade and the two pages of rules that actually matter — and take that rota out of the locker and put it on the payroll, because goodwill is a wage somebody is quietly not being paid."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Following on from the eggs — we have run market crèches since long before anyone wrote them down: a warm room off the trading floor, mats not cots, one woman awake per nine children asleep, opening at ten at night and closing when the mothers come off shift. We will send Mama Nakato, who has run ours for nineteen years, plus the rota book, the mat supplier and the pricing rule that made it work: it must cost less than a bottle of soda, or the grandmothers will simply keep doing it for free and resenting you."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "The port here stopped keeping daylight hours long before anyone thought to ask the mothers about it, and the night room by the customs shed is older than most of our streetlights. We'll send the two women who run 22:00 to 06:00, and more usefully the one iron rule of their rota: the parent coming off shift gets twenty minutes in a chair with a coffee before anybody hands them a sleeping child."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "We run a night room off the back of the hospital laundry: ten till seven, cots rather than activities, one adult to four children, and a minibus at both ends. The thing you're actually short of isn't carers, it's a licence category that exists after six in the evening -- we'll send the two pages of ours you can copy word for word, and the woman who wrote them, for a fortnight."
+    },
+    {
+     "ballot_ref": "F",
+     "offer": "Pay the grandmothers. They are already doing the work to a standard you couldn't buy; what's missing is a payroll number, an insurance line and somebody to cover when one of them has flu — so take the rota off the locker door, put it on a desk, and we'll second you two relief night staff for a year to be the cover. Beds, blackout blinds and the rule we use: the child arrives already asleep, so the goodbye happens at home where it belongs."
+    },
+    {
+     "ballot_ref": "G",
+     "offer": "We ran shift nurseries beside the plants for forty years and three of them still take children at eleven at night, and the thing nobody expects is that a night room is not a day room with the lights off — it is beds, one waking adult per six sleeping children, a bath at handover and breakfast at 6:15 so the parent eats too. We'll send the rota, the staffing ratios and the retired matron who wrote both, on the single condition that the employers pay for it and not the grandmothers."
+    }
+   ]
+  }
+ ]
+}

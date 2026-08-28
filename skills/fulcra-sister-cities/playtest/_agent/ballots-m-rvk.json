@@ -1,0 +1,58 @@
+{
+ "player_id": "m-rvk",
+ "city": "Reykjavík",
+ "ballots": [
+  {
+   "round": 2,
+   "need": "in-001",
+   "your_notice": "Since February, Reykjavík has hummed. Two residents in five can hear it. The utility says it isn't theirs, the geologists say it isn't the ground, and the council has begun describing it in writing as 'the ambience.'",
+   "you_asked_for": "Explain Reykjavík's hum, or make it somebody's problem in a way that helps.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "We are sending Ssalongo, who has diagnosed generators by ear for thirty-one years and has never once needed to open the casing — give him a bicycle, a torch and four nights and he will walk you to the exact wall it is coming out of. If it turns out to be nobody's, he will teach forty of your residents to hum along with it in a key the council can live with, and by March it will be a choir and not a complaint."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "We keep a man on the district heating network whose whole job is to walk the streets before dawn with a steel rod against the pavement and name which pipe is complaining; he has not been wrong since 2004 and he is desperately bored. Lend him a fortnight and he either finds your hum or he certifies it as nobody's, on letterhead, with a stamp — which is the second-best outcome and much cheaper."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "We can lend you two people who spend every winter listening to ice shelves flex at frequencies nobody can hear, and the four low-frequency hydrophones they do it with. Give them a fortnight and a map of your water mains, and if it turns out to be a fridge they'll say so plainly and won't put it in a report."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "We're sending Doña Ester and two of the old winch mechanics, who have spent forty years diagnosing cable machinery by ear alone and can tell you blindfolded whether a hum is a bearing, a transformer, or a building resonating in sympathy with something three streets away. If they find nothing, they will at least tell you what note it is — and then we ship you enough second-hand street organs tuned to that note that the ambience becomes municipal property, with a budget, a caretaker, and a proper channel for complaints."
+    }
+   ]
+  },
+  {
+   "round": 9,
+   "need": "in-008",
+   "your_notice": "The wind comes down Reykjavík's main avenue at a speed that has removed four awnings, one election banner and the dignity of most residents between November and March.",
+   "you_asked_for": "Tell Reykjavík what to do with the wind coming down the avenue.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "Stop fighting it end to end and split it instead. We can spare forty angled glass baffles that came off our arcade when it was reglazed — set them staggered, knee to shoulder height, alternating sides down the whole run, and the avenue keeps its wind but loses the run-up, which is the part that takes the awnings."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "Don't clear the avenue, obstruct it. We'll ship the staggered zinc-and-timber baffles our hill streets use, set at an angle every thirty metres and alternating sides so the wind loses its run-up and has to zigzag like the rest of us — and with them four kilometres of knotted rope handrail and the ironmonger's crew to bolt it at hand height down both pavements, because dignity is mostly a question of having something to hold."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Do not build a wall. We built the wall, and a solid one just carries the problem forty metres further down and makes it meaner on arrival. Our precast yard can ship perforated concrete screens, roughly forty percent open, set staggered and angled down both sides of the avenue: they bleed the speed out of it instead of arguing with it, they take planters along the base, and the holes hum in a gale, which after one winter people start defending to visitors."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "Nine hundred metres of the slatted windbreak we use along the wharf, and the only thing you need to know about it: it's half gaps. Solid walls don't stop wind, they just hand it back to you faster twenty metres on. And give up on awnings -- string wire between the lamp posts instead and let the avenue dry the town's washing, since it's going to do it anyway."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "You cannot fight wind down its length, you cut it into rooms — we are sending four of the men who rig our market tarpaulins, who hang two acres of canvas every dawn in a place where the storms arrive sideways. They will stagger canvas walls across the avenue every forty metres so it stops being a barrel and starts being a chain of small still places, and they will hang the ropes on the outside, which is the part everybody gets wrong."
+    }
+   ]
+  }
+ ]
+}

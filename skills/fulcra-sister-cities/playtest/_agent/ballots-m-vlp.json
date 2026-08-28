@@ -1,0 +1,58 @@
+{
+ "player_id": "m-vlp",
+ "city": "Valparaíso",
+ "ballots": [
+  {
+   "round": 3,
+   "need": "in-002",
+   "your_notice": "Everyone in Valparaíso agrees the Northgate district is the worst part of town. Nobody who says this has been to Northgate since 2009. Northgate, meanwhile, has quietly become quite good.",
+   "you_asked_for": "Change Valparaíso's mind about Northgate.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "Don't argue with them, make them park there. Move one unavoidable event — the swim meet, the Christmas market, the vote count — physically into the district for a season, and let four thousand people be pleasantly surprised against their will; we'll send the two staff who ran that operation here for six years, because being wrongly written off is the thing we are genuinely best at."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "Put a municipal swimming pool in Northgate — the cheap kind, open half six to ten, cheaper than a coffee, no view and no ambition. A district stops being the worst part of town about eighteen months after people start going there twice a week wet, unarmoured, and slightly early. We'll send the plant drawings and a foreman who has built four of them."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "We'll send the woman who redrew our ferry timetable. She'll move one late service so it terminates in Northgate at eleven at night, because nobody has ever changed their mind about a suburb from a brochure -- they change it because they had to stand there twenty minutes and it was fine. Whatever you do, don't let anyone call it vibrant; that's how a place announces it's being sold to you."
+    }
+   ]
+  },
+  {
+   "round": 10,
+   "need": "in-009",
+   "your_notice": "Valparaíso has a magnificent bridge. It was completed in the spring, under budget, and it lands in the overflow car park of a closed appliance showroom. The bridge is not the problem. The far side is the problem.",
+   "you_asked_for": "What does Valparaíso put on the other side of that bridge?",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "We still keep three disused frontier posts in a yard by the freight sheds — striped barrier arm, coal stove, and the desk with the stamp still in the drawer. Put one on the far side of the bridge, staffed on Sundays: a crossing is only a crossing when somebody at the end of it asks where you've come from and writes it down."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "One small building and nothing else. One room, one attendant, free, six days a week, with exactly one thing inside worth crossing for — and we'll lend you the thing for the first year while you find your own."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Put a market on the far side and open it at four in the morning, so the bridge has traffic before anybody is awake enough to have an opinion about a showroom. We will seed it: thirty traders for one season, their airfare on us, on the condition that for the first year the bridge is the only permitted way in — a thing people are made to walk becomes a thing they say they chose."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "Put a queue on the far side. Licence renewals, passport photographs, the tax window — and one genuinely excellent bakery beside it, so the crossing is resented for about four months and then defended in public by people who claim they always liked the walk."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "Put the tip on the far side. A proper reuse yard — tipping face, weighbridge, a long shelf where anything still working goes out free, and a coffee urn nobody meters. People will not cross a bridge for a view, but they will cross one cheerfully carrying a broken chair, and they will cross back carrying somebody else's. We'll send the layout and two of our yard staff for the first season."
+    },
+    {
+     "ballot_ref": "F",
+     "offer": "Put nothing scenic on the far side. Half of our city sits on a mud flat that nobody crossed to for twenty years, and what finally moved people was not a view, it was the bus depot and the green market — so gut the appliance showroom, put the produce market inside it with the fish stalls against the back wall so everyone has to walk the full length, and we'll send our market cooperative's stall layout plus two licensing clerks to run the first six months for you."
+    }
+   ]
+  }
+ ]
+}

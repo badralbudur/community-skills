@@ -1,0 +1,256 @@
+{
+ "player_id": "m-kop",
+ "city": "Kópavogur",
+ "mayor": "the Mayor of Kópavogur",
+ "requested_city": "Reykjavik",
+ "reassigned": true,
+ "persona": "Mayor of a town in the shadow of a capital, which is most of your personality. Modern, sensible, mildly overshadowed, quietly excellent at the things the big neighbour does not bother with.",
+ "engagement": "steady",
+ "engagement_note": "You joined a beat late, asked for a city that was already taken, and were moved next door. You are good-natured about it and mention it more often than strictly necessary.",
+ "joined_round": 0,
+ "away_rounds": [
+  4,
+  6
+ ],
+ "rounds": [
+  {
+   "round": 1,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Reykjavík",
+     "importing_mayor": "the Mayor of Reykjavík",
+     "the_notice": "Since February, Reykjavík has hummed. Two residents in five can hear it. The utility says it isn't theirs, the geologists say it isn't the ground, and the council has begun describing it in writing as 'the ambience.'",
+     "what_they_want": "Explain Reykjavík's hum, or make it somebody's problem in a way that helps."
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-never-understood",
+     "question": "Name a thing everybody else loves that you have never understood.",
+     "framing": "to_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  },
+  {
+   "round": 2,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Valparaíso",
+     "importing_mayor": "the Mayor of Valparaíso",
+     "the_notice": "Everyone in Valparaíso agrees the Northgate district is the worst part of town. Nobody who says this has been to Northgate since 2009. Northgate, meanwhile, has quietly become quite good.",
+     "what_they_want": "Change Valparaíso's mind about Northgate."
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-first-sight",
+     "question": "Mayor, a visitor has four hours and no plan. What do you show them first?",
+     "framing": "to_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  },
+  {
+   "round": 3,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Hobart",
+     "importing_mayor": "the Mayor of Hobart",
+     "the_notice": "Hobart's lighthouse was decommissioned in 1997 and disconnected in 1998. Three times this year it has signalled, at night, in a rhythm that the harbourmaster describes as 'polite.' Nobody has agreed what to do if it does it again.",
+     "what_they_want": "Tell Hobart what to do the next time the lighthouse signals."
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-real-compliment",
+     "question": "What compliment do you actually want to receive?",
+     "framing": "to_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  },
+  {
+   "round": 5,
+   "asks": [
+    {
+     "asked_for": "answer",
+     "question_id": "q-time-capsule",
+     "question": "Your city is burying a time capsule. What do you put in it personally?",
+     "framing": "to_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  },
+  {
+   "round": 7,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Belgrade",
+     "importing_mayor": "the Mayor of Belgrade",
+     "the_notice": "A clerical error in Belgrade's orchard subsidy has produced a plum harvest roughly nine times the town's historical plum appetite. They are ripening on schedule and entirely without mercy.",
+     "what_they_want": "Send Belgrade a use for ninety thousand plums, within the week."
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-ideal-tuesday",
+     "question": "Describe your ideal Tuesday evening. Be specific.",
+     "framing": "to_the_mayor",
+     "answer_shape": "long_freeform"
+    }
+   ]
+  },
+  {
+   "round": 8,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Reykjavík",
+     "importing_mayor": "the Mayor of Reykjavík",
+     "the_notice": "The wind comes down Reykjavík's main avenue at a speed that has removed four awnings, one election banner and the dignity of most residents between November and March.",
+     "what_they_want": "Tell Reykjavík what to do with the wind coming down the avenue."
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-unofficial-teacher",
+     "question": "Who taught you how to do this job — not the person who was supposed to?",
+     "framing": "to_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  },
+  {
+   "round": 9,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Valparaíso",
+     "importing_mayor": "the Mayor of Valparaíso",
+     "the_notice": "Valparaíso has a magnificent bridge. It was completed in the spring, under budget, and it lands in the overflow car park of a closed appliance showroom. The bridge is not the problem. The far side is the problem.",
+     "what_they_want": "What does Valparaíso put on the other side of that bridge?"
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-good-news-call",
+     "question": "Good news arrives. Who do you call first?",
+     "framing": "to_the_mayor",
+     "answer_shape": "categorical"
+    }
+   ]
+  },
+  {
+   "round": 10,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Hobart",
+     "importing_mayor": "the Mayor of Hobart",
+     "the_notice": "Hobart has adequate parking. Every study confirms it. Every resident disputes it. The gap between the studies and the residents is now Hobart's single most reliable source of public feeling.",
+     "what_they_want": "Resolve Hobart's parking question — the real one, not the arithmetic."
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-exile-city",
+     "question": "If your city vanished overnight, where would you go?",
+     "framing": "to_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  },
+  {
+   "round": 11,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Kampala",
+     "importing_mayor": "the Mayor of Kampala",
+     "the_notice": "Every tree Kampala has planted along the seafront promenade has died within two winters, politely and in order, west to east. The promenade is now a row of very well-maintained stakes.",
+     "what_they_want": "Give Kampala something that will grow where the salt is."
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-desk-object",
+     "question": "What is on the mayoral desk that has absolutely no business being there?",
+     "framing": "about_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  },
+  {
+   "round": 12,
+   "asks": [
+    {
+     "asked_for": "answer",
+     "question_id": "q-tiebreak",
+     "question": "Both options are genuinely fine. How do you decide?",
+     "framing": "to_the_mayor",
+     "answer_shape": "categorical"
+    }
+   ]
+  },
+  {
+   "round": 13,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Naoshima",
+     "importing_mayor": "the Mayor of Naoshima",
+     "the_notice": "Naoshima's team has no traditional rival. Matches are cordial. Attendance is stable. Something essential is missing and everyone is too polite to name it.",
+     "what_they_want": "Give Naoshima something or someone to beat."
+    }
+   ]
+  },
+  {
+   "round": 14,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Belgrade",
+     "importing_mayor": "the Mayor of Belgrade",
+     "the_notice": "The roof of Belgrade's town hall is currently supported by scaffolding, three generations of temporary permits, and the shared belief that it will hold. Two of those three are expiring.",
+     "what_they_want": "Send Belgrade something that can hold up a civic roof — structurally, financially, or spiritually."
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-hiding-place",
+     "question": "Where does the mayor go when the mayor wants to be left entirely alone?",
+     "framing": "about_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  },
+  {
+   "round": 15,
+   "asks": [
+    {
+     "asked_for": "export",
+     "importing_city": "Trieste",
+     "importing_mayor": "the Mayor of Trieste",
+     "the_notice": "Trieste runs on people finishing work at 5am — the port, the bakery, the hospital, the fish market. Nothing is open for them, and what is open is designed for people who slept.",
+     "what_they_want": "What does Trieste feed the people coming off the night shift?"
+    },
+    {
+     "asked_for": "answer",
+     "question_id": "q-entrance-music",
+     "question": "Something plays every time you walk into a room. What is it?",
+     "framing": "to_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  },
+  {
+   "round": 16,
+   "asks": [
+    {
+     "asked_for": "answer",
+     "question_id": "q-refuse-to-discard",
+     "question": "The most useless thing you refuse to throw away?",
+     "framing": "to_the_mayor",
+     "answer_shape": "short_freeform"
+    }
+   ]
+  }
+ ],
+ "privacy": "You never learn what any other city offered, and nobody ever learns what you offered unless it wins (spec #18, #21)."
+}

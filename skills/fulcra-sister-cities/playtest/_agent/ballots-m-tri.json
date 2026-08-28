@@ -1,0 +1,42 @@
+{
+ "player_id": "m-tri",
+ "city": "Trieste",
+ "ballots": [
+  {
+   "round": 16,
+   "need": "in-015",
+   "your_notice": "Trieste runs on people finishing work at 5am — the port, the bakery, the hospital, the fish market. Nothing is open for them, and what is open is designed for people who slept.",
+   "you_asked_for": "What does Trieste feed the people coming off the night shift?",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "A window, not a room. Ours opens at four and shuts at eight: one pot of something brothy, bread, black tea in a heavy cup, no music and no daylight bulbs, because people coming off a night don't want waking up, they want letting down gently. We'll send the urn, the soup, and the two women who run it, on the condition nobody calls it a concept."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "One hot thing, salty, served without conversation: rice, broth, an egg dropped in raw, pickles on the side. We'll send the pot and the woman who has fed the first crew out for thirty-one years — her rule is that nobody asks how the night went."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Katogo: green banana and beans stewed together in one pot since midnight, ladled into a bowl you hand straight back, with black tea boiled hard with ginger. We can send you the cook, the pot and the three rules that make it work — open three till seven only, one price, and no seat facing the door, because people coming off the night do not want to be looked at."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "Dark rye, baked overnight in the ground where the heat is free, sliced an inch thick with cold butter, a boiled egg and a mug of fish broth. We'll send the two women who do it, the recipe, and the only rule that matters: no menu, no seating plan, lights kept low, and nobody at the counter asks how your night was."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "Soup, from four to eight, one thing only and no menu: mutton and barley thick enough that the spoon complains, bread, refills free, one price you can pay with the coins already in your coat. Two of our night-canteen cooks will come and set it up, and they will insist on three things — warm lamps and not the white ones, seats facing the window so people can watch the day start without being asked to join it, and nobody behind the counter asking how the night was."
+    },
+    {
+     "ballot_ref": "F",
+     "offer": "Fish soup, at four in the morning, from a counter that shuts at nine and does not open again until four. We'll send the whole kit — the two vast pots, the cook who has done nothing else since he was nineteen, and the rule that every man gets the same bowl at the same price with bread and a glass of white wine and nobody insults him by suggesting coffee — because someone coming off nights isn't starting his day, he's ending it, and he should be fed like it's dinner."
+    },
+    {
+     "ballot_ref": "G",
+     "offer": "Ours open at four, and the rule of the house is that nobody serving asks how the night went. Feed them hot and without ceremony — flaky cheese pastry cut and sold by weight, soup with a bone actually in it, one small brandy that is nobody's business at that hour, coffee strong enough to stand a spoon in — and keep one long table reserved for them, away from the window, so the eight o'clock people cannot sit there and describe their commute."
+    }
+   ]
+  }
+ ]
+}

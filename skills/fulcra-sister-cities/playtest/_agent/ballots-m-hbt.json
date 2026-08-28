@@ -1,0 +1,66 @@
+{
+ "player_id": "m-hbt",
+ "city": "Hobart",
+ "ballots": [
+  {
+   "round": 4,
+   "need": "in-003",
+   "your_notice": "Hobart's lighthouse was decommissioned in 1997 and disconnected in 1998. Three times this year it has signalled, at night, in a rhythm that the harbourmaster describes as 'polite.' Nobody has agreed what to do if it does it again.",
+   "you_asked_for": "Tell Hobart what to do the next time the lighthouse signals.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "As I said before: answer it. We are sending the brass signal lamp off our old lake ferry and the two boys at the pier who still know the code, on the strict condition that the harbourmaster's first message is GOOD EVENING and nothing else — anything longer and you have begun a correspondence you will not be able to end."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "Answer it. We'll send a lamp and a retired ferry pilot who has spent forty years replying to lights that weren't addressed to him; the only condition is that someone keeps a log of both sides."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Answer it. We'll send a portable Aldis lamp, a full fuel can and a retired harbour pilot who reads lamp-rhythm the way other people read handwriting, to sit out on the point every clear night, repeat the pattern back exactly once when it comes, and write down what the light does next — three greetings left hanging isn't caution, it's bad manners."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "Signal back. We can send a serviceable lamp, a keeper willing to sit three nights, and the form — two long, one short, meaning received, no action required — and then it gets minuted and filed like anything else; we once bent a road four metres around a party that does not legally exist, and the paperwork we invented for it is still the calmest document in our archive. Nothing polite ever escalates once it has been answered in writing."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "Answer it. We'll send a retired harbour signalman and a hand lamp that runs off a car battery, and his instruction is to stand on the headland, repeat the rhythm back once, and then go home and say nothing. It has been polite three times; sending an electrician would be the rude move."
+    }
+   ]
+  },
+  {
+   "round": 11,
+   "need": "in-010",
+   "your_notice": "Hobart has adequate parking. Every study confirms it. Every resident disputes it. The gap between the studies and the residents is now Hobart's single most reliable source of public feeling.",
+   "you_asked_for": "Resolve Hobart's parking question — the real one, not the arithmetic.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "Send us the car park map and we will send you three of our boda stage chairmen, who allocate two hundred spaces a day out of a school exercise book with no lines painted on the ground and no appeals process. Your problem is not spaces, it is that nobody in your city can name the person who decided; give every street one chairman with a book and a face, and the arithmetic stops mattering within a month."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "The residents aren't asking for capacity, they're asking whether the street still belongs to them, and a study cannot say yes to that. Paint every household one numbered rectangle near its own door — theirs, by name, unenforced most of the time. We have the thermoplastic, the stencils and two line crews going spare in the spring, and after it's done the arithmetic can go on being right in private."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Your residents aren't counting spaces, they're checking whether the town still expects them to come at all. We'll send four masons and the drawings for a stone jetty that runs three hundred metres out and ends in nothing — you park badly at the foot of it, you walk to the end, and you come back with the argument out of you; ours has been settling this exact quarrel since 1861."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "Your studies are counting spaces and your residents are counting the minutes they spend with the indicator on, and those are different quantities, so both sides can keep being right forever. Borrow forty of the men who stand on our corners waving cars into gaps you would swear were not there — put them in a vest, pay them a wage instead of a coin, one per contested block; the arithmetic doesn't move an inch, but nobody circles alone any more and the grievance quietly loses its object."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "Your residents are not counting spaces, they are counting how far they will be made to walk carrying something heavy in weather, and no study has ever measured that. Valparaíso has almost no parking and almost no argument about it, because we put the money into fifteen funiculars instead — so pick one hard hill or one long street, build a lift that runs free and runs late and is worth riding for its own sake, and let people leave the car wherever it lands. We'll send the engineers who keep our hundred-year-old ascensores turning, and 'where do I park' quietly becomes 'anywhere, obviously.'"
+    },
+    {
+     "ballot_ref": "F",
+     "offer": "The residents aren't wrong, they're just gambling every time they set off. We'll pay for the boards on all four approaches: live count of free spaces, and underneath it — this is the part that actually works — the number that were free at this hour yesterday, and the day before. People will accept a full car park; what they can't stand is not knowing before they leave the house."
+    }
+   ]
+  }
+ ]
+}

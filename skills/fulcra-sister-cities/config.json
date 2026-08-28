@@ -1,0 +1,162 @@
+{
+  "_comment": "Single source of truth for all configurable parameters in spec.md. Roles read this; nothing re-derives these values independently. See harness spec.md Generation Rules for this requirement.",
+
+  "players": {
+    "min_players": 3,
+    "max_players": 10
+  },
+
+  "cities": {
+    "enforce_unique_city_names": true,
+    "duplicate_pick_resolution": "nearest_available_from_gazetteer",
+    "suggestions_offered_on_join": 6,
+    "max_reassignment_search_radius_km": 800,
+    "allow_off_gazetteer_picks": true,
+    "_note": "spec #2 -- city names unique per game, duplicates reassigned to a geographically close alternative (never silently allowed to collide), players may still pick freely. The data and the resolution procedure live in content/gazetteer.json; these are the knobs that procedure reads."
+  },
+
+  "content": {
+    "import_needs_file": "content/import_needs.json",
+    "gazetteer_file": "content/gazetteer.json",
+    "questions_file": "content/questions.json",
+    "newspaper_file": "content/newspaper.json",
+    "question_set_id": "getting_to_know_you_v1",
+    "allow_player_suggested_import_needs": true,
+    "_note": "spec #13, #33 -- seeded game content lives in content/ and is extended by players during play, not re-derived per role. newspaper_file holds The Daily Manifest's own copy: mastheads, department frames, the wire styles, image palettes and the tone register. It is content for the same reason the phrasing ladder is -- the wordings are writing decisions, and the renderer is their implementation."
+  },
+
+  "rounds": {
+    "round_window_hours": 24,
+    "rotations_target": 2,
+    "_note": "one round timer for the whole game; every round advances import-open, export-close, and winner-resolution in lockstep (spec #9-#12)"
+  },
+
+  "imports": {
+    "allow_repeat_category_across_cities": true,
+    "allow_repeat_category_for_same_city": false,
+    "reuse_same_need_within_game": false,
+    "_note": "spec #14, #22 -- same category may go to different cities but not to the same city twice, by default. reuse_same_need_within_game governs the individual need rather than its category: with 48 seeds and at most 20 needs in a maximum game, replaying the exact same brief verbatim is never necessary, so it is off."
+  },
+
+  "exports": {
+    "max_submissions_per_player_per_import_per_round": 1,
+    "importer_may_export_to_own_need": false,
+    "_note": "spec #15. importer_may_export_to_own_need is not settled by the spec either way; false is the sane default because a mayor exporting to their own import need would be judging their own entry, which blind voting (spec #18) cannot survive. Exposed rather than hardcoded so a facilitator can decide otherwise."
+  },
+
+  "economy": {
+    "profit_roll": "2d6",
+    "leaderboard_visible_in_newspaper": true,
+    "even_split_mode": "exact_fraction",
+    "profit_display_decimals": 2,
+    "_note": "spec #20-#22 -- exposure policy is intentionally config-driven so it can be iterated on; non-winning submission origin must never be exposed regardless of this config (spec #21, not overridable, and deliberately absent from this file: engine/economy.py holds it as a constant and tests/test_economy.py fails if a knob for it ever appears here). profit_roll is parsed as NdS rather than assumed to be two six-sided dice. even_split_mode decides what spec #19's 'split evenly' means when the roll does not divide cleanly: 'exact_fraction' (each city gets total/n exactly, the parts sum to the whole) or 'floor_discard_remainder' (integer-only ledgers, remainder unawarded). Every value in this block is validated when a game is constructed, not at the first roll, so a typo here refuses to start a game rather than crashing it three rounds in."
+  },
+
+  "facilitator_questions": {
+    "enabled": true,
+    "ask_every_n_rounds": 1,
+    "max_per_player_per_round": 1,
+    "_max_per_player_note": "How many of a mayor's two check-in slots may be a question. Spec #23 allows at most one, so the engine accepts 1 (ask) or 0 (suppress questions for a mayor while leaving the round's question asked of others) and refuses anything higher rather than silently capping it.",
+    "fill_second_slot_only_if_no_second_game_action_pending": true,
+    "scope": "freeform_getting_to_know_you",
+    "framing": "questions_to_about_the_mayor",
+    "answers_shared_in_newspaper": true,
+    "aggregate_phrasing_style": "clever_group_patterns",
+    "aggregate_phrasing_ladder": "default",
+    "_note": "spec #23-#25; scope is configurable for a future domain-specific harness run (e.g. 'coding_preferences'). ask_every_n_rounds is spec #23's 'not every round necessarily needs a question' -- 1 asks every round, 2 every other round, and `enabled: false` never. One question per round is asked of every mayor who checks in, because aggregate phrasing ('the world', 'some countries') is only meaningful when everyone was asked the same thing."
+  },
+
+  "newspaper": {
+    "publish_cadence": "per_round",
+    "archive_prior_editions": true,
+    "player_identity_style": "city_mayor_only",
+    "image_per_edition": true,
+    "masthead_id": "daily_manifest_v1",
+    "prose": {
+      "renderer": "deterministic_template",
+      "asides_per_edition": 1,
+      "max_quoted_answers_per_item": 3,
+      "max_declined_exports_printed": 3,
+      "_note": "renderer names a writer registered in newspaper/prose.py. 'deterministic_template' assembles each edition from content/newspaper.json's frames and the round's actual facts: no network, no provider, reproducible from the game seed, and every sentence a checkable function of game state -- which is what lets tests assert that an aggregate claim is true of its distribution (spec #25) rather than merely well-phrased. A future model-backed writer registers alongside it under its own id and is selected here; the interface it must satisfy is `write(edition_context) -> departments`. max_declined_exports_printed caps how many non-winning exports an Arrivals column reprints; their origin city is never printed at any setting (spec #21) and an export whose own text names a city is withheld instead of reprinted."
+    },
+    "image": {
+      "modality_preference": ["raster", "svg_procedural"],
+      "raster_providers": [],
+      "width": 1200,
+      "height": 700,
+      "_note": "spec #29 and the user decision of 2026-08-24: a fun, colorful raster image is preferred, and a deterministic, game-state-informed SVG is an explicitly permitted fallback when no raster provider is available. modality_preference is that policy, in order. raster_providers names adapters registered in newspaper/imagery.py; it is empty because this deployment has no image-generation provider, so every edition falls back to svg_procedural and says so in its own image.provenance. Naming a provider that is not registered is a config error rather than a silent fallback -- a facilitator who wires up a provider should hear about a typo, not quietly get SVGs."
+    },
+    "output": {
+      "editions_dir": "editions",
+      "formats": ["json", "markdown", "image"],
+      "_note": "Where a rendered edition lands on disk, as files to read in the repository. Serving the same editions at the paper's unguessable, noindex URL with the archive browsable (spec #26, #27) is the separate `hosting` block below; it renders the edition payloads to HTML itself rather than reading these files, so neither output is downstream of the other."
+    },
+    "tone": {
+      "funny": true,
+      "colorful": true,
+      "allow_pointed_humor": true,
+      "disallow_snide_or_mean": true
+    },
+    "_note": "spec #26-#30; player_identity_style may later support more anonymity per decisions Q26. The four tone flags are load-bearing, not decorative: `funny` false drops the editorial asides and leaves the paper reporting facts, `colorful` false switches the edition image to the monochrome palette, `allow_pointed_humor` false filters out every frame content marks `pointed`, and `disallow_snide_or_mean` runs content/newspaper.json's forbidden register over the finished prose and refuses to publish an edition that trips it."
+  },
+
+  "hosting": {
+    "enabled": true,
+    "url_style": "unguessable_subdomain",
+    "scheme": "https",
+    "base_domain": "sister-cities.news",
+    "site_id_bytes": 16,
+    "site_id_file": ".site-id",
+    "site_id_env_var": "SISTER_CITIES_SITE_ID",
+    "site_dir": "site",
+    "public_subdir": "public",
+    "archive_order": "newest_first",
+    "publishers": [],
+    "local_bind_host": "127.0.0.1",
+    "local_bind_port": 0,
+    "publish": ["archive_index", "editions", "final_edition", "city_images", "edition_images", "archive_json", "stylesheet", "robots"],
+    "privacy": {
+      "robots_txt": true,
+      "meta_robots": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+      "x_robots_tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
+      "referrer_policy": "no-referrer",
+      "cache_control": "private, no-store",
+      "content_security_policy": "default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"
+    },
+    "_note": "spec #26, #27 -- one fixed URL, not publicly discoverable, with every prior edition still browsable at it. The address is an unguessable subdomain under base_domain, per the fulcra-dashboard pattern: site_id_bytes of randomness become the label, and that label is the entire secret. It is therefore not in this file and not in the repo -- it is read from site_id_env_var if a deployment injects one, else from site_id_file, which .gitignore excludes and hosting/identity.py creates 0600 on first use. Nothing published ever contains it (hosting/guard.py fails the build if anything does), which is why the built site under site_dir is safe to commit: the pages are public, the address is not. `publish` is the curated allowlist of what may be served at all -- a category not named here is not built, and a file whose category is not a known one is a ConfigError rather than a silent inclusion. `final_edition` and `city_images` are spec #31 and #32's own entries: the last edition is a page of the same paper at the same address, filed under its own category rather than under `editions` because `editions` is checked for one page per round and the final edition shares the last round's number. `privacy` is the delivery policy: robots noindex in three places (robots.txt, a meta tag, and the X-Robots-Tag header) plus the headers that stop a private URL leaking sideways -- no-referrer and a CSP with no external origins, because any off-site request from these pages would put the secret address in somebody else's logs. `publishers` names remote deploy adapters registered in hosting/build.py; it is empty because this deployment has none, so the site is served locally by hosting/serve.py and the build says so in its own provenance rather than implying a deployment that did not happen. Naming an unregistered publisher is a config error, not a quiet fallback."
+  },
+
+  "endgame": {
+    "crown_cumulative_profit_winner": true,
+    "publish_twist_article": true,
+    "generate_per_city_description_and_image": true,
+    "per_city_excess_uses_non_chosen_exports": true,
+    "twist_article_items": 4,
+    "max_excess_offers_printed_per_city": 2,
+    "quote_mayor_answers_per_city": 1,
+    "city_image": {
+      "width": 900,
+      "height": 560
+    },
+    "write_private_excess_dossiers": false,
+    "_note": "spec #31-#32. The final edition of The Daily Manifest, published once, when the game ends. The first four flags are the three articles and the material one of them is built from: `crown_cumulative_profit_winner` prints The Crown, `publish_twist_article` prints Consequences, `generate_per_city_description_and_image` prints The Excess with one portrait per city, and `per_city_excess_uses_non_chosen_exports` decides whether a portrait is allowed to describe unchosen offers at all -- false leaves each city described by its public record alone. With all four false there is no final edition rather than an empty one. twist_article_items caps how many consequences the twist article draws from the game's actual arrivals; max_excess_offers_printed_per_city caps how many unchosen offers a portrait reprints (0 prints none, and an offer whose text names a city is withheld at every setting, per spec #21); quote_mayor_answers_per_city caps how many of a city's own answers its portrait quotes, and is additionally gated by facilitator_questions.answers_shared_in_newspaper, which is where that exposure decision is taken. city_image is the portrait's canvas, separate from newspaper.image.width/height because a portrait is not a broadsheet; the *modality* policy is deliberately not separate -- spec #32 says to use #29's raster-preferred/SVG-fallback policy, so portraits resolve through the same newspaper.image.modality_preference and raster_providers rather than through a second copy of it that could disagree. write_private_excess_dossiers is off: a dossier is the one endgame artifact that names which unchosen offers a city *sent*, it is written for that city's own mayor only, and writing it to disk in a repository anybody can read would publish exactly what spec #21 forbids -- see docs/m7-endgame.md."
+  },
+
+  "engine": {
+    "rng_seed": null,
+    "_note": "Seeds every random draw the engine makes -- import-need selection, ballot shuffling and profit rolls, each on its own derived stream. null means a genuinely random game, which is what a real game night wants. Set an integer to replay a game move-for-move; the test suite does exactly that. It lives here rather than in code because 'is this game reproducible' is a facilitator's decision, and because a reproducible game is the only way to re-examine a disputed round after the fact."
+  },
+
+  "playtest": {
+    "editions_label": "playtest-game",
+    "site_dir": "site/playtest",
+    "_note": "Where the recorded integration game (playtest/) puts its editions and its built site. Deliberately not `hosting.site_dir`: spec #27 makes an address an append-only archive, so two different games cannot share one. The live game publishes to hosting.site_dir; the recorded game -- eight mayors, seventeen rounds, played by separate agent sessions and replayed from playtest/transcript.json -- publishes here, at its own address, and is committed so the published bytes of a whole game can be read without replaying it. Both are built by the same hosting.build_site under the same privacy policy; only the directory differs.",
+    "_editions_note": "A label under newspaper.output.editions_dir, beside the scripted sample run's, for the same reason: one directory per game."
+  },
+
+  "roles": {
+    "generator_model": "opus",
+    "evaluator_model": "sonnet",
+    "_note": "Generator gets the more creative-leaning model (game content, newspaper prose, city descriptions/images are the bulk of its work). Evaluator gets a model tuned for strict, literal rule-checking against spec.md. Both invoked via `claude --model <alias>`. Revisit if either role's output quality suggests a swap."
+  }
+}

@@ -1,0 +1,66 @@
+{
+ "player_id": "m-kmp",
+ "city": "Kampala",
+ "ballots": [
+  {
+   "round": 5,
+   "need": "in-004",
+   "your_notice": "Kampala's storm drains were designed for a climate that has since resigned. Every heavy rain, the water arrives at the low end of Market Street and simply waits there, in public, for four days.",
+   "you_asked_for": "Give Kampala's standing water somewhere to be, or something to become.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "We have more marine decking and float drums than we have coastline to put them on — enough for sixty square metres of pontoon and eight walkways. Bolt them down at the low end of Market Street so that when the water arrives the market rises with it and keeps trading for its four days, and the thing standing in public stops being a failure and starts being a season."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "Send the levels and we'll send the tiler who did our bathhouse floor. Slope the low end into a shallow black dish so that four days a year it's a mirror with the whole street in it, and the rest of the year it's the flattest place in the city to sit down."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Send us your levels and we'll send back two diesel trash pumps, four hundred metres of lay-flat hose, and the bloke who cut the soak trenches under our own low corner. His rule is that water sitting for four days doesn't want draining, it wants somewhere better to be within a hundred metres -- so dig the low end on purpose, gravel the bottom, put reeds in it, and you've got a pond with a name instead of a puddle with a grudge."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "We'll ship four hundred metres of pontoon duckboard — the same bolt-together decking our stall-holders use to trade on a forty-degree hill — plus the carpenters who assemble it in a morning, so the market simply rises a foot and keeps selling straight through the four days. And we'll paint a gauge up the wall at the low end, marked and dated by year, so that in a decade the water isn't a failure, it's a record, and the children can argue about which flood was the famous one."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "We have a lake that began as a swampy river arm nobody would swim in until somebody closed one end with rubble, and it is now the best thing we own. Send us the levels for the low end of Market Street and we'll send back three drainage engineers, a truck of interlocking concrete units and a plan that stops apologising for the water: dig the low point deeper, line it, put steps down one side, and by the second summer rent out a pedalo."
+    }
+   ]
+  },
+  {
+   "round": 12,
+   "need": "in-011",
+   "your_notice": "Every tree Kampala has planted along the seafront promenade has died within two winters, politely and in order, west to east. The promenade is now a row of very well-maintained stakes.",
+   "you_asked_for": "Give Kampala something that will grow where the salt is.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "Olives. Take two hundred cuttings off trees that have stood in salt spray since before there was a ferry; plant them in the same order the others died in, west to east, and let them be slow."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "Seven hundred seedlings out of our foreshore nursery -- she-oak, boobialla, coastal tea-tree -- all three already growing in sand that takes a face full of salt spray twice a day, and none of them needing a stake after the first year. Plant them closer together than looks sensible; the front row is meant to die for the rest, and the she-oaks make a noise in the wind you can claim you intended."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Our street trees stand in salt every winter because we grit like lunatics, and the survivors are always the same three: tamarisk, sea buckthorn and an ugly hybrid poplar nobody has ever photographed. Take cuttings from our depot by the crate, plant them in raised beds with a coarse gravel layer underneath so rain flushes the salt down past the roots rather than parking it there, and accept that the promenade will look scruffy for six years and then be a windbreak."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "Sea buckthorn — nine hundred rooted whips, and the warning that it is ugly for six years and then it is a hedge, a windbreak and a crop, in that order. Your trees didn't die of salt, they died in order: the west end took the wind for everyone and then it was the next one's turn. Plant the west two hundred metres as a thicket you never intend to admire, and let it take the beating on behalf of the rest."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "Stop planting trees on the front line. Take six hundred rooted cuttings of the salt rose that has colonised our own shore embankment — hideous for two years, an impassable four-foot hedge by year four, hips you can boil into jam — and put your trees in behind it in year five, where they will live."
+    },
+    {
+     "ballot_ref": "F",
+     "offer": "Stop replacing the trees; nothing with a trunk that thin has ever beaten salt. We'll send two crates of rooted bougainvillea, six hundred aloe pups and a sack of ice-plant cuttings torn off our own cliff faces — all of it grows in rubble on salt spray and none of it wants anything from you — planted at the foot of the stakes you have maintained so beautifully, so that in two years the stakes are trellises and the promenade is magenta from one end to the other."
+    }
+   ]
+  }
+ ]
+}

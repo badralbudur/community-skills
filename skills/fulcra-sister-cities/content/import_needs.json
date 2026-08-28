@@ -1,0 +1,546 @@
+{
+  "schema_version": 1,
+  "_comment": "Seeded import-need list for Sister Cities (spec #13, #14, #33). Each round, one city's import need opens; every other city may submit ONE freeform export in response (spec #15). Needs are written city-agnostic and rendered by substituting placeholders (see placeholders below). Repetition is governed by config.json -> imports (a category may repeat across different cities but not for the same city twice, unless config says otherwise). Player-suggested needs are appended to this same list at runtime with \"source\": \"player\" (spec #13).",
+
+  "placeholders": {
+    "_comment": "Declared so rendering is checkable rather than assumed. A need is city-agnostic precisely because it names no city itself.",
+    "{city}": { "renders_to": "the importing city's name", "required_in": ["need_brief", "exporter_prompt"] },
+    "{mayor}": { "renders_to": "the importing city's mayor, styled per NAME.md (always 'Mayor', e.g. 'the Mayor of Reykjavík')", "required_in": [], "_note": "Available but deliberately unused by all 48 seeds -- the briefs read better as municipal grievances than as messages from a named office. Player-suggested needs may use it." }
+  },
+
+  "design_notes": [
+    "Every need is a PROBLEM, never a shopping list. A need that names its own solution ('needs 40 tonnes of gravel') collapses the export phase into a single correct answer; these are written so a shipbuilder, a poet, and a bureaucrat could each plausibly win.",
+    "Needs are absurd-adjacent but never nonsense: each one has a real municipal grievance underneath it, so mayors can answer from actual civic experience and the newspaper has something true to exaggerate.",
+    "Category is the unit of the repetition rule. 16 categories x 3 needs = 48 seeds, which comfortably covers the maximum game (10 cities x 2 rotations = 20 import needs) without any city drawing the same category twice.",
+    "'exporter_prompt' is the line shown to exporting mayors. It deliberately does NOT hint at a preferred answer shape, because the importing mayor judges subjectively with no rubric (spec #18).",
+    "'excess_flavor' is a hint for the endgame: what a NON-chosen export of this kind piles up as in the exporting city (spec #32). It is never shown during play and never attributed to a losing city."
+  ],
+
+  "categories": [
+    { "id": "infrastructure", "label": "Infrastructure & Public Works", "blurb": "Things that are load-bearing, literally or otherwise." },
+    { "id": "water_and_waste", "label": "Water & Waste", "blurb": "What comes in wet and what refuses to leave." },
+    { "id": "food_and_drink", "label": "Food & Drink", "blurb": "Municipal appetite, municipal surplus." },
+    { "id": "culture_and_arts", "label": "Culture & the Arts", "blurb": "Statues, anthems, and unresolved committee opinions about both." },
+    { "id": "civic_ritual", "label": "Civic Ritual", "blurb": "Ceremonies, festivals, and the correct way to cut a ribbon." },
+    { "id": "wildlife_and_nature", "label": "Wildlife & Nature", "blurb": "Neighbours who did not fill out the forms." },
+    { "id": "weather_and_climate", "label": "Weather & Climate", "blurb": "The sky, treated as a procurement problem." },
+    { "id": "labor_and_expertise", "label": "Labour & Expertise", "blurb": "Someone who knows how the thing actually works." },
+    { "id": "transport_and_logistics", "label": "Transport & Logistics", "blurb": "Getting from here to there, ideally on purpose." },
+    { "id": "energy_and_utilities", "label": "Energy & Utilities", "blurb": "Heat, light, and the bill for both." },
+    { "id": "tourism_and_reputation", "label": "Tourism & Reputation", "blurb": "What outsiders say about us when we leave the room." },
+    { "id": "bureaucracy_and_paperwork", "label": "Bureaucracy & Paperwork", "blurb": "The city's true native industry." },
+    { "id": "sport_and_recreation", "label": "Sport & Recreation", "blurb": "Organised municipal sweating." },
+    { "id": "education_and_knowledge", "label": "Education & Knowledge", "blurb": "Teaching the place to remember itself." },
+    { "id": "health_and_wellness", "label": "Health & Wellness", "blurb": "The body politic, and also the bodies." },
+    { "id": "mysteries_and_anomalies", "label": "Mysteries & Anomalies", "blurb": "Items the city clerk has stopped minuting." }
+  ],
+
+  "needs": [
+    {
+      "id": "need-infrastructure-01",
+      "category": "infrastructure",
+      "title": "A bridge that goes somewhere",
+      "need_brief": "{city} has a magnificent bridge. It was completed in the spring, under budget, and it lands in the overflow car park of a closed appliance showroom. The bridge is not the problem. The far side is the problem.",
+      "exporter_prompt": "What does {city} put on the other side of that bridge?",
+      "excess_flavor": "far sides, unattached, stacked by the water",
+      "tags": ["absurd", "civic", "physical"],
+      "source": "seed"
+    },
+    {
+      "id": "need-infrastructure-02",
+      "category": "infrastructure",
+      "title": "Load-bearing optimism",
+      "need_brief": "The roof of {city}'s town hall is currently supported by scaffolding, three generations of temporary permits, and the shared belief that it will hold. Two of those three are expiring.",
+      "exporter_prompt": "Send {city} something that can hold up a civic roof — structurally, financially, or spiritually.",
+      "excess_flavor": "unused support, propped against every wall in town",
+      "tags": ["absurd", "civic", "physical"],
+      "source": "seed"
+    },
+    {
+      "id": "need-infrastructure-03",
+      "category": "infrastructure",
+      "title": "A junction that ends the argument",
+      "need_brief": "At the Fifth and Harbour crossing, {city}'s drivers have developed an elaborate unwritten protocol involving eye contact, headlight flashes, and one particular hand gesture. Visitors do not know the protocol. Visitors are not doing well.",
+      "exporter_prompt": "How does {city} settle who goes first?",
+      "excess_flavor": "right-of-way conventions, mutually incompatible",
+      "tags": ["everyday", "civic", "social"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-water_and_waste-01",
+      "category": "water_and_waste",
+      "title": "Somewhere for the rain to go",
+      "need_brief": "{city}'s storm drains were designed for a climate that has since resigned. Every heavy rain, the water arrives at the low end of Market Street and simply waits there, in public, for four days.",
+      "exporter_prompt": "Give {city}'s standing water somewhere to be, or something to become.",
+      "excess_flavor": "drainage ideas, pooling",
+      "tags": ["climate", "civic", "physical"],
+      "source": "seed"
+    },
+    {
+      "id": "need-water_and_waste-02",
+      "category": "water_and_waste",
+      "title": "A dignified end for 400 tonnes of seaweed",
+      "need_brief": "The tide brings {city} four hundred tonnes of seaweed a season. Burning it is illegal, burying it is unpopular, and the phrase 'municipal seaweed' now appears in eleven separate complaint letters.",
+      "exporter_prompt": "What should {city} do with all that seaweed?",
+      "excess_flavor": "second, third and fourth uses for seaweed, unclaimed",
+      "tags": ["surplus", "coastal", "physical"],
+      "source": "seed"
+    },
+    {
+      "id": "need-water_and_waste-03",
+      "category": "water_and_waste",
+      "title": "Water that doesn't taste like 1978",
+      "need_brief": "{city}'s tap water is perfectly safe and tastes strongly of the decade in which the pipes were laid. Residents have stopped noticing. Their guests have not.",
+      "exporter_prompt": "Send {city} something that fixes the taste, the pipes, or the guests.",
+      "excess_flavor": "flavour corrections, decanted",
+      "tags": ["everyday", "infrastructure-adjacent", "sensory"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-food_and_drink-01",
+      "category": "food_and_drink",
+      "title": "A signature dish, urgently",
+      "need_brief": "A travel magazine has listed {city} as 'a city best experienced between meals.' The council has convened. The council would like this corrected before the next issue.",
+      "exporter_prompt": "What is {city} famous for eating, starting now?",
+      "excess_flavor": "candidate national dishes, going cold",
+      "tags": ["identity", "culinary", "reputation"],
+      "source": "seed"
+    },
+    {
+      "id": "need-food_and_drink-02",
+      "category": "food_and_drink",
+      "title": "Ninety thousand surplus plums",
+      "need_brief": "A clerical error in {city}'s orchard subsidy has produced a plum harvest roughly nine times the town's historical plum appetite. They are ripening on schedule and entirely without mercy.",
+      "exporter_prompt": "Send {city} a use for ninety thousand plums, within the week.",
+      "excess_flavor": "plum schemes, fermenting quietly",
+      "tags": ["surplus", "culinary", "deadline"],
+      "source": "seed"
+    },
+    {
+      "id": "need-food_and_drink-03",
+      "category": "food_and_drink",
+      "title": "A breakfast that survives a night shift",
+      "need_brief": "{city} runs on people finishing work at 5am — the port, the bakery, the hospital, the fish market. Nothing is open for them, and what is open is designed for people who slept.",
+      "exporter_prompt": "What does {city} feed the people coming off the night shift?",
+      "excess_flavor": "breakfasts, served at the wrong hour",
+      "tags": ["everyday", "culinary", "labour"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-culture_and_arts-01",
+      "category": "culture_and_arts",
+      "title": "A statue of somebody less complicated",
+      "need_brief": "The plinth in {city}'s central square has been empty for two years. The previous occupant turned out to have opinions. The plinth is a good plinth and the square feels the absence.",
+      "exporter_prompt": "Who or what should stand on {city}'s empty plinth?",
+      "excess_flavor": "rejected monuments, in storage, facing the wall",
+      "tags": ["identity", "civic", "public-art"],
+      "source": "seed"
+    },
+    {
+      "id": "need-culture_and_arts-02",
+      "category": "culture_and_arts",
+      "title": "A second verse for the anthem",
+      "need_brief": "{city}'s anthem has exactly one verse. At every civic occasion the band reaches the end, hesitates, and plays it again, slightly louder, while everyone stares straight ahead.",
+      "exporter_prompt": "Give {city} something to sing after the first verse.",
+      "excess_flavor": "unsung verses, filed alphabetically",
+      "tags": ["identity", "music", "ceremony"],
+      "source": "seed"
+    },
+    {
+      "id": "need-culture_and_arts-03",
+      "category": "culture_and_arts",
+      "title": "An orchestra that fits in a stairwell",
+      "need_brief": "{city}'s concert hall is closed for repairs until the year after next. The only municipal space with acceptable acoustics is the east stairwell of the parking structure, which seats nine and echoes gloriously.",
+      "exporter_prompt": "What music should {city} make in a stairwell?",
+      "excess_flavor": "ensembles, too large for the venue",
+      "tags": ["constraint", "music", "make-do"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-civic_ritual-01",
+      "category": "civic_ritual",
+      "title": "A festival for the shortest day",
+      "need_brief": "{city} gets six usable hours of daylight in December and has never done anything about it. Neighbouring towns have festivals. {city} has a note in the minutes reading 'discuss lights?'",
+      "exporter_prompt": "Invent what {city} does on its darkest day of the year.",
+      "excess_flavor": "unheld festivals, dated and unattended",
+      "tags": ["seasonal", "ceremony", "identity"],
+      "source": "seed"
+    },
+    {
+      "id": "need-civic_ritual-02",
+      "category": "civic_ritual",
+      "title": "A ribbon-cutting people attend",
+      "need_brief": "{city} opened a new footbridge, a new clinic and a new recycling depot this year. Combined public attendance at the three ceremonies was eleven, four of whom were the mayor's family.",
+      "exporter_prompt": "How does {city} get a crowd to show up to an opening?",
+      "excess_flavor": "ceremonies, uncut ribbons still on the spool",
+      "tags": ["ceremony", "civic", "attendance"],
+      "source": "seed"
+    },
+    {
+      "id": "need-civic_ritual-03",
+      "category": "civic_ritual",
+      "title": "A better way to swear in a mayor",
+      "need_brief": "In {city}, the mayor takes office by signing a form in a side office with two witnesses and a stapler. It is legally impeccable and emotionally insufficient.",
+      "exporter_prompt": "Design how {city} should install its next mayor.",
+      "excess_flavor": "oaths of office, unspoken",
+      "tags": ["ceremony", "office", "identity"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-wildlife_and_nature-01",
+      "category": "wildlife_and_nature",
+      "title": "A predator for the pigeons that isn't worse than the pigeons",
+      "need_brief": "{city} imported hawks. The hawks were worse. {city} then imported a plan to manage the hawks. That plan is now the third item on this list of things {city} manages.",
+      "exporter_prompt": "Solve {city}'s pigeon situation without starting a fourth situation.",
+      "excess_flavor": "introduced species, awaiting introduction",
+      "tags": ["ecology", "escalation", "urban"],
+      "source": "seed"
+    },
+    {
+      "id": "need-wildlife_and_nature-02",
+      "category": "wildlife_and_nature",
+      "title": "Pollinators willing to work at altitude",
+      "need_brief": "{city}'s rooftop farms are eleven storeys up and produce almost nothing, because the bees — reasonably — stay near the ground where the flowers already are.",
+      "exporter_prompt": "Get something up to {city}'s eleventh floor to do the pollinating.",
+      "excess_flavor": "pollination schemes, grounded",
+      "tags": ["ecology", "vertical", "agriculture"],
+      "source": "seed"
+    },
+    {
+      "id": "need-wildlife_and_nature-03",
+      "category": "wildlife_and_nature",
+      "title": "A tree that can take the salt",
+      "need_brief": "Every tree {city} has planted along the seafront promenade has died within two winters, politely and in order, west to east. The promenade is now a row of very well-maintained stakes.",
+      "exporter_prompt": "Give {city} something that will grow where the salt is.",
+      "excess_flavor": "saplings, unplanted, still in their pots",
+      "tags": ["ecology", "coastal", "persistence"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-weather_and_climate-01",
+      "category": "weather_and_climate",
+      "title": "Shade, in an installable form",
+      "need_brief": "For five weeks a year {city}'s main square reaches temperatures that the local paper describes with a single exclamation mark. Trees take twenty years. The square has five weeks.",
+      "exporter_prompt": "Send {city} shade that can be installed before August.",
+      "excess_flavor": "shade, cast on nothing",
+      "tags": ["climate", "urgent", "physical"],
+      "source": "seed"
+    },
+    {
+      "id": "need-weather_and_climate-02",
+      "category": "weather_and_climate",
+      "title": "Something to do with the fog",
+      "need_brief": "{city} is fogged in two hundred days a year. It has been treated as a defect since the town was founded. A subcommittee has quietly suggested this may have been an error.",
+      "exporter_prompt": "Turn {city}'s fog into an asset.",
+      "excess_flavor": "unrealised uses for fog, drifting",
+      "tags": ["climate", "reframe", "identity"],
+      "source": "seed"
+    },
+    {
+      "id": "need-weather_and_climate-03",
+      "category": "weather_and_climate",
+      "title": "Wind, redirected",
+      "need_brief": "The wind comes down {city}'s main avenue at a speed that has removed four awnings, one election banner and the dignity of most residents between November and March.",
+      "exporter_prompt": "Tell {city} what to do with the wind coming down the avenue.",
+      "excess_flavor": "windbreaks, blown over",
+      "tags": ["climate", "physical", "seasonal"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-labor_and_expertise-01",
+      "category": "labor_and_expertise",
+      "title": "Somebody who understands the old pipe network",
+      "need_brief": "One person in {city} knew where all the pipes go. He retired in March. He left a map. The map is a napkin, and it is honestly quite beautiful, and it is not sufficient.",
+      "exporter_prompt": "Send {city} whatever it needs to know where its own pipes go.",
+      "excess_flavor": "expertise, offered to no one",
+      "tags": ["knowledge-loss", "infrastructure-adjacent", "people"],
+      "source": "seed"
+    },
+    {
+      "id": "need-labor_and_expertise-02",
+      "category": "labor_and_expertise",
+      "title": "Childcare that runs at 3am",
+      "need_brief": "{city}'s biggest employers run around the clock. {city}'s childcare runs 8 to 6. The gap is currently being covered by grandmothers, goodwill, and a rota taped inside a locker door.",
+      "exporter_prompt": "Cover {city}'s night hours.",
+      "excess_flavor": "care arrangements, unrostered",
+      "tags": ["labour", "care", "everyday"],
+      "source": "seed"
+    },
+    {
+      "id": "need-labor_and_expertise-03",
+      "category": "labor_and_expertise",
+      "title": "Translators for the harbour market",
+      "need_brief": "Nine languages pass through {city}'s harbour market every morning and business is conducted almost entirely through pointing, tone of voice, and an agreed set of noises. It works. It works about 80% of the time.",
+      "exporter_prompt": "Help {city}'s market understand itself.",
+      "excess_flavor": "phrasebooks, for languages nobody brought",
+      "tags": ["language", "commerce", "people"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-transport_and_logistics-01",
+      "category": "transport_and_logistics",
+      "title": "A last-mile solution for a very steep mile",
+      "need_brief": "Deliveries to {city}'s upper town stop at the bottom of a 19% gradient. From there, everything — furniture, groceries, one piano — proceeds by arrangement, on foot, badly.",
+      "exporter_prompt": "Get {city}'s deliveries up the hill.",
+      "excess_flavor": "conveyances, parked at the bottom of the hill",
+      "tags": ["terrain", "logistics", "physical"],
+      "source": "seed"
+    },
+    {
+      "id": "need-transport_and_logistics-02",
+      "category": "transport_and_logistics",
+      "title": "A bus route people would ride for fun",
+      "need_brief": "{city}'s buses are punctual, clean, and used exclusively by people with no alternative. Ridership studies have concluded, at some expense, that the buses are 'fine.'",
+      "exporter_prompt": "Give {city} a bus route worth riding on a day off.",
+      "excess_flavor": "routes, unrun, timetabled anyway",
+      "tags": ["transit", "delight", "civic"],
+      "source": "seed"
+    },
+    {
+      "id": "need-transport_and_logistics-03",
+      "category": "transport_and_logistics",
+      "title": "Parking, spiritually",
+      "need_brief": "{city} has adequate parking. Every study confirms it. Every resident disputes it. The gap between the studies and the residents is now {city}'s single most reliable source of public feeling.",
+      "exporter_prompt": "Resolve {city}'s parking question — the real one, not the arithmetic.",
+      "excess_flavor": "parking solutions, double-parked",
+      "tags": ["civic", "perception", "conflict"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-energy_and_utilities-01",
+      "category": "energy_and_utilities",
+      "title": "Power for the four coldest weeks",
+      "need_brief": "{city}'s grid is comfortable for forty-eight weeks of the year and holds its breath for the other four. Every January it makes a sound. Engineers have described the sound as 'not ideal.'",
+      "exporter_prompt": "Get {city} through the four weeks.",
+      "excess_flavor": "reserve capacity, unspent",
+      "tags": ["seasonal", "grid", "risk"],
+      "source": "seed"
+    },
+    {
+      "id": "need-energy_and_utilities-02",
+      "category": "energy_and_utilities",
+      "title": "A use for the waste heat",
+      "need_brief": "The data centre on {city}'s eastern edge produces enough waste heat to warm a small district and currently uses it to make one particular field extremely comfortable for foxes.",
+      "exporter_prompt": "Put {city}'s waste heat to work.",
+      "excess_flavor": "heat, radiating into the evening",
+      "tags": ["surplus", "energy", "reuse"],
+      "source": "seed"
+    },
+    {
+      "id": "need-energy_and_utilities-03",
+      "category": "energy_and_utilities",
+      "title": "Streetlights that leave the stars alone",
+      "need_brief": "{city} upgraded its streetlights and gained excellent visibility, a 40% energy saving, and the loss of every star its residents had grown up looking at. The petition has 3,000 signatures and a very good title.",
+      "exporter_prompt": "Light {city}'s streets without taking its sky.",
+      "excess_flavor": "lighting proposals, switched off",
+      "tags": ["tradeoff", "night", "civic"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-tourism_and_reputation-01",
+      "category": "tourism_and_reputation",
+      "title": "A reason to stay a second night",
+      "need_brief": "Visitors to {city} arrive at four, see the thing, eat somewhere adequate, and leave before eleven the next morning. {city} has been described in three separate guidebooks as 'a good stop.'",
+      "exporter_prompt": "Give {city}'s visitors a reason to stay another night.",
+      "excess_flavor": "attractions, unvisited, open late",
+      "tags": ["reputation", "economy", "identity"],
+      "source": "seed"
+    },
+    {
+      "id": "need-tourism_and_reputation-02",
+      "category": "tourism_and_reputation",
+      "title": "A rebrand for the least-loved district",
+      "need_brief": "Everyone in {city} agrees the Northgate district is the worst part of town. Nobody who says this has been to Northgate since 2009. Northgate, meanwhile, has quietly become quite good.",
+      "exporter_prompt": "Change {city}'s mind about Northgate.",
+      "excess_flavor": "rebrands, unadopted, still in draft",
+      "tags": ["reputation", "neighbourhood", "perception"],
+      "source": "seed"
+    },
+    {
+      "id": "need-tourism_and_reputation-03",
+      "category": "tourism_and_reputation",
+      "title": "A postcard that isn't the bridge",
+      "need_brief": "Every image of {city} ever printed shows the same view from the same hill. The hill is lovely. {city} would like to be more than one photograph.",
+      "exporter_prompt": "Show {city} to the world from a different angle.",
+      "excess_flavor": "views, unphotographed",
+      "tags": ["reputation", "image", "identity"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-bureaucracy_and_paperwork-01",
+      "category": "bureaucracy_and_paperwork",
+      "title": "A form nobody cries over",
+      "need_brief": "{city}'s residency form is four pages, requires two documents that no longer exist, and is completed correctly on the first attempt by roughly one applicant in nine.",
+      "exporter_prompt": "Fix {city}'s worst form.",
+      "excess_flavor": "simplified forms, unfiled",
+      "tags": ["bureaucracy", "everyday", "design"],
+      "source": "seed"
+    },
+    {
+      "id": "need-bureaucracy_and_paperwork-02",
+      "category": "bureaucracy_and_paperwork",
+      "title": "Twelve kilometres of unread minutes",
+      "need_brief": "{city}'s archive holds twelve linear kilometres of council minutes going back to 1804. Somewhere in there is the decision that explains the pipes. Nobody has ever read past 1861.",
+      "exporter_prompt": "Do something with {city}'s archive.",
+      "excess_flavor": "indexing schemes, themselves unindexed",
+      "tags": ["archive", "memory", "scale"],
+      "source": "seed"
+    },
+    {
+      "id": "need-bureaucracy_and_paperwork-03",
+      "category": "bureaucracy_and_paperwork",
+      "title": "A queue for the permit office",
+      "need_brief": "{city}'s permit office opens at nine. The queue forms at six. The queue has developed its own customs, its own coffee arrangement, and, as of last spring, a newsletter.",
+      "exporter_prompt": "Sort out {city}'s queue — or decide what it should become.",
+      "excess_flavor": "queueing systems, waiting their turn",
+      "tags": ["bureaucracy", "social", "everyday"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-sport_and_recreation-01",
+      "category": "sport_and_recreation",
+      "title": "A sport that can be played in this wind",
+      "need_brief": "{city} has three excellent pitches and a prevailing crosswind that has turned every ball sport ever attempted here into a lottery with injuries.",
+      "exporter_prompt": "Invent or send {city} a sport that works in a gale.",
+      "excess_flavor": "unplayable sports, equipment included",
+      "tags": ["sport", "constraint", "invention"],
+      "source": "seed"
+    },
+    {
+      "id": "need-sport_and_recreation-02",
+      "category": "sport_and_recreation",
+      "title": "A rival worth having",
+      "need_brief": "{city}'s team has no traditional rival. Matches are cordial. Attendance is stable. Something essential is missing and everyone is too polite to name it.",
+      "exporter_prompt": "Give {city} something or someone to beat.",
+      "excess_flavor": "grudges, unreciprocated",
+      "tags": ["sport", "social", "identity"],
+      "source": "seed"
+    },
+    {
+      "id": "need-sport_and_recreation-03",
+      "category": "sport_and_recreation",
+      "title": "The empty pool, October to April",
+      "need_brief": "{city}'s outdoor municipal pool is magnificent for eleven weeks and a large blue rectangle of civic guilt for the remaining forty-one.",
+      "exporter_prompt": "Fill {city}'s pool with something for the winter.",
+      "excess_flavor": "off-season uses, drained",
+      "tags": ["seasonal", "reuse", "civic"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-education_and_knowledge-01",
+      "category": "education_and_knowledge",
+      "title": "A library card worth bragging about",
+      "need_brief": "{city}'s library is free, excellent, and holds active cards for 8% of residents. The librarians have tried posters. The posters were not the issue.",
+      "exporter_prompt": "Make {city} want its own library card.",
+      "excess_flavor": "membership drives, unenrolled",
+      "tags": ["civic", "culture", "persuasion"],
+      "source": "seed"
+    },
+    {
+      "id": "need-education_and_knowledge-02",
+      "category": "education_and_knowledge",
+      "title": "A subject that didn't exist last year",
+      "need_brief": "{city}'s schools have one free period on the timetable and a standing instruction to teach something useful in it. So far it has been used for supervised silence.",
+      "exporter_prompt": "Tell {city} what to teach in the empty period.",
+      "excess_flavor": "curricula, untaught",
+      "tags": ["education", "future", "civic"],
+      "source": "seed"
+    },
+    {
+      "id": "need-education_and_knowledge-03",
+      "category": "education_and_knowledge",
+      "title": "The river's history, told without boring anyone",
+      "need_brief": "{city}'s river has eight hundred years of documented history and a heritage plaque that begins with the words 'In 1214, following the settlement of a dispute regarding weirs.' Nobody has ever reached the second sentence.",
+      "exporter_prompt": "Make {city}'s river interesting to a fourteen-year-old.",
+      "excess_flavor": "histories, unread past the first line",
+      "tags": ["heritage", "storytelling", "civic"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-health_and_wellness-01",
+      "category": "health_and_wellness",
+      "title": "The four o'clock municipal slump",
+      "need_brief": "Between 3:40 and 4:20 every weekday, productivity across {city} collapses in a way visible on the traffic sensors, the power draw, and the tone of every phone call made in that window.",
+      "exporter_prompt": "Get {city} through the afternoon.",
+      "excess_flavor": "remedies, past their moment",
+      "tags": ["everyday", "rhythm", "wellbeing"],
+      "source": "seed"
+    },
+    {
+      "id": "need-health_and_wellness-02",
+      "category": "health_and_wellness",
+      "title": "Somewhere to be sad in public",
+      "need_brief": "{city} has benches for waiting, benches for eating and benches for supervising children. It has nowhere a person can sit and feel awful for twenty minutes without somebody asking if they're all right.",
+      "exporter_prompt": "Give {city} a decent place to have a bad afternoon.",
+      "excess_flavor": "quiet corners, unoccupied",
+      "tags": ["wellbeing", "public-space", "tender"],
+      "source": "seed"
+    },
+    {
+      "id": "need-health_and_wellness-03",
+      "category": "health_and_wellness",
+      "title": "Open when the ferry docks",
+      "need_brief": "The last ferry reaches {city} at 11:40pm. Everything on the island shuts at ten. Whatever the passengers need — medicine, dinner, a plaster, a phone charger — they need it tomorrow.",
+      "exporter_prompt": "Cover {city}'s last hour of the day.",
+      "excess_flavor": "late-night services, closed",
+      "tags": ["access", "timing", "everyday"],
+      "source": "seed"
+    },
+
+    {
+      "id": "need-mysteries_and_anomalies-01",
+      "category": "mysteries_and_anomalies",
+      "title": "An explanation for the humming",
+      "need_brief": "Since February, {city} has hummed. Two residents in five can hear it. The utility says it isn't theirs, the geologists say it isn't the ground, and the council has begun describing it in writing as 'the ambience.'",
+      "exporter_prompt": "Explain {city}'s hum, or make it somebody's problem in a way that helps.",
+      "excess_flavor": "explanations, unconvincing, filed under 'ambience'",
+      "tags": ["mystery", "civic", "comedy"],
+      "source": "seed"
+    },
+    {
+      "id": "need-mysteries_and_anomalies-02",
+      "category": "mysteries_and_anomalies",
+      "title": "The hole that keeps coming back",
+      "need_brief": "{city}'s works department has filled the hole on Fifth Street eleven times. It has reappeared eleven times, always the same diameter, never in quite the same place. Budget line 44-C is now titled 'Fifth Street (ongoing).'",
+      "exporter_prompt": "Send {city} something for the hole.",
+      "excess_flavor": "hole-fillings, surplus to requirement",
+      "tags": ["mystery", "recurring", "comedy"],
+      "source": "seed"
+    },
+    {
+      "id": "need-mysteries_and_anomalies-03",
+      "category": "mysteries_and_anomalies",
+      "title": "A protocol for when the lighthouse answers back",
+      "need_brief": "{city}'s lighthouse was decommissioned in 1997 and disconnected in 1998. Three times this year it has signalled, at night, in a rhythm that the harbourmaster describes as 'polite.' Nobody has agreed what to do if it does it again.",
+      "exporter_prompt": "Tell {city} what to do the next time the lighthouse signals.",
+      "excess_flavor": "protocols, never invoked",
+      "tags": ["mystery", "coastal", "eerie"],
+      "source": "seed"
+    }
+  ],
+
+  "player_extensions": {
+    "_comment": "Spec #13 -- players may suggest additional import needs during play. Appended here (or to the game's runtime state file) with the same schema.",
+    "required_fields": ["id", "category", "title", "need_brief", "exporter_prompt", "source"],
+    "rules": [
+      "source must be \"player\", plus a proposed_by_city field naming the suggesting city.",
+      "category must be one of the ids in categories[], so the repetition rule in config.json -> imports still applies. If no category fits, add the category here first rather than leaving it blank.",
+      "need_brief must use the {city} placeholder rather than naming a specific city, so the need can be drawn by whichever city comes up.",
+      "A suggested need may not name a specific export or city, to keep the export phase open-ended and blind judging fair."
+    ]
+  }
+}

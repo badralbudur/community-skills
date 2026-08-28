@@ -1,0 +1,42 @@
+{
+ "player_id": "m-nao",
+ "city": "Naoshima",
+ "ballots": [
+  {
+   "round": 14,
+   "need": "in-013",
+   "your_notice": "Naoshima's team has no traditional rival. Matches are cordial. Attendance is stable. Something essential is missing and everyone is too polite to name it.",
+   "you_asked_for": "Give Naoshima something or someone to beat.",
+   "offers": [
+    {
+     "ballot_ref": "A",
+     "offer": "We'll do it. Our lot are mediocre, well-travelled and famously ungracious about a draw — two legs a year, home and away, and we'll bring two hundred people who sing in a language nobody there can follow. The trophy is a ship's bell off a decommissioned tug, heavy enough to be a nuisance to carry home, which is the entire point of a trophy."
+    },
+    {
+     "ballot_ref": "B",
+     "offer": "A rival from overseas is a friendly with extra travel. The ones that work live twenty minutes away and use the same butcher — so split the club: give the half of the town on the wrong side of the harbour road the older kit, the worse pitch and a grievance about a disputed goal in 1974 that we will happily draft in convincing detail, and we'll send two veterans of our supporters' club for a fortnight to teach the drumming, the banners and exactly where the line sits."
+    },
+    {
+     "ballot_ref": "C",
+     "offer": "Our dockers' side will come over in October and play you honourably, and on the way to the ferry they will take the bell off your pier. Politeness is not the problem — you have nothing you want back."
+    },
+    {
+     "ballot_ref": "D",
+     "offer": "We volunteer. Our second-division side will travel to you every year at their own expense on the condition that they are permitted to be completely insufferable about it for the full ninety minutes, and we are sending the trophy with this letter: forty kilos, cast iron, genuinely ugly, and it lives with whoever lost."
+    },
+    {
+     "ballot_ref": "E",
+     "offer": "We volunteer. First we send the trophy — an appalling object, a metre of welded ship's brass on a plinth of harbour timber, too heavy for one man to carry and too ugly to display without an explanation — and a signed fixture, first Sunday of every March, alternating ports, in perpetuity. Then we send the grievance: some years ago one of your vessels took a record off us under circumstances we have described as theft ever since, and by the second match your own side will believe it too."
+    },
+    {
+     "ballot_ref": "F",
+     "offer": "We'll do it. Our lot have never once been described as cordial on a field, we'll travel, and we'll take the same weekend every year -- home and away, and the trophy has to be an ugly object with a bad story attached, not a cup. Fair warning: nobody stays polite about us for long, which is what you said you wanted."
+    },
+    {
+     "ballot_ref": "G",
+     "offer": "Take us. We have thirty years of documented experience being the team a bigger neighbour declines to consider a fixture, and we can supply the entire apparatus: a chant with one word in it, a coach who says the wrong thing to a reporter deliberately, and a grievance dating to a document signed in a wet field that nobody on either side has read."
+    }
+   ]
+  }
+ ]
+}

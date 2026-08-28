@@ -1,0 +1,508 @@
+{
+  "schema_version": 1,
+  "game": "Sister Cities",
+  "publication": "The Daily Manifest",
+  "spec": "#34 (each mayor is a separate agent), #16/#17/#19 (the fallbacks this table's engagement levels produce)",
+  "notes": {
+    "how_this_was_played": "Every mayor in this transcript was played by its own separately spawned agent session, given only its own city's brief -- its persona, its engagement level and the notices its own check-ins put in front of it -- and never any other city's offers (spec #34, and #18/#21 for why the briefs are cut that narrowly). Exports and answers were written first, from those briefs. The winner picks were collected in a second pass, from the real blind ballots of the replayed game, by the same eight sessions with their personas intact -- a mayor cannot judge offers that do not exist yet. The clustering of each round's answers was made by a ninth, separate session playing the facilitator, because spec #25's aggregate is measured over a grouping the engine deliberately refuses to invent (see engine.aggregate). See docs/m8-integration.md.",
+    "engagement": "Who was at their desk when is playtest/table.py's decision, not the mayors' -- see the module docstring there. Round 6 is empty on purpose.",
+    "why_it_is_stored": "A game played by language models is not reproducible; a regression artifact has to be. Replaying this file against the seed in playtest/table.py reproduces the game, the editions and the site exactly."
+  },
+  "seed": 6180339,
+  "start": "2026-09-10T09:00:00+00:00",
+  "seats": [
+    {
+      "player_id": "m-rvk",
+      "handle": "@vidar",
+      "requested_city": "Reykjavík",
+      "is_facilitator": true,
+      "joins_round": 0,
+      "engagement": "facilitator, diligent",
+      "engagement_note": "You run this game and you also play in it under exactly the same rules as everybody else. You check in every round you are able to.",
+      "persona": "Mayor of Reykjavík. Dry, precise, faintly weary. Talks about weather and infrastructure the way other people talk about family. Never oversells.",
+      "away": [
+        6
+      ]
+    },
+    {
+      "player_id": "m-vlp",
+      "handle": "@rosa",
+      "requested_city": "Valparaíso",
+      "is_facilitator": false,
+      "joins_round": 0,
+      "engagement": "eager",
+      "engagement_note": "You love this game. You check in the moment the round opens, every round, and your offers are the most elaborate at the table.",
+      "persona": "Mayor of Valparaíso. Warm, theatrical, a little competitive. Runs a city of hills, funiculars, stray dogs and paint. Cannot resist a flourish.",
+      "away": [
+        6
+      ]
+    },
+    {
+      "player_id": "m-hbt",
+      "handle": "@nell",
+      "requested_city": "Hobart",
+      "is_facilitator": false,
+      "joins_round": 0,
+      "engagement": "steady",
+      "engagement_note": "You check in most rounds, usually near the deadline, and you do not agonise. Occasionally a week gets away from you.",
+      "persona": "Mayor of Hobart. Understated, deadpan, extremely practical. Weather, ferries, rope, and a suspicion of anything described as 'vibrant'.",
+      "away": [
+        6,
+        9
+      ]
+    },
+    {
+      "player_id": "m-kmp",
+      "handle": "@otim",
+      "requested_city": "Kampala",
+      "is_facilitator": false,
+      "joins_round": 0,
+      "engagement": "erratic",
+      "engagement_note": "You are genuinely enthusiastic and genuinely unreliable. You miss rounds entirely, then come back and act as though you had been there all along.",
+      "persona": "Mayor of Kampala. Loud, fast, funny, generous. Boda riders, markets that start before dawn, and an unshakeable belief that everything is fixable.",
+      "away": [
+        2,
+        6,
+        11
+      ]
+    },
+    {
+      "player_id": "m-kop",
+      "handle": "@juno",
+      "requested_city": "Reykjavik",
+      "is_facilitator": false,
+      "joins_round": 0,
+      "engagement": "steady",
+      "engagement_note": "You joined a beat late, asked for a city that was already taken, and were moved next door. You are good-natured about it and mention it more often than strictly necessary.",
+      "persona": "Mayor of a town in the shadow of a capital, which is most of your personality. Modern, sensible, mildly overshadowed, quietly excellent at the things the big neighbour does not bother with.",
+      "away": [
+        4,
+        6
+      ]
+    },
+    {
+      "player_id": "m-nao",
+      "handle": "@tobi",
+      "requested_city": "Naoshima",
+      "is_facilitator": false,
+      "joins_round": 3,
+      "engagement": "lurker",
+      "engagement_note": "You joined late and mostly read. You check in rarely, and when you do it is brief and slightly apologetic. You are more interested in the newspaper than in winning.",
+      "persona": "Mayor of Naoshima -- a small island of art museums, ferries, olive trees and about three thousand people. Quiet, wry, unbothered by scale.",
+      "away": [
+        5,
+        6,
+        8,
+        10
+      ]
+    },
+    {
+      "player_id": "m-bel",
+      "handle": "@asha",
+      "requested_city": "Belgrade",
+      "is_facilitator": false,
+      "joins_round": 4,
+      "engagement": "late but keen",
+      "engagement_note": "You arrived after the game was well underway and are making up for it. You check in every round you can and you take the picking seriously.",
+      "persona": "Mayor of Belgrade. Blunt, hospitable, argumentative in a friendly way. Rivers, concrete, coffee that takes two hours, and strong opinions about everybody else's opinions.",
+      "away": [
+        6
+      ]
+    },
+    {
+      "player_id": "m-tri",
+      "handle": "@pell",
+      "requested_city": "Trieste",
+      "is_facilitator": false,
+      "joins_round": 9,
+      "engagement": "very late",
+      "engagement_note": "You joined when the game was two thirds over, on a friend's recommendation. You are entirely aware you have missed most of it and entirely unbothered.",
+      "persona": "Mayor of Trieste. Melancholy, literary, coffee-obsessed. A port city that has belonged to four countries and is loyal to none of them.",
+      "away": [
+        11
+      ]
+    }
+  ],
+  "exports": {
+    "m-rvk": {
+      "2": "Put a municipal swimming pool in Northgate — the cheap kind, open half six to ten, cheaper than a coffee, no view and no ambition. A district stops being the worst part of town about eighteen months after people start going there twice a week wet, unarmoured, and slightly early. We'll send the plant drawings and a foreman who has built four of them.",
+      "3": "Answer it. We'll send a retired harbour signalman and a hand lamp that runs off a car battery, and his instruction is to stand on the headland, repeat the rhythm back once, and then go home and say nothing. It has been polite three times; sending an electrician would be the rude move.",
+      "4": "We have more marine decking and float drums than we have coastline to put them on — enough for sixty square metres of pontoon and eight walkways. Bolt them down at the low end of Market Street so that when the water arrives the market rises with it and keeps trading for its four days, and the thing standing in public stops being a failure and starts being a season.",
+      "5": "Don't correct the magazine, annex it: declare the between-meal the meal. Half past three, one item only — flatbread cooked black-spotted on a dry griddle, butter thick enough to hold a thumbprint, a slice of salted lamb, eaten standing — and we'll send two griddles and the man who runs them, on loan until your own people can do it half asleep.",
+      "7": "Freeze them. We have eleven thousand cubic metres of trawler cold store sitting empty until the season turns, and a plum takes to a blast freezer better than anything we normally put in there. Ripe fruit is a problem that expires in nine days; frozen fruit is a problem you can have next year instead, in a month of your choosing, at a pace a town can actually drink.",
+      "9": "Put the tip on the far side. A proper reuse yard — tipping face, weighbridge, a long shelf where anything still working goes out free, and a coffee urn nobody meters. People will not cross a bridge for a view, but they will cross one cheerfully carrying a broken chair, and they will cross back carrying somebody else's. We'll send the layout and two of our yard staff for the first season.",
+      "10": "The residents aren't asking for capacity, they're asking whether the street still belongs to them, and a study cannot say yes to that. Paint every household one numbered rectangle near its own door — theirs, by name, unenforced most of the time. We have the thermoplastic, the stencils and two line crews going spare in the spring, and after it's done the arithmetic can go on being right in private.",
+      "11": "Sea buckthorn — nine hundred rooted whips, and the warning that it is ugly for six years and then it is a hedge, a windbreak and a crop, in that order. Your trees didn't die of salt, they died in order: the west end took the wind for everyone and then it was the next one's turn. Plant the west two hundred metres as a thicket you never intend to admire, and let it take the beating on behalf of the rest.",
+      "12": "Pay the grandmothers. They are already doing the work to a standard you couldn't buy; what's missing is a payroll number, an insurance line and somebody to cover when one of them has flu — so take the rota off the locker door, put it on a desk, and we'll second you two relief night staff for a year to be the cover. Beds, blackout blinds and the rule we use: the child arrives already asleep, so the goodbye happens at home where it belongs.",
+      "13": "We'll do it. Our lot are mediocre, well-travelled and famously ungracious about a draw — two legs a year, home and away, and we'll bring two hundred people who sing in a language nobody there can follow. The trophy is a ship's bell off a decommissioned tug, heavy enough to be a nuisance to carry home, which is the entire point of a trophy.",
+      "14": "We are re-roofing our own market hall and have twelve glulam trusses coming out of it, eighteen metres clear span, sound and dry and ready in October — yours if you send the lorries. More usefully, we'll send the structural engineer who condemned them and have her put her name and stamp on the calculations for your span, because it isn't timber your expiring permits are short of, it's a signature.",
+      "15": "Soup, from four to eight, one thing only and no menu: mutton and barley thick enough that the spoon complains, bread, refills free, one price you can pay with the coins already in your coat. Two of our night-canteen cooks will come and set it up, and they will insist on three things — warm lamps and not the white ones, seats facing the window so people can watch the day start without being asked to join it, and nobody behind the counter asking how the night was."
+    },
+    "m-vlp": {
+      "1": "We're sending Doña Ester and two of the old winch mechanics, who have spent forty years diagnosing cable machinery by ear alone and can tell you blindfolded whether a hum is a bearing, a transformer, or a building resonating in sympathy with something three streets away. If they find nothing, they will at least tell you what note it is — and then we ship you enough second-hand street organs tuned to that note that the ambience becomes municipal property, with a budget, a caretaker, and a proper channel for complaints.",
+      "3": "Answer it. We'll send a portable Aldis lamp, a full fuel can and a retired harbour pilot who reads lamp-rhythm the way other people read handwriting, to sit out on the point every clear night, repeat the pattern back exactly once when it comes, and write down what the light does next — three greetings left hanging isn't caution, it's bad manners.",
+      "4": "We'll ship four hundred metres of pontoon duckboard — the same bolt-together decking our stall-holders use to trade on a forty-degree hill — plus the carpenters who assemble it in a morning, so the market simply rises a foot and keeps selling straight through the four days. And we'll paint a gauge up the wall at the low end, marked and dated by year, so that in a decade the water isn't a failure, it's a record, and the children can argue about which flood was the famous one.",
+      "5": "Take the stevedore's plate and make it yours in lamb: one pan, potatoes cut thick and fried in dripping, meat and onion collapsed over the top, two eggs, four forks, no side dishes and no reservation. We'll send you the cook who has made nothing else for nineteen years to stand in a kitchen of your choosing for a month, and the only two rules that matter — it is eaten out of the pan by people who are touching elbows, and it is available at three in the morning, or that magazine was right about you.",
+      "7": "Our fruit terminal handles an entire southern stone-fruit season, which means that this week our cold rooms are empty and eighty packers are painting their own houses out of boredom. Give us three days' notice and we'll put forty reefer containers on your siding with the crews already inside them — your plums leave as fruit, not as jam and not as brandy, and land in a hemisphere where it is February, it is dark at four, and a fresh plum sells for what a bottle of anything sells for.",
+      "8": "Don't clear the avenue, obstruct it. We'll ship the staggered zinc-and-timber baffles our hill streets use, set at an angle every thirty metres and alternating sides so the wind loses its run-up and has to zigzag like the rest of us — and with them four kilometres of knotted rope handrail and the ironmonger's crew to bolt it at hand height down both pavements, because dignity is mostly a question of having something to hold.",
+      "10": "Your residents are not counting spaces, they are counting how far they will be made to walk carrying something heavy in weather, and no study has ever measured that. Valparaíso has almost no parking and almost no argument about it, because we put the money into fifteen funiculars instead — so pick one hard hill or one long street, build a lift that runs free and runs late and is worth riding for its own sake, and let people leave the car wherever it lands. We'll send the engineers who keep our hundred-year-old ascensores turning, and 'where do I park' quietly becomes 'anywhere, obviously.'",
+      "11": "Stop replacing the trees; nothing with a trunk that thin has ever beaten salt. We'll send two crates of rooted bougainvillea, six hundred aloe pups and a sack of ice-plant cuttings torn off our own cliff faces — all of it grows in rubble on salt spray and none of it wants anything from you — planted at the foot of the stakes you have maintained so beautifully, so that in two years the stakes are trellises and the promenade is magenta from one end to the other.",
+      "12": "Our port has run a night crèche since the docks went round the clock: one warm room by the gate, eleven cots, a levy the employers pay per night-shift worker rather than per child, and a standing rule that the children sleep there and are carried home asleep at seven. We'll lend you, for a full season, the two women who have worked the ten-to-seven shift for a decade and the two pages of rules that actually matter — and take that rota out of the locker and put it on the payroll, because goodwill is a wage somebody is quietly not being paid.",
+      "13": "We volunteer. First we send the trophy — an appalling object, a metre of welded ship's brass on a plinth of harbour timber, too heavy for one man to carry and too ugly to display without an explanation — and a signed fixture, first Sunday of every March, alternating ports, in perpetuity. Then we send the grievance: some years ago one of your vessels took a record off us under circumstances we have described as theft ever since, and by the second match your own side will believe it too.",
+      "14": "We sit on a fault line, so every building we own is held up by something that was meant to be temporary in 1906 — the only real difference is that we stopped apologising for it and moved it into the budget under maintenance. We'll send four shipwrights and the yard foreman who reframe our roofs in laminated timber built to move rather than resist, Oregon pine enough for a span your size, and one piece of advice: name the scaffolding, give it a plaque and a line item, and it will outlast all three permits and very probably you.",
+      "15": "Fish soup, at four in the morning, from a counter that shuts at nine and does not open again until four. We'll send the whole kit — the two vast pots, the cook who has done nothing else since he was nineteen, and the rule that every man gets the same bowl at the same price with bread and a glass of white wine and nobody insults him by suggesting coffee — because someone coming off nights isn't starting his day, he's ending it, and he should be fed like it's dinner."
+    },
+    "m-hbt": {
+      "1": "We can lend you two people who spend every winter listening to ice shelves flex at frequencies nobody can hear, and the four low-frequency hydrophones they do it with. Give them a fortnight and a map of your water mains, and if it turns out to be a fridge they'll say so plainly and won't put it in a report.",
+      "2": "We'll send the woman who redrew our ferry timetable. She'll move one late service so it terminates in Northgate at eleven at night, because nobody has ever changed their mind about a suburb from a brochure -- they change it because they had to stand there twenty minutes and it was fine. Whatever you do, don't let anyone call it vibrant; that's how a place announces it's being sold to you.",
+      "4": "Send us your levels and we'll send back two diesel trash pumps, four hundred metres of lay-flat hose, and the bloke who cut the soak trenches under our own low corner. His rule is that water sitting for four days doesn't want draining, it wants somewhere better to be within a hundred metres -- so dig the low end on purpose, gravel the bottom, put reeds in it, and you've got a pond with a name instead of a puddle with a grudge.",
+      "5": "Be famous for something a person can eat standing up outside in bad weather with one hand. Ours is scallops in a thin curried white sauce inside short pastry, sold from a window, no seating and no tablecloth -- we'll send the pastry hand who's made them for thirty years and you can put your own fish in it.",
+      "7": "Plums won't wait, so stop trying to eat them. We'll put two truck-bed fruit presses and the crew who run our own March glut on a plane, plus a distiller whose entire philosophy is that fruit you can't sell is fruit you haven't got in a barrel yet -- pressed inside four days, in cask by Sunday, and it becomes next year's problem instead of this week's.",
+      "8": "Nine hundred metres of the slatted windbreak we use along the wharf, and the only thing you need to know about it: it's half gaps. Solid walls don't stop wind, they just hand it back to you faster twenty metres on. And give up on awnings -- string wire between the lamp posts instead and let the avenue dry the town's washing, since it's going to do it anyway.",
+      "11": "Seven hundred seedlings out of our foreshore nursery -- she-oak, boobialla, coastal tea-tree -- all three already growing in sand that takes a face full of salt spray twice a day, and none of them needing a stake after the first year. Plant them closer together than looks sensible; the front row is meant to die for the rest, and the she-oaks make a noise in the wind you can claim you intended.",
+      "12": "We run a night room off the back of the hospital laundry: ten till seven, cots rather than activities, one adult to four children, and a minibus at both ends. The thing you're actually short of isn't carers, it's a licence category that exists after six in the evening -- we'll send the two pages of ours you can copy word for word, and the woman who wrote them, for a fortnight.",
+      "13": "We'll do it. Our lot have never once been described as cordial on a field, we'll travel, and we'll take the same weekend every year -- home and away, and the trophy has to be an ugly object with a bad story attached, not a cup. Fair warning: nobody stays polite about us for long, which is what you said you wanted.",
+      "14": "Send us photographs of the trusses and we'll send three shipwrights. A roof is a hull upside down, and scarfing new timber into an old frame while the thing stays in use is the only job they've ever had -- fixed price agreed before the first cut, which will do more for your permits than the scaffolding ever did.",
+      "15": "A window, not a room. Ours opens at four and shuts at eight: one pot of something brothy, bread, black tea in a heavy cup, no music and no daylight bulbs, because people coming off a night don't want waking up, they want letting down gently. We'll send the urn, the soup, and the two women who run it, on the condition nobody calls it a concept."
+    },
+    "m-kmp": {
+      "1": "We are sending Ssalongo, who has diagnosed generators by ear for thirty-one years and has never once needed to open the casing — give him a bicycle, a torch and four nights and he will walk you to the exact wall it is coming out of. If it turns out to be nobody's, he will teach forty of your residents to hum along with it in a key the council can live with, and by March it will be a choir and not a complaint.",
+      "3": "As I said before: answer it. We are sending the brass signal lamp off our old lake ferry and the two boys at the pier who still know the code, on the strict condition that the harbourmaster's first message is GOOD EVENING and nothing else — anything longer and you have begun a correspondence you will not be able to end.",
+      "5": "Chapati rolled hot around two eggs, cabbage and tomato, eaten standing in the street with one hand — we move four hundred thousand a night and we can spare three men, three griddles and the whole technique for nothing. It is not a meal and it is not between meals, which is precisely the hole your magazine fell into; the only rule is that the eggs are always two, never one.",
+      "7": "Nine days of guaranteed sun, forty of our drying racks on the next cargo flight, and eleven women out of the produce market who can turn ninety thousand of anything into something that keeps until Christmas. They will want half the dried weight and a chair each in the shade, and they will not want instructions.",
+      "8": "You cannot fight wind down its length, you cut it into rooms — we are sending four of the men who rig our market tarpaulins, who hang two acres of canvas every dawn in a place where the storms arrive sideways. They will stagger canvas walls across the avenue every forty metres so it stops being a barrel and starts being a chain of small still places, and they will hang the ropes on the outside, which is the part everybody gets wrong.",
+      "9": "Put a market on the far side and open it at four in the morning, so the bridge has traffic before anybody is awake enough to have an opinion about a showroom. We will seed it: thirty traders for one season, their airfare on us, on the condition that for the first year the bridge is the only permitted way in — a thing people are made to walk becomes a thing they say they chose.",
+      "10": "Send us the car park map and we will send you three of our boda stage chairmen, who allocate two hundred spaces a day out of a school exercise book with no lines painted on the ground and no appeals process. Your problem is not spaces, it is that nobody in your city can name the person who decided; give every street one chairman with a book and a face, and the arithmetic stops mattering within a month.",
+      "12": "Following on from the eggs — we have run market crèches since long before anyone wrote them down: a warm room off the trading floor, mats not cots, one woman awake per nine children asleep, opening at ten at night and closing when the mothers come off shift. We will send Mama Nakato, who has run ours for nineteen years, plus the rota book, the mat supplier and the pricing rule that made it work: it must cost less than a bottle of soda, or the grandmothers will simply keep doing it for free and resenting you.",
+      "13": "We volunteer. Our second-division side will travel to you every year at their own expense on the condition that they are permitted to be completely insufferable about it for the full ninety minutes, and we are sending the trophy with this letter: forty kilos, cast iron, genuinely ugly, and it lives with whoever lost.",
+      "14": "Sell the roof by the square metre and paint every buyer's name on the underside of it, in a good hand, big enough to read from the floor — we are sending Ronnie, who has lettered every shopfront on our main road for twenty years and can do eleven hundred names in a fortnight. People will not pay to fix a ceiling, but they will pay to be looked up at by their grandchildren, and a roof that everybody is named on gets its permits renewed by people who take it personally.",
+      "15": "Katogo: green banana and beans stewed together in one pot since midnight, ladled into a bowl you hand straight back, with black tea boiled hard with ginger. We can send you the cook, the pot and the three rules that make it work — open three till seven only, one price, and no seat facing the door, because people coming off the night do not want to be looked at."
+    },
+    "m-kop": {
+      "1": "We keep a man on the district heating network whose whole job is to walk the streets before dawn with a steel rod against the pavement and name which pipe is complaining; he has not been wrong since 2004 and he is desperately bored. Lend him a fortnight and he either finds your hum or he certifies it as nobody's, on letterhead, with a stamp — which is the second-best outcome and much cheaper.",
+      "2": "Don't argue with them, make them park there. Move one unavoidable event — the swim meet, the Christmas market, the vote count — physically into the district for a season, and let four thousand people be pleasantly surprised against their will; we'll send the two staff who ran that operation here for six years, because being wrongly written off is the thing we are genuinely best at.",
+      "3": "Signal back. We can send a serviceable lamp, a keeper willing to sit three nights, and the form — two long, one short, meaning received, no action required — and then it gets minuted and filed like anything else; we once bent a road four metres around a party that does not legally exist, and the paperwork we invented for it is still the calmest document in our archive. Nothing polite ever escalates once it has been answered in writing.",
+      "7": "We have geothermal heat we cannot switch off and eleven hundred square metres of glasshouse sitting empty above it until October. Put the plums on lorries by Thursday and you get them back nine days later as forty tonnes of dark fruit leather in wax paper, keeps two years, and we'll take the split ones as payment.",
+      "8": "Stop fighting it end to end and split it instead. We can spare forty angled glass baffles that came off our arcade when it was reglazed — set them staggered, knee to shoulder height, alternating sides down the whole run, and the avenue keeps its wind but loses the run-up, which is the part that takes the awnings.",
+      "9": "Put a queue on the far side. Licence renewals, passport photographs, the tax window — and one genuinely excellent bakery beside it, so the crossing is resented for about four months and then defended in public by people who claim they always liked the walk.",
+      "10": "The residents aren't wrong, they're just gambling every time they set off. We'll pay for the boards on all four approaches: live count of free spaces, and underneath it — this is the part that actually works — the number that were free at this hour yesterday, and the day before. People will accept a full car park; what they can't stand is not knowing before they leave the house.",
+      "11": "Stop planting trees on the front line. Take six hundred rooted cuttings of the salt rose that has colonised our own shore embankment — hideous for two years, an impassable four-foot hedge by year four, hips you can boil into jam — and put your trees in behind it in year five, where they will live.",
+      "13": "Take us. We have thirty years of documented experience being the team a bigger neighbour declines to consider a fixture, and we can supply the entire apparatus: a chant with one word in it, a coach who says the wrong thing to a reporter deliberately, and a grievance dating to a document signed in a wet field that nobody on either side has read.",
+      "14": "When our own hall was reroofed we kept the eleven trusses that came out — laminated timber, twenty-two metres, stacked in a heated shed doing nothing but staying dry. They're yours for the cost of the lorries, and we'll send the engineer who signed them off originally, who is retired, sharp, and would dearly love to be permanent about something.",
+      "15": "Dark rye, baked overnight in the ground where the heat is free, sliced an inch thick with cold butter, a boiled egg and a mug of fish broth. We'll send the two women who do it, the recipe, and the only rule that matters: no menu, no seating plan, lights kept low, and nobody at the counter asks how your night was."
+    },
+    "m-nao": {
+      "3": "Answer it. We'll send a lamp and a retired ferry pilot who has spent forty years replying to lights that weren't addressed to him; the only condition is that someone keeps a log of both sides.",
+      "4": "Send the levels and we'll send the tiler who did our bathhouse floor. Slope the low end into a shallow black dish so that four days a year it's a mirror with the whole street in it, and the rest of the year it's the flattest place in the city to sit down.",
+      "7": "Salt, and every flat roof you can borrow. Eight hundred kilos of sea salt and two people who have never let a summer fruit go to the bin — halve, salt, three days of sun, and you're eating this harvest in February.",
+      "9": "One small building and nothing else. One room, one attendant, free, six days a week, with exactly one thing inside worth crossing for — and we'll lend you the thing for the first year while you find your own.",
+      "11": "Olives. Take two hundred cuttings off trees that have stood in salt spray since before there was a ferry; plant them in the same order the others died in, west to east, and let them be slow.",
+      "12": "Pay the grandmothers. Ours are on the payroll at the school's rate, it took one line in the budget, and we'll send you the line — plus the laminating machine, since the rota is the only part of this you got right.",
+      "14": "Two boatwrights, their own timber, no hurry. They make ribs that hold a hull shut against forty years of sea, and a roof is only a hull upside down and dry.",
+      "15": "One hot thing, salty, served without conversation: rice, broth, an egg dropped in raw, pickles on the side. We'll send the pot and the woman who has fed the first crew out for thirty-one years — her rule is that nobody asks how the night went."
+    },
+    "m-bel": {
+      "4": "We have a lake that began as a swampy river arm nobody would swim in until somebody closed one end with rubble, and it is now the best thing we own. Send us the levels for the low end of Market Street and we'll send back three drainage engineers, a truck of interlocking concrete units and a plan that stops apologising for the water: dig the low point deeper, line it, put steps down one side, and by the second summer rent out a pedalo.",
+      "5": "Fame isn't a recipe, it's a smell that reaches the end of the street by four in the afternoon. We'll lend you two grill men and their scarred iron plates for a season to establish one dish and one dish only — lamb and onion pressed into hot flatbread, eaten standing, no cutlery, stall opens at four and closes when the meat runs out — and the queue will do the rest of the advertising.",
+      "8": "Do not build a wall. We built the wall, and a solid one just carries the problem forty metres further down and makes it meaner on arrival. Our precast yard can ship perforated concrete screens, roughly forty percent open, set staggered and angled down both sides of the avenue: they bleed the speed out of it instead of arguing with it, they take planters along the base, and the holes hum in a gale, which after one winter people start defending to visitors.",
+      "9": "Put nothing scenic on the far side. Half of our city sits on a mud flat that nobody crossed to for twenty years, and what finally moved people was not a view, it was the bus depot and the green market — so gut the appliance showroom, put the produce market inside it with the fish stalls against the back wall so everyone has to walk the full length, and we'll send our market cooperative's stall layout plus two licensing clerks to run the first six months for you.",
+      "10": "Your studies are counting spaces and your residents are counting the minutes they spend with the indicator on, and those are different quantities, so both sides can keep being right forever. Borrow forty of the men who stand on our corners waving cars into gaps you would swear were not there — put them in a vest, pay them a wage instead of a coin, one per contested block; the arithmetic doesn't move an inch, but nobody circles alone any more and the grievance quietly loses its object.",
+      "11": "Our street trees stand in salt every winter because we grit like lunatics, and the survivors are always the same three: tamarisk, sea buckthorn and an ugly hybrid poplar nobody has ever photographed. Take cuttings from our depot by the crate, plant them in raised beds with a coarse gravel layer underneath so rain flushes the salt down past the roots rather than parking it there, and accept that the promenade will look scruffy for six years and then be a windbreak.",
+      "12": "We ran shift nurseries beside the plants for forty years and three of them still take children at eleven at night, and the thing nobody expects is that a night room is not a day room with the lights off — it is beds, one waking adult per six sleeping children, a bath at handover and breakfast at 6:15 so the parent eats too. We'll send the rota, the staffing ratios and the retired matron who wrote both, on the single condition that the employers pay for it and not the grandmothers.",
+      "13": "A rival from overseas is a friendly with extra travel. The ones that work live twenty minutes away and use the same butcher — so split the club: give the half of the town on the wrong side of the harbour road the older kit, the worse pitch and a grievance about a disputed goal in 1974 that we will happily draft in convincing detail, and we'll send two veterans of our supporters' club for a fortnight to teach the drumming, the banners and exactly where the line sits.",
+      "15": "Ours open at four, and the rule of the house is that nobody serving asks how the night went. Feed them hot and without ceremony — flaky cheese pastry cut and sold by weight, soup with a bone actually in it, one small brandy that is nobody's business at that hour, coffee strong enough to stand a spoon in — and keep one long table reserved for them, away from the window, so the eight o'clock people cannot sit there and describe their commute."
+    },
+    "m-tri": {
+      "9": "We still keep three disused frontier posts in a yard by the freight sheds — striped barrier arm, coal stove, and the desk with the stamp still in the drawer. Put one on the far side of the bridge, staffed on Sundays: a crossing is only a crossing when somebody at the end of it asks where you've come from and writes it down.",
+      "10": "Your residents aren't counting spaces, they're checking whether the town still expects them to come at all. We'll send four masons and the drawings for a stone jetty that runs three hundred metres out and ends in nothing — you park badly at the foot of it, you walk to the end, and you come back with the argument out of you; ours has been settling this exact quarrel since 1861.",
+      "12": "The port here stopped keeping daylight hours long before anyone thought to ask the mothers about it, and the night room by the customs shed is older than most of our streetlights. We'll send the two women who run 22:00 to 06:00, and more usefully the one iron rule of their rota: the parent coming off shift gets twenty minutes in a chair with a coffee before anybody hands them a sleeping child.",
+      "13": "Our dockers' side will come over in October and play you honourably, and on the way to the ferry they will take the bell off your pier. Politeness is not the problem — you have nothing you want back.",
+      "14": "We are a town that made its living insuring ships nobody expected to see again, so: one underwriter, seventy-one, who will write the roof a policy at a premium the council can actually pay and be sincerely astonished if it ever pays out. Beneath him, six lorries of white limestone off the plateau, which has held up every civic building we own, including two that were not supposed to survive the century."
+    }
+  },
+  "answers": {
+    "m-rvk": {
+      "1": "Barbecue as an occasion. I understand the food. I have never understood standing outdoors in a group for ninety minutes, waiting on it, everyone agreeing the wind is part of the charm.",
+      "3": "\"The pavement was clear.\" Said absently, in passing, by somebody with no idea that a decision was involved or that it was made at four in the morning.",
+      "4": "In favour. I'm told it's largely genetic, which means it isn't a moral question, which spares us all an argument we were going to have badly.",
+      "5": "My father's ice scraper. Metal, wooden handle, worn smooth on one side only, because in twenty years he never once did a window other than the driver's.",
+      "7": "Pool at seven, once the serious lane swimmers have cleared out and before the families arrive. Then the hot pot, where the same four men have been relitigating a resurfacing job from 2011 for as long as I have been going, and where nobody has ever asked me a question about the budget. Home by nine. Bread and butter standing at the kitchen counter, because sitting down would make it a meal. Then the marine forecast on the radio at ten, which I listen to every night and have no boat.",
+      "8": "Ólafur, who ran the plough depot for thirty-one years and was not supposed to be teaching anybody anything. He explained that the real decisions get made at four in the morning by whoever happens to be awake, and that my entire job is making sure that person has been told things in advance.",
+      "10": "Somewhere at the same latitude of complaint. Bergen, probably, or out to the Faroes. I would want weather I could still hold a grudge against; I don't think I'd know how to be a person in a mild place.",
+      "11": "A gearbox housing off a snowplough, cracked in 2018 in a way our workshop still describes as impossible. It stops paper from moving and it stops me being confident, and both are useful.",
+      "12": "Whichever one is easier to reverse. I've never regretted that rule and I've regretted nearly every time I broke it.",
+      "13": "The washing room in the basement. Concrete floor with a drain in the middle, a boiler that knocked twice before it settled, and always a degree or two warmer than the rest of the house, so my mother hung the sheets there on lines you had to duck under. I did my homework on an upturned crate because it was the only room where nobody thought to look for me, and to this day the smell of wet wool drying makes me feel like I'm getting away with something.",
+      "14": "Top floor of the multistorey on a Sunday morning. Empty, roofless, half the city visible, and I sit in my own car with the window down. It is the only place I can be alone in public without it looking like a statement.",
+      "15": "If it has to be music, nothing — the eight-second horn of the harbour ferry. Everybody looks up. Nobody hurries.",
+      "16": "A city map from 1978, 1:5000, with a tram line drawn on it in pencil by somebody hopeful. We have never had a tram and we are never going to. It has followed me through two office moves and I put it up both times."
+    },
+    "m-vlp": {
+      "1": "Swimming in the sea. I have lived my entire life eighty metres above it and I have been in it twice, neither time on purpose.",
+      "2": "The Reina Victoria funicular, upward. Ninety seconds, costs almost nothing, and at the top you turn round and the bay does the thing it does — then we walk down through the stairs and get comprehensively lost, which is the actual tour.",
+      "4": "For. Loudly, unfashionably, permanently for — and I have been told my ceviche is aggressive about it, which I take as the compliment it was not.",
+      "5": "A tide table from 1971 with my father's notes down the margins about which mornings were worth getting out of bed for. Roughly half of them say no.",
+      "7": "Tuesday, seven o'clock, and nobody wants anything from me. I walk down from the office rather than take the car, buy fish on the way from the man who overcharges me and knows I know, and cook it slightly badly with the radio doing a football match I have no stake in. There is usually a dog on the step — never the same dog — that waits to be fed and then leaves without ceremony. Window open, in bed by ten. Tuesday is the one night the port unloads quietly.",
+      "8": "Not my predecessor, who taught me mainly what a closed door sounds like. Señora Fuentes, thirty years on the newspaper kiosk at the bottom of the hill, who knew every complaint in this city a week before it reached my desk and, more usefully, which ones would go away on their own.",
+      "9": "My sister. She has never once been impressed by anything I've done, which is precisely how I know when a thing is actually good.",
+      "11": "A brass ship's bell bolted to the corner of it, which I did not install and cannot remove without a carpenter and a formal request. My assistant rings it when I have been talking too long, and I have yet to find a dignified way to object.",
+      "12": "Whichever one I can explain faster to somebody standing on a street corner in the wind. If it takes more than two sentences it was never the fine option, I just hadn't noticed yet.",
+      "13": "The kitchen, which was most of the downstairs of a house on Cerro Cordillera — zinc walls, one window. My mother had got a green cheap off the port, so we had that green in the kitchen and the neighbours had the same green on their boat, and neither of us ever mentioned it. The table had one short leg with a fold of newspaper under it that was changed perhaps twice in my whole childhood. From the window you could see three cranes, and by twelve I could tell from the noise alone whether a ship was loading or leaving.",
+      "14": "The upper station of a funicular that hasn't run since 2011. Nobody has cleared out the operator's chair, the window still faces the right way, and there is no telephone in it.",
+      "15": "A cueca on an accordion, played slightly too fast by a man who fully expects to be paid for it. I would prefer a brass section, obviously, but one works with the city one has.",
+      "16": "A tin of paint from a colour we stopped using in 1998. It has been solid for twenty years and has followed me through three offices, but if one house on that hill ever needs touching up I would like to be able to say what the colour was called."
+    },
+    "m-hbt": {
+      "1": "Camping. I went to considerable trouble to own a house with a roof on it, and the proposal is that I go and sleep outside on purpose.",
+      "2": "On a boat, whatever the sky's doing. You learn the shape of a place from the water in twenty minutes and it saves an hour of explaining -- then chips off the punt, standing up, and if it's raining that's part of it.",
+      "3": "That something I signed off on eleven years ago is still working, and the person telling me had forgotten it was ever a decision anyone made.",
+      "5": "A metre of the eight-strand off the ferry cleats, spliced properly by hand, so whoever opens it knows somebody here could still do that.",
+      "7": "Home before the light goes. I cook what I cook most Tuesdays -- a piece of fish, potatoes, more butter than is defensible -- with the coastal waters forecast on, which my wife calls a hobby and I call due diligence. Then an hour in the shed re-whipping the ends of whatever rope has gone furry, which produces nothing anyone needs. Bed by half nine. That's the whole thing and I'm not embarrassed about it.",
+      "8": "Bev, in the works depot. My predecessor left me a handover folder; Bev went through it and told me which parts of it had never once been true.",
+      "10": "Another port. I couldn't live somewhere the water doesn't do anything -- somewhere small and wet with a working wharf and a hill behind it, and I'd be complaining about their ferries inside a fortnight.",
+      "12": "Whichever one is easier to undo. If they're both easy to undo, whichever one the person who has to maintain it would rather maintain.",
+      "13": "The back porch, which was really a laundry with ambitions. Louvre windows on two sides that never properly shut, so it sat at outside temperature plus about two degrees, and it always smelled of wet wool because the drying rack hung over the trough. There was a chest freezer along one wall with a flat cushion on it and that was my chair -- I did my homework there because after seven nobody walked through. Dad's boots by the door, always facing out so you could step straight into them. I'd know that room in the dark.",
+      "14": "The early ferry, upper deck, outside, in weather. Nobody follows you out there and nobody can talk over the engine.",
+      "15": "The bell on the ferry ramp. Two clangs: means we're going whether you're aboard or not.",
+      "16": "The key to a boatshed that was pulled down in 2003. It's still on my ring. It opens nothing, it weighs nothing, and I'm not doing anything about it."
+    },
+    "m-kmp": {
+      "1": "Camping. You own a bed. You own a roof. You paid for both of them, and then you drive out of town to sleep on the ground and tell me about it for a week.",
+      "3": "That I did the thing I said I would do. Everyone calls me energetic — my mother calls me energetic, and she does not mean it kindly.",
+      "7": "Plastic chair outside my cousin's hardware shop, seven o'clock, the man with the roast maize comes past and I always buy two and always eat both. Radio on inside, football or an argument about football, and people stopping to complain to me about a drain, which honestly I enjoy — you learn more in an hour on that chair than in a whole day of meetings. Home by ten, and the deal with my wife is that the phone goes in the fruit bowl.",
+      "8": "A boda stage chairman called Kizito, who has never held an office in his life and settles about forty disputes a day with no budget and no minutes. He taught me the entire job in one sentence: decide out loud, in front of everybody, and then do not move.",
+      "10": "Mombasa. I know the road, I know three people on it, and I would be selling something by Thursday.",
+      "13": "The back room in Nsambya, two beds for four of us, a green metal window that only ever opened halfway because of a nail nobody would take out. My aunt's sewing machine lived in the corner and was the most valuable object in the house; we were told not to lean on it, so naturally we all leaned on it. There was a calendar photograph of a fjord taped above the door and no one could tell me how it got there, and I decided at about twelve that I was one day going to stand in it. Still haven't.",
+      "14": "The top floor of the old post office. Nobody has been up there since the lifts died, so I take a flask and sit on the stairs for two hours. There's no signal, which was not the reason, but it is very much the reason now.",
+      "15": "The three quick taps a boda gives on the horn just before he passes you on the wrong side. Cheerful. Entirely unearned.",
+      "16": "A charger for a Nokia I lost in 2011. It is in the drawer. It will never be needed. It is not going anywhere."
+    },
+    "m-kop": {
+      "1": "The northern lights. Half the town drives out to stand in a freezing ditch and comes back altered; I have looked up, seen green, said \"yes, green,\" and gone in for my supper.",
+      "2": "The pool. Not the swimming — the hot tubs, in order, hottest last, where four hours is exactly long enough to learn everything worth knowing about this place from men who will tell you for free. Everyone assumes I'll drive them straight to the capital instead. It's eight minutes on the bus, they can manage that themselves later.",
+      "3": "Not \"charming.\" I want somebody to say the buses were on time in a tone that makes it clear they expected nothing else.",
+      "5": "My original application form, where I had written the name of the town next door in the box, and the extremely kind letter that came back explaining it was taken. Let some future archivist work out how I felt about it, because I'm still not sure.",
+      "7": "Pool at half seven, when it's the same eleven regulars and the water is too hot for anyone in a hurry. Home by nine, something with potatoes, and then the specific pleasure of sitting at the kitchen window watching the glow over the capital where the loud thing is happening without me. My wife reads. I do the crossword badly and stop halfway. Nothing arrives, nobody rings, and at eleven the last bus goes past the end of the road and I go to bed.",
+      "8": "Not my predecessor, God rest him. The woman who has run the front desk at the pool since 1989 — she knows every name in this town and exactly how much complaint each one is worth, and she taught me to let people finish talking before I start being useful.",
+      "9": "My mother, who will listen to all of it and then ask whether it was in the capital's paper or only in ours.",
+      "10": "Next door, obviously. I have had my eye on it since the beginning. I'd want it noted in the record that I'd be arriving as a resident and not as a claimant.",
+      "11": "A snow globe of the cathedral next door, given to me by the office staff in my first week as a joke. I've left it there so long that moving it now would be admitting something.",
+      "12": "Whichever one I can undo in a year without anybody needing to be blamed.",
+      "14": "The plant room under the sports hall. It's warm, it hums at a pitch that makes conversation pointless, and in nine years the only person who has ever come looking for me down there was the caretaker, who now doesn't.",
+      "15": "The three descending tones the bus makes when it kneels at the kerb. Undignified, entirely reliable, slightly too slow.",
+      "16": "A brass key to the old boiler room door, which was bricked up in 2004. I keep meaning to have it cut off the ring and I keep not doing it."
+    },
+    "m-nao": {
+      "3": "That a room I made decisions about was quiet. Not beautiful. Quiet.",
+      "4": "For it, but privately — my wife's family is against, and I've found it's not worth the dinner.",
+      "9": "My brother, who runs the second boat. He's usually out on the water and can't pick up, which I've come to think is the part I like.",
+      "11": "A tide table for 1994. Wrong year entirely, but it's in my father's handwriting, so it stays.",
+      "13": "The corridor, which I know isn't a room, but it's the one I can still walk. Boards laid over the gap where the house didn't quite meet the hill so it ran four degrees colder than either side, a shoe cupboard my father painted the wrong green twice, and a window at the end with nothing in it but a persimmon tree and the neighbour's television.",
+      "15": "The three-note chime the museum plays fifteen minutes before closing. Everyone here hears it as go home now, and I'd be pleased to have that follow me around.",
+      "16": "A ticket punch from the old ferry gate. It doesn't punch anymore. It still clicks, and the click was always most of it."
+    },
+    "m-bel": {
+      "4": "Against, and for the record it is chemistry, not taste. It comes at me like the inside of a new plastic bucket, and I'm told that reaction is genetic, which I choose to read as science taking my side rather than excusing me.",
+      "5": "The tin ashtray from the kafana on my corner, which shut in March. Everybody took something that last night and I took that, and somebody in fifty years ought to know a room like that existed and roughly what it smelled like.",
+      "7": "Same table, outside if the weather permits any argument at all, from about seven. One coffee that lasts ninety minutes, then something with an opinion in it. Three people — four and it turns into a meeting, and I have meetings. The argument has to be about something with no consequences whatsoever: a referee, a bridge, whether the old bus route was better before they straightened it. Then I walk home along the water at eleven, on my own, and I don't look at the phone until I'm through the door.",
+      "9": "My sister. Not because she'll be pleased — she'll have found the flaw in it inside a minute — but because if it gets past her it's real.",
+      "10": "Somewhere two rivers meet. I couldn't settle in a place with only one, it would feel like a town that gave up halfway. Novi Sad, probably, and I would complain about it daily and stay thirty years.",
+      "11": "A twelve-kilo lump of concrete off the old bridge parapet, handed to me as a joke when they replaced the span. It holds down nothing, it has scratched the desk in four places, and it is the only object in the room anyone ever asks about.",
+      "12": "If they're truly equal I take whichever one is easier to undo. And if they're equally easy to undo, I take the one that irritates the loudest person in the room, because then at least by Thursday we've learned something.",
+      "13": "The kitchen. Eighth floor, concrete block, new part of town. There was a balcony off it that my father glazed in badly over one weekend, so it cooked in July and was no use at all in January, and that's where the onions and the jars of pickle lived. The table was too big for the room and shoved against the wall, and you had to go sideways past it to reach the fridge. Everything happened in there — homework, arguments, my grandmother's card game, the radio left on for the football. My own bedroom I remember almost nothing about.",
+      "14": "There's a bench at the end of a pier that only the fishermen use, and none of them speak to anybody before noon. I take a coffee down and sit at the wrong end of it.",
+      "16": "A key to a flat I haven't lived in since 1998, which has certainly had the lock changed twice. It's on my keyring. It's staying on my keyring."
+    },
+    "m-tri": {
+      "9": "Nobody, for about an hour. I take it down to the counter at the café and say it out loud to a man who has heard better news than mine and doesn't look up — then I call my sister, who asks what the catch is.",
+      "10": "Odessa. Same light off the water, same weather in the afternoon, same civic refusal to be sentimental about which flag is up this year.",
+      "12": "If both are genuinely fine then it isn't a decision, it's a choice of story. I take the one that will be harder to explain in ten years.",
+      "13": "The dining room, which we did not eat in. There was a table under a cloth my grandmother ironed on Fridays for guests who came perhaps twice a year, four chairs nobody sat in, and a sideboard with a locked drawer full of paper in three languages — a birth certificate from one country, a school record from a second, a pension letter from a third, all of them the same man. In winter the shutters knocked all night and I would lie on the good carpet working out which of the three I was supposed to be.",
+      "14": "The Greek church on a Tuesday afternoon. I'm not Orthodox and I'm not really anything, but nobody in there wants a decision from me, and the candle smell hasn't changed since I was nine.",
+      "15": "Not music — the hiss and knock of a portafilter being emptied. I suspect it follows me because I have almost always just come from a room where it was actually happening.",
+      "16": "My father's identity card from a state that lasted seven years, folded, unusable, issued by an authority no longer available for correspondence. It proves nothing to anyone now, which is roughly the point."
+    }
+  },
+  "picks": {
+    "in-001": {
+      "ballot_ref": "C",
+      "because": "Two residents in five can hear it, which tells me it sits right at the bottom of what an ear can be trusted on, so I want the instrument rather than the ear — and the part that decided it was the offer to tell me plainly it's a fridge and keep it out of a report, because everyone else was already planning what to do with the hum once they'd found it.",
+      "by": "m-rvk"
+    },
+    "in-002": {
+      "ballot_ref": "C",
+      "because": "One line on a timetable and people find out for themselves standing on a corner at eleven at night, which is the only way anybody has ever changed their mind about anywhere — and whoever wrote it was right that the moment we call the place vibrant, we've lost it.",
+      "by": "m-vlp"
+    },
+    "in-003": {
+      "ballot_ref": "E",
+      "because": "They all said answer it, so that's settled -- but this was the only one that also said go home afterwards and say nothing, and a hand lamp off a car battery is about the right size of reply to something that has only ever been polite.",
+      "by": "m-hbt"
+    },
+    "in-004": {
+      "ballot_ref": "D",
+      "because": "Every other answer was about the water and this one was about the traders — nobody loses a day's selling, and in ten years my grandchildren will be arguing in front of a painted wall about which flood was the big one.",
+      "by": "m-kmp"
+    },
+    "in-007": {
+      "ballot_ref": "D",
+      "because": "Half the offers on my desk wanted to teach this town about barrels, and every second man here already has a still in his garage — what I don't have is eleven people who can look at ninety thousand plums without flinching, and I liked that they asked for a chair in the shade instead of instructions.",
+      "by": "m-bel"
+    },
+    "in-008": {
+      "ballot_ref": "B",
+      "because": "Four of the five understood that you bleed wind rather than argue with it, and I'd have been content with any of them, but only one of them read the word dignity and answered it: you cannot legislate that, and it turns out you can bolt it to a post at hand height, four kilometres of it, down both sides.",
+      "by": "m-rvk"
+    },
+    "in-009": {
+      "ballot_ref": "E",
+      "because": "Nobody in this city has ever crossed anything for a view, but they will absolutely carry a broken chair over that bridge and come back with somebody else's, and I would rather have that than a monument.",
+      "by": "m-vlp"
+    },
+    "in-010": {
+      "ballot_ref": "B",
+      "because": "It's the only one that heard what's actually being asked, which is whether the street still belongs to the people on it, and it answers with a stencil and a number by the door instead of another study -- and I intend to steal the bit about letting the arithmetic go on being right in private.",
+      "by": "m-hbt"
+    },
+    "in-011": {
+      "ballot_ref": "F",
+      "because": "I have been maintaining those stakes for four years like a man tending graves, and this is the only letter that told me to keep them and gave them a job — two years from now the whole promenade is magenta and nobody remembers the trees.",
+      "by": "m-kmp"
+    },
+    "in-012": {
+      "ballot_ref": "B",
+      "because": "Everyone sent me warm rooms and kind women, and I'd have taken any of them, but only one answered the question I was actually too embarrassed to ask out loud, which is who pays — a levy on the employers per night-shift worker, not per child, so the people running the machines round the clock are the people funding the cots. And they were right that goodwill is just a wage somebody in this town has quietly not been getting for years.",
+      "by": "m-kop"
+    },
+    "in-013": {
+      "ballot_ref": "B",
+      "because": "A rival you have to catch a boat to is a day out, not a rivalry — I want the one who uses my butcher on Monday morning, and whoever offered to draft the 1974 grievance in convincing detail knew exactly what they were doing.",
+      "by": "m-nao"
+    },
+    "in-014": {
+      "ballot_ref": "G",
+      "because": "Two of the three things holding that roof up were paperwork, so the timber was never really the shortage — this was the only one that said out loud that what I needed was a stamp and somebody's name on the calculations, and it sent the engineer to put it there.",
+      "by": "m-bel"
+    },
+    "in-015": {
+      "ballot_ref": "F",
+      "because": "Half of them understood not to ask the man how his night was, which is decent, but only one understood that he isn't starting a day — he's ending one, and a man ending his day is owed dinner and a glass of white wine, not breakfast and certainly not, God help us, a coffee.",
+      "by": "m-tri"
+    }
+  },
+  "clusters": {
+    "1": {
+      "Reykjavík": "barbecues",
+      "Valparaíso": "swimming in the sea",
+      "Hobart": "camping",
+      "Kampala": "camping",
+      "Kópavogur": "the northern lights"
+    },
+    "2": {
+      "Valparaíso": "the city seen from a distance",
+      "Hobart": "the city seen from a distance",
+      "Kópavogur": "the public baths"
+    },
+    "3": {
+      "Reykjavík": "work nobody noticed",
+      "Hobart": "work nobody noticed",
+      "Kampala": "keeping my word",
+      "Kópavogur": "work nobody noticed",
+      "Naoshima": "work nobody noticed"
+    },
+    "4": {
+      "Reykjavík": "in favour",
+      "Valparaíso": "in favour",
+      "Naoshima": "in favour",
+      "Belgrade": "against"
+    },
+    "5": {
+      "Reykjavík": "something of my father's",
+      "Valparaíso": "something of my father's",
+      "Hobart": "a piece of handwork",
+      "Kópavogur": "a document about myself",
+      "Belgrade": "a relic of a place that's gone"
+    },
+    "7": {
+      "Reykjavík": "a quiet night in",
+      "Valparaíso": "a quiet night in",
+      "Hobart": "a quiet night in",
+      "Kampala": "a chair outside, with company",
+      "Kópavogur": "a quiet night in",
+      "Belgrade": "a chair outside, with company"
+    },
+    "8": {
+      "Reykjavík": "a lifer in the works depot",
+      "Valparaíso": "somebody at a counter who hears everything",
+      "Hobart": "a lifer in the works depot",
+      "Kampala": "an unofficial authority in the street",
+      "Kópavogur": "somebody at a counter who hears everything"
+    },
+    "9": {
+      "Valparaíso": "a relative who won't be impressed",
+      "Kópavogur": "a relative who won't be impressed",
+      "Naoshima": "a relative who won't be impressed",
+      "Belgrade": "a relative who won't be impressed",
+      "Trieste": "nobody, for an hour"
+    },
+    "10": {
+      "Reykjavík": "somewhere just like home",
+      "Hobart": "somewhere just like home",
+      "Kampala": "somewhere I already know people",
+      "Kópavogur": "the town next door",
+      "Belgrade": "somewhere just like home",
+      "Trieste": "somewhere just like home"
+    },
+    "11": {
+      "Reykjavík": "a broken piece of the city",
+      "Valparaíso": "a joke somebody else left there",
+      "Kópavogur": "a joke somebody else left there",
+      "Naoshima": "something of my father's",
+      "Belgrade": "a joke somebody else left there"
+    },
+    "12": {
+      "Reykjavík": "whichever is easier to undo",
+      "Valparaíso": "whichever is quicker to explain",
+      "Hobart": "whichever is easier to undo",
+      "Kópavogur": "whichever is easier to undo",
+      "Belgrade": "whichever is easier to undo",
+      "Trieste": "the better story"
+    },
+    "13": {
+      "Reykjavík": "the laundry nobody came into",
+      "Valparaíso": "the kitchen, where everything happened",
+      "Hobart": "the laundry nobody came into",
+      "Kampala": "the room we all slept in",
+      "Naoshima": "the corridor",
+      "Belgrade": "the kitchen, where everything happened",
+      "Trieste": "the good room nobody used"
+    },
+    "14": {
+      "Reykjavík": "the top of a building nobody goes to",
+      "Valparaíso": "the top of a building nobody goes to",
+      "Hobart": "somewhere too loud to talk",
+      "Kampala": "the top of a building nobody goes to",
+      "Kópavogur": "somewhere too loud to talk",
+      "Belgrade": "among people who won't speak to me",
+      "Trieste": "among people who won't speak to me"
+    },
+    "15": {
+      "Reykjavík": "a vehicle's horn or bell",
+      "Valparaíso": "an accordion in the street",
+      "Hobart": "a vehicle's horn or bell",
+      "Kampala": "a vehicle's horn or bell",
+      "Kópavogur": "a vehicle's horn or bell",
+      "Naoshima": "a closing-time chime",
+      "Trieste": "the noise of a café"
+    },
+    "16": {
+      "Reykjavík": "paper for something that never existed",
+      "Valparaíso": "a tin of a colour we stopped using",
+      "Hobart": "a key to a door that's gone",
+      "Kampala": "a charger for a lost phone",
+      "Kópavogur": "a key to a door that's gone",
+      "Naoshima": "a ticket punch from the old ferry",
+      "Belgrade": "a key to a door that's gone",
+      "Trieste": "paper for something that never existed"
+    }
+  }
+}
