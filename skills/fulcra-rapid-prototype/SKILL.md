@@ -51,16 +51,16 @@ path when one is available; see the generated `.env.example` and
 # Flow
 
 ```text
-╭──────────────────────────╮   ╭──────────────────────────╮   ╭──────────────────────────╮
-│ ① 💡 Shape your project  │ ⟶ │ ② 📦 Create a starting   │ ⟶ │ ③ 🧭 Set up reliable    │
-│    together              │   │    point for it           │   │    project guidance      │
-╰──────────────────────────╯   ╰──────────────────────────╯   ╰──────────────────────────╯
-                                      │
-                                      ▼
-              ④ 🗺️ Choose project view  ⟶  ⑤ ✅ Check it works
-                                      │
-                                      ▼
-              ⑥ 🛠️ Build in checked pieces  ⟶  ⑦ ⏱️ Let it continue
+╭──────────────────────────────╮   ╭──────────────────────────────╮   ╭──────────────────────────────╮
+│ ① Shape the project 💡       │ ⟶ │ ② Scaffold the project 📦    │ ⟶ │ ③ Architect the work 🧭      │
+╰──────────────────────────────╯   ╰──────────────────────────────╯   ╰──────────────────────────────╯
+                                       │
+                                       ▼
+              ④ Set up the project view 🗺️  ⟶  ⑤ Verify the runtime ✅
+                                       │
+                                       ▼
+              ⑥ Build in checked pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
+                                                    ╰────── ∞ ──────╯
 ```
 
 Rapid Prototype's first outcome is completed by invoking Grill-Me internally:
@@ -79,7 +79,7 @@ rules; do not duplicate or weaken them here.
 ## 1. Establish requirements and one shared project Workspace
 
 ```text
-① 💡 Shape your project  ⟶  ② 📦 Create its starting point  ⟶  ③ 🧭 Set up reliable guidance
+① Shape the project 💡  ⟶  ② Scaffold the project 📦  ⟶  ③ Architect the work 🧭
    ✦ YOU ARE HERE
 ```
 
@@ -115,7 +115,7 @@ plan.md
 ## 2. Scaffold the inner runtime harness
 
 ```text
-① 💡 Shape your project  ⟶  ② 📦 Create its starting point  ⟶  ③ 🧭 Set up reliable guidance
+① Shape the project 💡  ⟶  ② Scaffold the project 📦  ⟶  ③ Architect the work 🧭
                               ✦ YOU ARE HERE
 ```
 
@@ -142,8 +142,8 @@ README for its exact layout and setup instructions.
 ## 3. Scaffold and bootstrap the outer control harness **before inner runtime work**
 
 ```text
-② 📦 Start the project  ⟶  ③ 🧭 Set up reliable guidance  ⟶  ④ 🗺️ Choose project view  ⟶  ⑤ ✅ Check it works
-                              ✦ YOU ARE HERE
+② Scaffold the project 📦  ⟶  ③ Architect the work 🧭  ⟶  ④ Set up the project view 🗺️  ⟶  ⑤ Verify the runtime ✅
+                                 ✦ YOU ARE HERE
 ```
 
 Before asking for runtime provider credentials, running inner smoke tests, or
@@ -181,8 +181,8 @@ Use the control harness README/RUNBOOK as the source of truth for:
 ## 4. Decide and record the harness dashboard path (required gate)
 
 ```text
-③ 🧭 Set up guidance  ⟶  ④ 🗺️ Choose project view  ⟶  ⑤ ✅ Check it works  ⟶  ⑥ 🛠️ Build safely
-                              ✦ YOU ARE HERE
+③ Architect the work 🧭  ⟶  ④ Set up the project view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build safely 🛠️
+                                  ✦ YOU ARE HERE
 ```
 
 Ask the user exactly one question:
@@ -231,8 +231,8 @@ credentials, or private repository data.
 ## 5. Verify the inner runtime harness
 
 ```text
-④ 🗺️ Choose project view  ⟶  ⑤ ✅ Check it works  ⟶  ⑥ 🛠️ Build safely  ⟶  ⑦ ⏱️ Let it continue
-                                  ✦ YOU ARE HERE
+④ Set up the project view 🗺️  ⟶  ⑤ Verify the runtime ✅  ⟶  ⑥ Build safely 🛠️  ⟶  ⑦ Let it loop ⏱️
+                                      ✦ YOU ARE HERE
 ```
 
 Now configure a provider using the generated `.env.example`, install the
@@ -247,8 +247,8 @@ failures are real failures.
 ## 6. Operate through the control harness
 
 ```text
-⑤ ✅ Check it works  ⟶  ⑥ 🛠️ Build in checked pieces  ⟶  ⑦ ⏱️ Let it continue
-                              ✦ YOU ARE HERE
+⑤ Verify the runtime ✅  ⟶  ⑥ Build in checked pieces 🛠️  ⟶  ⑦ Let it loop ⏱️
+                                 ✦ YOU ARE HERE
 ```
 
 Do not start deliverable work by directly invoking the inner runtime loop.
@@ -270,8 +270,9 @@ The non-negotiable operating rules are:
 ## 7. Offer independent scheduled operation (one-time user decision)
 
 ```text
-⑥ 🛠️ Build in checked pieces  ⟶  ⑦ ⏱️ Let it continue on its own
-                                      ✦ YOU ARE HERE
+⑥ Build in checked pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
+                                    ╰────── ∞ ──────╯
+                                         ✦ YOU ARE HERE
 ```
 
 After the first control-harness run is healthy, ask the user exactly once:
