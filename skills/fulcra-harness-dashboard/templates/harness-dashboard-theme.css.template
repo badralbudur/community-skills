@@ -1,0 +1,40 @@
+/*
+ * Project-specific harness dashboard theme override.
+ *
+ * Copy after the base fulcra-project-dashboard CSS and replace values using
+ * the project's approved theme. Keep this restrained: a palette, a title
+ * treatment, and one small motif are enough. Do not obscure telemetry or
+ * load decorative third-party assets merely to claim a theme.
+ */
+:root {
+  --harness-theme-accent: {{THEME_ACCENT}};
+  --harness-theme-accent-soft: {{THEME_ACCENT_SOFT}};
+  --harness-theme-ink: {{THEME_INK}};
+  --harness-theme-paper: {{THEME_PAPER}};
+}
+
+.harness-panel {
+  border-color: color-mix(in srgb, var(--harness-theme-accent) 32%, var(--panel-border, #d9d3c5));
+}
+
+.harness-kicker,
+.harness-milestone.passed > span,
+.harness-run-marker.passed span {
+  color: var(--harness-theme-accent);
+}
+
+.harness-checkpoint {
+  background: linear-gradient(105deg, var(--harness-theme-accent-soft), var(--harness-theme-paper));
+}
+
+/* One small project motif: set the content to a project-relevant symbol or
+   short wordmark (e.g. "✦", "⚓", "▦"), not a large decorative image. */
+.harness-checkpoint::after {
+  content: "{{THEME_MOTIF}}";
+  color: var(--harness-theme-accent);
+  font: 700 42px/1 Georgia, serif;
+  opacity: .18;
+  position: absolute;
+  right: 20px;
+  top: 14px;
+}

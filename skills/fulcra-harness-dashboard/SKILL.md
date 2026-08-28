@@ -62,6 +62,33 @@ scheduler “completed” status alone.
    and activity visuals where useful; these adaptations make those views
    control-loop aware.
 
+## Required project theming (restrained)
+
+Before the first dashboard publication, establish a small project-specific
+visual theme. A harness dashboard must not look like an unmodified generic
+admin page, but theme must improve orientation rather than compete with
+operational data.
+
+Required minimum:
+
+1. a project-specific dashboard title/subtitle and section copy;
+2. a restrained palette (accent, soft accent, ink, paper/background) tied
+   to the project domain;
+3. one small motif or visual cue (symbol, border treatment, or compact
+   header mark) relevant to the project;
+4. readable contrast and unchanged access to milestones, runs, decisions,
+   and escalations.
+
+Start with `templates/harness-dashboard-theme.css`. Copy it after the base
+`fulcra-project-dashboard` CSS and replace its theme placeholders. Do not
+add large decorative imagery, autoplay animation, or third-party visual
+assets merely to satisfy this requirement. If the project already has a
+recognized identity/theme, reuse it; otherwise ask the user for a concise
+vibe before rendering.
+
+The chosen theme must be recorded in the curated dashboard configuration or
+project status so later agents refresh rather than accidentally reset it.
+
 ## Harness-specific panels
 
 ### 1. Flight plan
