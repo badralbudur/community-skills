@@ -51,14 +51,21 @@ path when one is available; see the generated `.env.example` and
 # Flow
 
 ```text
-[1] Grill + Workspace -> [2] Runtime scaffold -> [3] Control plane
-                         -> [4] Dashboard gate -> [5] Verify runtime
-                         -> [6] Milestone operation -> [7] Scheduled operation
++--------------------+    +-------------------+    +-------------------+
+| [1] ENTER GRILL-ME | -> | [2] RUNTIME SEED  | -> | [3] CONTROL PLANE |
+| (follow its map)   |    | inner loop        |    | roles + Workspace |
++--------------------+    +-------------------+    +-------------------+
+          |                         |                         |
+          +----> [4] DASHBOARD -> [5] VERIFY -> [6] OPERATE -> [7] SCHEDULE
 ```
 
-Each major step below repeats a compact `^ YOU ARE HERE` map. Complete the
-current gate/artifact before advancing; the map is orientation, not a
-replacement for the referenced skill/template contract.
+Rapid Prototype's `[1]` is a **nested handoff**: enter the more detailed
+Grill-Me map, complete its Intake/Interview/Workspace/Architecture/Plan
+requirements, then return here at `[2]`. The two maps do not share step
+numbers; each owns its own scope. At each step below, the compact
+`^ YOU ARE HERE` marker identifies the current position. You may add a
+compact project-specific flourish (symbol, short label, motif), but preserve
+the numbered stages, handoff boundary, ordering, and current-step marker.
 
 Follow these steps in order. Each referenced skill/template owns its detailed
 rules; do not duplicate or weaken them here.
@@ -66,7 +73,7 @@ rules; do not duplicate or weaken them here.
 ## 1. Establish requirements and one shared project Workspace
 
 ```text
-[1] Grill + Workspace -> [2] Runtime scaffold -> [3] Control plane
+[1] ENTER GRILL-ME -> [2] Runtime scaffold -> [3] Control plane
  ^ YOU ARE HERE
 ```
 

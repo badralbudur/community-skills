@@ -44,13 +44,19 @@ To ensure reliable agentic execution and prevent skipped steps, follow the 6-ste
 ## The 6-Step Pipeline
 
 ```text
-[1] Intake & Interview -> [1b] Workspace -> [2] Architecture -> [3] Plan
-                                      -> [4] Prototype -> [5] Build -> [6] Retro
++-------------------+    +----------------+    +----------------+    +-----------+
+| [1] ASK & SHAPE   | -> | [1b] ANCHOR    | -> | [2] ARCHITECT  | -> | [3] PLAN  |
+| Intake/Interview  |    | Workspace      |    | User gate      |    +-----------+
++-------------------+    +----------------+    +----------------+
+       |                                                               |
+       +----------------> [4] PROTOTYPE -> [5] BUILD -> [6] RETRO ---+
 ```
 
 At each step, the `^ YOU ARE HERE` marker below identifies the current
 position. Complete the current step before advancing; do not treat the map as
-a replacement for the step's gate/artifact rules.
+a replacement for the step's gate/artifact rules. You may add a compact,
+project-appropriate flourish to these maps (a domain symbol, short label, or
+motif), but preserve the numbered stages, ordering, and current-step marker.
 
 Follow these phases sequentially. At the end of each phase, `git add . && git commit -m "chore: complete [phase] phase"`.
 
