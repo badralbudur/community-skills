@@ -62,8 +62,9 @@ uv venv --clear .venv
 uv pip install --python .venv/bin/python -e .
 ```
 
-Run the generated smoke tests before declaring the runtime ready. The exact
-commands live in `SKILL.md` and the generated README.
+Run the complete generated smoke-test suite before declaring the runtime
+ready. Its six exact commands are enumerated in the generated README's
+**Getting started** section.
 
 ## Bundle layout
 
@@ -114,6 +115,9 @@ credentials; the Anthropic OAuth live call remains intentionally documented
 as requiring a real subscription/session rather than being claimed as
 universally verified.
 
-For exact provider edge cases, tool ID handling, git history behavior, or
-bytecode-cache caveats, read the owning module/test rather than duplicating
-long implementation narratives here.
+For exact provider edge cases, tool ID handling, or git history behavior,
+read the owning module/test rather than duplicating long implementation
+narratives here. The generated project's
+`harness.tools.test_git_commit_gate_smoke` may encounter one known
+bytecode-cache artifact: clear that artifact and retry that specific smoke
+test once; treat any other failure as real.
