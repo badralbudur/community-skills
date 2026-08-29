@@ -29,17 +29,22 @@ class SnapshotStore:
     def __init__(self, path):
         self.path = os.path.abspath(path)
         self.lock_path = self.path + ".lock"
+        self._lock_file = None
 
     @contextmanager
     def locked(self):
+        if self._lock_file is not None:
+            raise SnapshotError("SnapshotStore lock is not reentrant")
         directory = os.path.dirname(self.path)
         if directory:
             os.makedirs(directory, exist_ok=True)
         with open(self.lock_path, "a+b") as lock_file:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            self._lock_file = lock_file
             try:
                 yield self
             finally:
+                self._lock_file = None
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
     def save(self, game):
@@ -75,16 +80,11 @@ class SnapshotStore:
         return game
 
     def _require_lock(self):
-        # flock has no portable query; attempting a non-blocking exclusive lock
-        # detects accidental unlocked calls without changing a caller-held lock.
-        with open(self.lock_path, "a+b") as lock_file:
-            try:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                return
-            else:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-                raise SnapshotError("save/load requires 'with store.locked()'")
+        # The lock must belong to this store instance.  Merely observing that
+        # another process holds the advisory lock does not make an unlocked
+        # caller safe to read or replace the snapshot.
+        if self._lock_file is None:
+            raise SnapshotError("save/load requires 'with store.locked()'")
 
     @staticmethod
     def _fsync_directory(directory):
