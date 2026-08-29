@@ -8,3 +8,11 @@ __pycache__/
 # hosting/guard.py refuses to publish anything that contains it -- which is what
 # makes the built site under site/ safe to commit while this file is not.
 .site-id
+
+# Private facilitator durability. This snapshot contains the exporter ledger
+# and player routing identity, so it is never a Workspace artifact or commit.
+state/
+
+# Verification builds sample public artifacts in these directories.
+editions/
+site/

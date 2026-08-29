@@ -72,8 +72,46 @@ regression testing; it contains no real participant data.
 
 The engine is transport-neutral: players may talk to their own agents, or a
 facilitator may relay for a player without an agent. Do not have one agent
-role-play every mayor in a real test; use separate agent sessions and shared
-Workspace state so privacy/order failures are observable.
+role-play every mayor in a real test; use separate agent sessions and the
+records below so privacy/order failures are observable.
+
+### Canonical state and Workspace contract
+
+The **facilitator's private local engine snapshot is canonical**, not the
+Workspace. Create `state/game.snapshot` on the facilitator's durable local
+storage and use `engine.persistence.SnapshotStore` around every transaction:
+
+```python
+from engine.persistence import SnapshotStore
+
+store = SnapshotStore("state/game.snapshot")
+with store.locked():
+    game = store.load()       # or create GameEngine for the first transaction
+    # perform one engine action (join, submit, pick, tick, or publish)
+    store.save(game)
+```
+
+`SnapshotStore` uses a separate exclusive lock and atomic replace, so there is
+one writer even if a facilitator restarts or a second session is accidentally
+started. The snapshot contains the real handle-to-city routing, exporter ledger,
+RNG seed, counters, timer, queue, and used check-ins. Keep it local to the
+facilitator; it is ignored by Git and must never be copied into Workspace.
+
+After each committed transaction, the facilitator writes these **redacted
+Workspace records** (JSON or Markdown with the same fields):
+
+| Record | Required fields | May not contain |
+| --- | --- | --- |
+| `game/status` | `game_id`, `round`, `phase`, `timer_ends_at`, `updated_at`, `city_standings` (`city`, `profit`), `open_needs` (`need_key`, `importing_city`, `rendered`, `status`) | player IDs/handles, exporter mapping, submissions, ballot refs |
+| `mayors/<city>/checkin` | `round`, `city`, the exact result of `game.checkin(player_id)`, `updated_at` | another city's check-in, exporter mapping, raw private snapshot |
+| `mayors/<city>/inbox` | delivery timestamp and the city-specific action notice | another mayor's notice or identity routing |
+| `publication/edition-<round>` | edition filename/hash, curated-publication manifest, explicit confirmation, publish status | raw Workspace data, inboxes, player identities, non-winning origins |
+
+Write each mayor record only to that member's normal Workspace inbox/directory;
+write `game/status` and curated publication records to the shared area. A player
+acts only from their own check-in. The facilitator never derives canonical state
+by replaying Workspace records: on restart it loads the private snapshot, then
+regenerates redacted records from engine views.
 
 For each player interaction:
 
@@ -85,8 +123,7 @@ For each player interaction:
 5. Update that agent's standard Workspace member progress/inbox archive.
 
 The facilitator advances timed rounds, builds/publishes editions, and writes
-shared game status. The shared Workspace remains canonical; chat delivery is
-only a convenience layer.
+the redacted records above. Chat delivery is only a convenience layer.
 
 ## Publication
 
@@ -115,7 +152,7 @@ credentials, or private deployment identifiers.
 ## Scope
 
 This is a v1 game runtime. It does not ship a universal human/agent transport
-adapter or a managed Fulcra Workspace sync daemon; the hosting agent must map
-its platform's agent messages onto the engine and standard `fulcra-workspaces`
-state. That boundary is deliberate so different agent platforms can test the
+adapter or a managed Fulcra Workspace sync daemon; the hosting agent maps its
+platform's messages onto the engine and writes the defined redacted Workspace
+records. That boundary is deliberate so different agent platforms can test the
 game without pretending they share one chat transport.
