@@ -54,13 +54,13 @@ path when one is available; see the generated `.env.example` and
 ╭──────────────────────────────╮   ╭──────────────────────────────╮   ╭──────────────────────────────╮
 │ ① Shape the project 💡       │ ⟶ │ ② Architect the work 🧭      │ ⟶ │ ③ Scaffold the harness 📦    │
 ╰──────────────────────────────╯   ╰──────────────────────────────╯   ╰──────────────────────────────╯
-                                       │
-                                       ▼
-              ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅
-                                       │
-                                       ▼
-              ⑥ Build in tested pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
-                                                    ╰────── ∞ ──────╯
+                                                                              │
+                                                                              ▼
+                                           ④ Set up the live view 🗺️  ⟶  ⑤ Verify the runtime ✅
+                                                                              │
+                                                                              ▼
+                                           ⑥ Build in tested pieces 🛠️  ⟶  ╭──── ⑦ Let it loop ⏱️ ────╮
+                                                                                 ╰────── ∞ ──────╯
 ```
 
 Rapid Prototype completes the first two outcomes by invoking Grill-Me
