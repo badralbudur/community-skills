@@ -86,6 +86,21 @@ def test_real_run_generates_every_documented_required_file(tmp_path: Path) -> No
 
     assert (target / "knowledge").is_dir(), "knowledge/ directory must exist"
 
+    repository = subprocess.run(
+        ["git", "-C", str(target), "rev-parse", "--is-inside-work-tree"],
+        capture_output=True,
+        text=True,
+    )
+    assert repository.returncode == 0, repository.stderr
+    assert repository.stdout.strip() == "true"
+    initial_commit = subprocess.run(
+        ["git", "-C", str(target), "log", "-1", "--format=%s"],
+        capture_output=True,
+        text=True,
+    )
+    assert initial_commit.returncode == 0, initial_commit.stderr
+    assert initial_commit.stdout.strip() == "chore: initialize control harness"
+
 
 def test_project_name_placeholder_is_hydrated(tmp_path: Path) -> None:
     target = tmp_path / "control"
@@ -399,9 +414,24 @@ git commit -m $'feat: ready for evaluation\\n\\nHarness-Candidate: '"$HARNESS_CA
     evaluator = tmp_path / "evaluator.sh"
     evaluator.write_text("#!/usr/bin/env bash\nset -euo pipefail\nprintf 'test_runner: PASS\\noverall: PASS\\n'\n")
     evaluator.chmod(0o755)
+    uploads = tmp_path / "uploads"
+    fake_bin = tmp_path / "fake-bin"
+    fake_bin.mkdir()
+    uploader = fake_bin / "fulcra"
+    uploader.write_text("""#!/usr/bin/env python3
+import os
+import shutil
+import sys
+if sys.argv[1:3] != ['file', 'upload']:
+    raise SystemExit(2)
+destination = os.path.join(os.environ['HARNESS_TEST_UPLOADS'], sys.argv[4])
+os.makedirs(os.path.dirname(destination), exist_ok=True)
+shutil.copyfile(sys.argv[3], destination)
+""")
+    uploader.chmod(0o755)
     result = subprocess.run(
-        [sys.executable, str(target / "coordinator" / "run_milestone.py"), "--milestone", "M1", "--deliverable", str(deliverable), "--git-mode", "local", "--integration-branch", "main"],
-        env={**git_env, "HARNESS_GENERATOR_CMD": str(generator), "HARNESS_EVALUATOR_CMD": str(evaluator)},
+        [sys.executable, str(target / "coordinator" / "run_milestone.py"), "--milestone", "M1", "--deliverable", str(deliverable), "--git-mode", "local", "--integration-branch", "main", "--team", "demo"],
+        env={**git_env, "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}", "HARNESS_TEST_UPLOADS": str(uploads), "HARNESS_GENERATOR_CMD": str(generator), "HARNESS_EVALUATOR_CMD": str(evaluator)},
         capture_output=True,
         text=True,
     )
@@ -417,6 +447,9 @@ git commit -m $'feat: ready for evaluation\\n\\nHarness-Candidate: '"$HARNESS_CA
     assert subprocess.run(["git", "-C", str(deliverable), "rev-parse", "milestone/m1-local-candidate"], check=True, env=git_env, capture_output=True, text=True).stdout.strip() in merge_parents
     assert merge_message.startswith("harness/m1: complete milestone")
     assert not subprocess.run(["git", "-C", str(deliverable), "tag", "--list"], check=True, env=git_env, capture_output=True, text=True).stdout.strip()
+    for label in ("control-harness", "deliverable"):
+        bundle = uploads / "team" / "demo" / "artifact" / "git-bundles" / "M1" / f"{label}-latest.bundle"
+        assert bundle.is_file(), f"missing terminal {label} bundle from fresh --team run"
 
 
 def test_repository_bundles_are_uploaded_after_a_harness_run(tmp_path: Path) -> None:
@@ -434,7 +467,7 @@ def test_repository_bundles_are_uploaded_after_a_harness_run(tmp_path: Path) -> 
         "GIT_COMMITTER_NAME": "Test",
         "GIT_COMMITTER_EMAIL": "test@example.invalid",
     }
-    for repo in (target, deliverable):
+    for repo in (deliverable,):
         subprocess.run(["git", "init", "-b", "main", str(repo)], check=True, env=git_env, capture_output=True, text=True)
         (repo / "tracked.txt").write_text("tracked\n")
         subprocess.run(["git", "-C", str(repo), "add", "."], check=True, env=git_env, capture_output=True, text=True)

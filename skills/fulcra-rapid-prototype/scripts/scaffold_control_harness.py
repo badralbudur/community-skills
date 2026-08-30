@@ -8,11 +8,27 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 TEMPLATES = SKILL_DIR / "control_harness_templates"
+
+
+def initialize_repository(target: Path) -> None:
+    """Make the scaffold a non-empty repository suitable for archival."""
+    try:
+        subprocess.run(["git", "init", "-b", "main", str(target)], check=True, capture_output=True, text=True)
+        # A harness must work before the operator has configured Git identity.
+        # Keep this identity local to the generated control repository.
+        subprocess.run(["git", "-C", str(target), "config", "user.name", "Fulcra Control Harness"], check=True, capture_output=True, text=True)
+        subprocess.run(["git", "-C", str(target), "config", "user.email", "noreply@fulcra.local"], check=True, capture_output=True, text=True)
+        subprocess.run(["git", "-C", str(target), "add", "."], check=True, capture_output=True, text=True)
+        subprocess.run(["git", "-C", str(target), "commit", "-m", "chore: initialize control harness"], check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as exc:
+        detail = exc.stderr.strip() if exc.stderr else str(exc)
+        raise RuntimeError(f"Could not initialize control-harness Git repository: {detail}") from exc
 
 
 def main() -> int:
@@ -44,7 +60,13 @@ def main() -> int:
         # requiring a manual chmod +x the first time someone tries it.
         if destination.suffix in (".sh", ".py"):
             destination.chmod(destination.stat().st_mode | 0o111)
+    try:
+        initialize_repository(target)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     print(f"Scaffolded portable control harness: {target}")
+    print("Initialized control-harness Git repository on main.")
     print("Next: fill spec.md/milestones.md from approved Grill-Me artifacts, then configure provider adapter commands in README.md, then run ./doctor.sh.")
     return 0
 

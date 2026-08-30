@@ -118,9 +118,12 @@ python scripts/scaffold_control_harness.py \
   --dry-run
 ```
 
-Review the dry-run, then scaffold it. Fill its `spec.md` and
-`coordinator/milestones.md` from the approved Grill-Me artifacts. Configure
-genuinely separate Generator and Evaluator adapter commands, then run:
+Review the dry-run, then scaffold it. A real scaffold initializes a non-empty
+local Git repository on `main`, so its required terminal Git bundle can be
+created without relying on operator Git identity or a manual `git init`. Fill
+its `spec.md` and `coordinator/milestones.md` from the approved Grill-Me
+artifacts. Configure genuinely separate Generator and Evaluator adapter
+commands, then run:
 
 ```bash
 ./bootstrap.sh <team-name> --deliverable <project directory>
