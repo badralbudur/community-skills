@@ -275,6 +275,28 @@ def test_is_mergeable_requires_test_runner_pass_when_declared(tmp_path: Path) ->
     assert run_milestone.is_mergeable({"overall": "PASS"}, test_runner_declared=False)
 
 
+def test_dashboard_refresh_hook_runs_only_for_active_dashboard(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target = tmp_path / "control"
+    _run_scaffold("--project-name", "Test Project", "--output-dir", str(target))
+    run_milestone = _load_run_milestone_module(target)
+    calls: list[tuple[str | None, dict[str, str], str]] = []
+    monkeypatch.setenv("HARNESS_DASHBOARD_REFRESH_CMD", "refresh-dashboard")
+    monkeypatch.setattr(run_milestone, "adapter", lambda command, env, label: calls.append((command, env, label)))
+
+    (target / "dashboard-decision.md").write_text("status: resolved\nchoice: create_and_publish\n")
+    run_milestone.refresh_dashboard_if_active("demo", "M1", "PASS")
+    assert calls == [("refresh-dashboard", {
+        "HARNESS_TEAM": "demo",
+        "HARNESS_MILESTONE": "M1",
+        "HARNESS_OUTCOME": "PASS",
+        "HARNESS_DASHBOARD_DECISION": str(target / "dashboard-decision.md"),
+    }, "dashboard-refresh")]
+
+    (target / "dashboard-decision.md").write_text("status: resolved\nchoice: defer\n")
+    run_milestone.refresh_dashboard_if_active("demo", "M1", "FAIL")
+    assert len(calls) == 1
+
+
 def test_bootstrap_resolves_fulcra_or_fulcra_api_or_uvx(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Regression test for a real reported bug: bootstrap.py used to
     unconditionally shell out to `fulcra`, even though bootstrap.sh's own
