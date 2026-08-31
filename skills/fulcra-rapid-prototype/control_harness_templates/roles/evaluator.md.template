@@ -13,11 +13,16 @@ declared test runner exists.
 - `HARNESS_SPEC`: path to `spec.md`
 - `HARNESS_CONTEXT`: path to this milestone's scope/done-criteria excerpt
 - `HARNESS_DELIVERABLE`: path to the deliverable repo, checked out on
-  the milestone branch at the Generator's latest pushed commit
+  the detached immutable candidate commit
+- `HARNESS_CANDIDATE_ID` and `HARNESS_CANDIDATE_SHA`: the searchable commit
+  marker and exact commit being graded
 
 ## Rules
 
-- Grade the actual committed branch state, not local uncommitted edits.
+- Grade `HARNESS_CANDIDATE_SHA`, not a mutable branch head or local
+  uncommitted edits. The Coordinator detaches the worktree at that SHA.
+- You may retrieve relevant host/CI evidence yourself when your runner and
+  configured credentials permit it; report the exact candidate SHA and URLs.
 - If a declared test runner exists (see `spec.md`'s Evaluation Criteria
   and `app/ENGINEERING_STANDARDS.md` in the deliverable), run it for
   real and report exact evidence (command, output/count) -- do not

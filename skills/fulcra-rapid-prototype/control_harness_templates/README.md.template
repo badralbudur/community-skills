@@ -11,10 +11,11 @@ distinct from the generated project's inner runtime model/tool loop
 baseline from this control harness's own contents: root team files, static
 spec/decision/governance/milestone/schema artifacts, Generator/Evaluator
 member role/progress/inbox state, milestone progress, and status summary.
-`run_milestone.py` persists verdicts, decision requests, status, and
-milestone progression when invoked with `--team`/`HARNESS_TEAM`; optional
-PR-create/merge commands are injectable host adapters. It includes bounded
-role wall-clock/retry behavior and transient provider-limit classification.
+`run_milestone.py` persists generator reports, candidates, verdicts, decision
+requests, status, milestone progression, and full-history Git bundles when
+invoked with `--team`/`HARNESS_TEAM`; optional PR-create/merge commands are
+injectable host adapters. It includes bounded role wall-clock/retry behavior
+and transient provider-limit classification.
 Activity-aware watchdogs and a concrete PR-host adapter remain project
 integration work, not hidden assumptions.
 
@@ -76,15 +77,55 @@ lines required by this harness.
 
 Each command receives `HARNESS_ROLE`, `HARNESS_MILESTONE`,
 `HARNESS_SPEC`, `HARNESS_CONTEXT`, and `HARNESS_DELIVERABLE` environment
-variables. Generator must commit/push only its milestone branch; Evaluator
-must write a verdict matching `schemas/verdict.md`. `run_milestone.py`
+variables. Generator may make coherent incremental commits on only its
+milestone branch, then identifies its clean final candidate with the required
+`Harness-Candidate: <candidate-id>` commit trailer. The Coordinator evaluates
+its exact SHA. On PASS, the Coordinator creates a non-fast-forward merge
+commit named `harness/<milestone>: complete milestone`. Evaluator must write a
+verdict matching `schemas/verdict.md`.
+`run_milestone.py`
 enforces `test_runner: PASS` as a merge gate when a test runner is declared,
 persists terminal Workspace records with `--team`, and invokes optional
-`HARNESS_PR_CREATE_CMD` / `HARNESS_PR_MERGE_CMD` adapters after push/PASS.
-Provide those adapters for your git host; the scaffold does not hardcode a
-specific hosting API. See `RUNBOOK.md` for the full step-by-step operating
-flow, `roles/generator.md` and `roles/evaluator.md` for role
-responsibilities, and `roles/manifest.md` for active roles.
+`HARNESS_PR_CREATE_CMD` / `HARNESS_PR_MERGE_CMD` adapters after remote
+push/PASS. A remote merge adapter must create a merge commit (never
+fast-forward or rebase) and use `HARNESS_MERGE_MESSAGE`. Provide those adapters for your git host;
+the scaffold does not hardcode a specific hosting API.
+
+## Git modes, candidates, and portable history
+
+GitHub is optional. `--git-mode local` (or `HARNESS_GIT_MODE=local`) requires
+only local Git branches and integrates a PASS candidate with a mandatory
+non-fast-forward merge commit. `--git-mode remote` adds `origin` push plus optional PR
+adapters. Set `--integration-branch` / `HARNESS_INTEGRATION_BRANCH` when it
+cannot be safely inferred.
+
+Every evaluation candidate has a required, searchable commit trailer such as
+`Harness-Candidate: harness/m2-candidate`; the Coordinator records that
+identifier/SHA/commit range in the Workspace and evaluates the fixed SHA,
+never a mutable branch head.
+
+After every non-dry harness run, the Coordinator uploads full-history bundles
+for both the control harness and deliverable to
+`team/<team>/artifact/git-bundles/<milestone>/`. The stable `*-latest.bundle`
+names intentionally replace older copies because the newest full bundle
+already contains its repository history. Retain older bundles only when a
+separate audit/archive requirement justifies their storage cost.
+
+The default retention target is **three versions per bundle path**. The
+Coordinator never deletes older versions until the user has explicitly
+approved pruning for the project and that decision is recorded in
+`decisions.md`. Then set `HARNESS_BUNDLE_PRUNING_APPROVED=1` (or pass
+`--approve-bundle-pruning`) and provide a trusted `HARNESS_BUNDLE_PRUNE_CMD`.
+It receives `HARNESS_BUNDLE_TEAM`, `HARNESS_BUNDLE_MILESTONE`,
+`HARNESS_BUNDLE_PATH`, and `HARNESS_BUNDLE_RETENTION=3`, and must remove only
+versions older than the retained newest three. The portable `fulcra-api` CLI
+currently exposes version inspection/restoration but no delete-one-version
+command, so this deliberately remains a platform-specific adapter rather than
+guessing at File Store internals.
+
+See `RUNBOOK.md` for the full step-by-step operating flow,
+`roles/generator.md` and `roles/evaluator.md` for role responsibilities, and
+`roles/manifest.md` for active roles.
 
 ## Non-negotiable rules
 

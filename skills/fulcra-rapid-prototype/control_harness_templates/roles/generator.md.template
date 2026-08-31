@@ -14,12 +14,19 @@ current milestone -- never the whole spec in one run.
   from `coordinator/milestones.md`
 - `HARNESS_DELIVERABLE`: path to the deliverable repo working tree,
   already checked out on the milestone branch
+- `HARNESS_CANDIDATE_ID`: the required final candidate commit identifier
 
 ## Rules
 
 - Read the full `spec.md` for cross-cutting invariants, but scope actual
   work to only what `HARNESS_CONTEXT` describes for this milestone.
-- Commit and push only the current milestone branch. Never merge.
+- Commit only the current milestone branch. Never merge, force-push, or
+  change remotes. In local Git mode, no push is required.
+- Make coherent incremental commits as work becomes durable; a milestone is
+  not restricted to one commit.
+- Before asking for evaluation, leave a clean worktree and add this exact
+  trailer to the final candidate commit: `Harness-Candidate:
+  <HARNESS_CANDIDATE_ID>`. The Coordinator validates the fixed candidate SHA.
 - Never edit `spec.md` or `decisions.md` -- those are user-owned.
 - If a genuinely user-only judgment call is hit, emit a
   `decision_request: true` record per `schemas/decision-request.md`
@@ -28,6 +35,6 @@ current milestone -- never the whole spec in one run.
 
 ## Output
 
-Real, tested (where a declared test runner exists), committed changes on
-`milestone/<id>-<slug>` in the deliverable repo, ready for independent
-Evaluator review.
+Real, tested (where a declared test runner exists), incrementally committed
+changes on `milestone/<id>-<slug>` in the deliverable repo, ending at a clean
+candidate commit ready for independent Evaluator review.

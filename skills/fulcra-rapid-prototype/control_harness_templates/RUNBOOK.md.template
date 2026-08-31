@@ -34,13 +34,14 @@ python coordinator/run_milestone.py --milestone M1 --deliverable ../<deliverable
 
 This will:
 1. Create or resume the `milestone/m1-<slug>` branch in the deliverable repo.
-2. Run Generator against that branch with `HARNESS_ROLE=generator` and the milestone's scope/context, subject to configurable timeout/bounded retry behavior.
-3. Push Generator's commits to `origin` if any were made. Only after the first pushed commit exists, invoke `HARNESS_PR_CREATE_CMD` if configured: GitHub cannot create a zero-diff PR, so never attempt PR creation before there is a commit to compare.
-4. Run Evaluator independently against the pushed branch state with `HARNESS_ROLE=evaluator`, parse its verdict, and persist it to Workspace when `--team` is supplied.
-5. Reject a merge-eligible PASS unless `overall: PASS` and, when declared, `test_runner: PASS` are both present.
-6. On PASS invoke `HARNESS_PR_MERGE_CMD` if configured, then persist milestone progress/status. On FAIL or decision request, persist the relevant Workspace status/artifact and leave branch/PR reviewable.
+2. Run Generator against that branch with `HARNESS_ROLE=generator` and the milestone's scope/context. It may make multiple coherent commits.
+3. Validate the clean final candidate commit's required `Harness-Candidate:` trailer and persist the candidate identifier/SHA record.
+4. In remote mode, push the branch to `origin`, then invoke `HARNESS_PR_CREATE_CMD` if configured. In local mode, no remote or PR is required.
+5. Detach at the exact candidate SHA and run Evaluator independently; persist its verdict when `--team` is supplied.
+6. Reject a merge-eligible PASS unless `overall: PASS` and, when declared, `test_runner: PASS` are both present. A local-mode PASS creates a non-fast-forward merge commit with message `harness/<milestone>: complete milestone`. Remote merge adapters must do the same; fast-forward and rebase integration are forbidden.
+7. On every terminal or failed run, upload current full-history control-harness and deliverable Git bundles to the Workspace. The default retention target is three File Store versions per `*-latest.bundle`, but never prune until the user explicitly approves it in `decisions.md`. After approval, set `HARNESS_BUNDLE_PRUNING_APPROVED=1` and provide a trusted `HARNESS_BUNDLE_PRUNE_CMD` that deletes only versions older than the newest three.
 
-**Host integration boundary:** this runner does not hardcode GitHub/GitLab/etc. Configure trusted adapter commands through `HARNESS_PR_CREATE_CMD` and `HARNESS_PR_MERGE_CMD`. Activity-aware watchdog behavior remains an integration adapter; the runner enforces a configurable hard role timeout and bounded retry policy.
+**Git/host boundary:** GitHub/GitLab/etc. are optional. Use `--git-mode local --integration-branch main` for a portable local-only harness, or `--git-mode remote` with optional trusted `HARNESS_PR_CREATE_CMD` / `HARNESS_PR_MERGE_CMD` adapters. Activity-aware watchdog behavior remains an integration adapter; the runner enforces a configurable hard role timeout and bounded retry policy.
 
 ## Handling a decision request
 
