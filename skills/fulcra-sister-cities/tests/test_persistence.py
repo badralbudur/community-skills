@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from engine.persistence import SnapshotError, SnapshotStore
+from facilitator import Facilitator
 from harness import new_game
 
 
@@ -52,6 +53,19 @@ class PersistenceTests(unittest.TestCase):
                 store.save(game)
             with self.assertRaises(SnapshotError):
                 store.load()
+
+    def test_loaded_snapshot_does_not_retain_a_prior_session_facilitator_hook(self):
+        """Each owning process attaches one fresh publication transaction."""
+        game = new_game()
+        with tempfile.TemporaryDirectory() as directory:
+            Facilitator.attach(game, root=directory, publish=False)
+            self.assertEqual(len(game._round_completed_hooks), 1)
+            store = SnapshotStore(os.path.join(directory, "game.snapshot"))
+            with store.locked():
+                store.save(game)
+            with store.locked():
+                restored = store.load()
+        self.assertEqual(restored._round_completed_hooks, [])
 
     def test_second_process_must_own_lock_and_locked_writer_waits(self):
         with tempfile.TemporaryDirectory() as directory:

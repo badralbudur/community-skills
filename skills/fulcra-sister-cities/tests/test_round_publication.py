@@ -179,6 +179,30 @@ class AutomaticPublicationTest(unittest.TestCase):
         self.assertNotIn("final.md", self.fixture.written())
         self.assertLess(len(self.fixture.desk.transactions), len(game.rounds))
 
+    def test_failed_completed_round_is_not_skipped_and_retries_before_advancing(self):
+        """A publication failure leaves the round incomplete for the next tick."""
+        game = new_game()
+        calls = []
+
+        def fail_once(_game, round_index):
+            calls.append(round_index)
+            if len(calls) == 1:
+                raise RuleViolation("simulated publication failure")
+
+        game.on_round_completed(fail_once)
+        with self.assertRaises(RuleViolation):
+            advance(game)
+        self.assertEqual(game.current_round, 1)
+        self.assertFalse(game.rounds[1].completed)
+        self.assertEqual(calls, [1])
+
+        # The same elapsed tick retries round 1; it may create round 2 only
+        # after the formerly unpublished round's hook has succeeded.
+        game.tick()
+        self.assertEqual(calls, [1, 1])
+        self.assertTrue(game.rounds[1].completed)
+        self.assertEqual(game.current_round, 2)
+
 
 class NoticeTest(unittest.TestCase):
     """#26's last clause: the group is told the edition is available."""

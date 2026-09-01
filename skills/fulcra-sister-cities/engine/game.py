@@ -168,6 +168,11 @@ class GameEngine:
         # (spec #26). An engine that imported the newspaper would be an engine
         # that could not be tested without one.
         self._round_completed_hooks = []
+        # Transiently identifies a round whose standing has frozen and whose
+        # required publication transaction is in progress.  It is deliberately
+        # not durable: a failed transaction leaves ``completed`` false in the
+        # canonical snapshot and is retried after a restart.
+        self._completing_round = None
 
     # -- construction helpers ---------------------------------------------
 
@@ -208,6 +213,26 @@ class GameEngine:
         if self._seed is None:
             return random.Random()
         return random.Random("%s|%s|%s" % (self._seed, purpose, key))
+
+    def __getstate__(self):
+        """Persist game state, never a session-local facilitator hook.
+
+        A ``Facilitator`` owns output directories, an address and an in-memory
+        transaction receipt.  It is attached anew by the owning process after
+        each snapshot load, rather than being carried into the next process and
+        accidentally running old and new publication hooks together.
+        """
+        state = dict(self.__dict__)
+        state["_round_completed_hooks"] = []
+        state["_completing_round"] = None
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Also makes snapshots made before these transient fields existed safe
+        # to load during the package's evolution.
+        self._round_completed_hooks = []
+        self._completing_round = None
 
     # -- roster -----------------------------------------------------------
 
@@ -404,9 +429,20 @@ class GameEngine:
         if record is None or record.completed:
             return None
         self._close_standings(index)
-        record.completed = True
-        for hook in list(self._round_completed_hooks):
-            hook(self, index)
+        self._completing_round = index
+        try:
+            for hook in list(self._round_completed_hooks):
+                hook(self, index)
+        except Exception:
+            # Do not let a failed rendering/publishing/notification transaction
+            # turn into a silently skipped historical round.  Keeping completed
+            # false makes the next tick (or a restarted facilitator) retry this
+            # same transaction before a new round can begin.
+            raise
+        else:
+            record.completed = True
+        finally:
+            self._completing_round = None
         return record
 
     def completed_rounds(self):

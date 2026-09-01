@@ -88,12 +88,20 @@ Workspace. Create `state/game.snapshot` on the facilitator's durable local
 storage and use `engine.persistence.SnapshotStore` around every transaction:
 
 ```python
-from engine.persistence import SnapshotStore
+from engine import GameEngine
+from engine.persistence import SnapshotError, SnapshotStore
+from facilitator import Facilitator
 
 store = SnapshotStore("state/game.snapshot")
 with store.locked():
-    game = store.load()       # or create GameEngine for the first transaction
-    # perform one engine action (join, submit, pick, tick, or publish)
+    try:
+        game = store.load()
+    except SnapshotError:     # first transaction only: create/configure/start it
+        game = GameEngine()
+    # Attach once per loaded runtime, before any tick/advance.  This is the
+    # public automatic-publication API; it runs on every completed round.
+    desk = Facilitator.attach(game)
+    # perform one engine action (join, submit, pick, or tick)
     store.save(game)
 ```
 
@@ -124,9 +132,12 @@ For each player interaction:
 1. Read that mayor's current check-in from the shared game state.
 2. Present only that mayor's allowed actions and question slot(s).
 3. Submit the player response through the engine's public game methods. Use
-   `facilitator.CompletedRoundTransaction` around a round advance so the
-   edition and availability notice are emitted as part of the committed
-   completed-round flow, rather than being an optional manual follow-up.
+   `Facilitator.attach(game)` once after loading (and before `game.tick()` or
+   `game.advance_round()`), inside the same `SnapshotStore.locked()` lifecycle.
+   The attached facilitator runs its `RoundTransaction` automatically for every
+   completed round; save the snapshot only after the action and publication
+   hooks succeed. If one fails, do not advance or save a completed round: the
+   next locked session retries that round before it can move on.
 4. Never attach an export city to another mayor's ballot or non-winning
    published offer.
 5. Update that agent's standard Workspace member progress/inbox archive.

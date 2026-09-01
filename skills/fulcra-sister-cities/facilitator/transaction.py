@@ -193,7 +193,7 @@ class Facilitator:
     def run(self, round_index):
         """Render, publish, build and announce one completed round."""
         record = self.game.rounds[round_index]
-        if not record.completed:
+        if not record.completed and self.game._completing_round != round_index:
             raise ConfigError(
                 "round %d has not finished; an edition printed from a live round "
                 "would say something different an hour later (spec #26)" % round_index
