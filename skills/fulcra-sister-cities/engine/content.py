@@ -15,6 +15,7 @@ import unicodedata
 
 from .config import repo_root
 from .errors import ConfigError, ContentError, NoEligibleImportNeed
+from .trade import TradePolicy
 
 SOURCE_SEED = "seed"
 SOURCE_PLAYER = "player"
@@ -61,12 +62,18 @@ def _read_json(path, what):
 class Content:
     """The seeded content, plus anything players added during play."""
 
-    def __init__(self, needs, categories, questions, gazetteer, root, question_doc=None):
+    def __init__(self, needs, categories, questions, gazetteer, root, question_doc=None,
+                 trade_policy=None):
         self.needs = list(needs)
         self.categories = {c["id"]: c for c in categories}
         self.questions = list(questions)
         self.gazetteer = gazetteer
         self.root = root
+        #: Spec #13a's rule about what may be ordered. Content, not code -- see
+        #: :mod:`engine.trade`. Every need in this object has passed it, whether
+        #: it was seeded, suggested by a player, or written freehand by an
+        #: importing mayor.
+        self.trade = TradePolicy(trade_policy)
         #: The whole questions document. The engine needs more of it than the
         #: question list -- the aggregate phrasing ladder (spec #25) lives here
         #: too, and is content, not code.
@@ -99,6 +106,7 @@ class Content:
             gazetteer=gaz_doc,
             root=root,
             question_doc=q_doc,
+            trade_policy=needs_doc.get("trade_policy"),
         )
         # Checked at load, so a question bank that does not match the configured
         # scope or framing refuses to start a game rather than being discovered
@@ -124,6 +132,10 @@ class Content:
                     "import need %r references unknown category %r"
                     % (need["id"], need["category"])
                 )
+            # Spec #13a, at the door where the seeded list comes in. A seed that
+            # asks for advice rather than for goods refuses to start a game --
+            # which is the only moment at which finding out is cheap.
+            self.trade.check_need(need, where="import need %r" % need["id"])
         q_seen = set()
         for question in self.questions:
             if not question.get("id") or not question.get("text"):
@@ -134,20 +146,37 @@ class Content:
 
     # -- import needs -----------------------------------------------------
 
-    def add_player_need(self, need):
-        """Append a player-suggested need (spec #13)."""
-        need = dict(need)
-        need.setdefault("source", SOURCE_PLAYER)
+    def add_need(self, need):
+        """Add one need to the pool, checked (spec #13, #13a, #33).
+
+        The pool a mayor orders from is the pool players extend, so a
+        player-suggested need and an importing mayor's freeform order come in
+        through the same door and meet the same validation -- including spec
+        #13a's trade policy, via :meth:`_validate`.
+        """
+        if not isinstance(need, dict) or not need.get("id"):
+            raise ContentError("an import need is a mapping with an id; got %r" % (need,))
+        if any(existing["id"] == need["id"] for existing in self.needs):
+            raise ContentError("import-need id %r already exists" % need["id"])
         if need.get("category") not in self.categories:
             raise ContentError(
-                "player-suggested need %r must use a known category; got %r"
-                % (need.get("id"), need.get("category"))
+                "import need %r must use a known category; got %r"
+                % (need["id"], need.get("category"))
             )
-        if any(existing["id"] == need.get("id") for existing in self.needs):
-            raise ContentError("import-need id %r already exists" % need.get("id"))
         self.needs.append(need)
         self._validate()
         return need
+
+    def add_player_need(self, need):
+        """Append a player-suggested need (spec #13, #33).
+
+        Checked against spec #13a's trade policy by :meth:`_validate` like every
+        other need in the pool: the list players extend is the list mayors order
+        from, so it obeys the same rule.
+        """
+        need = dict(need)
+        need.setdefault("source", SOURCE_PLAYER)
+        return self.add_need(need)
 
     def eligible_needs(
         self,
@@ -176,17 +205,45 @@ class Content:
             out.append(need)
         return out
 
-    def draw_need(self, rng, city, **rules):
+    def suggest_needs(self, rng, city, count, **rules):
+        """A slate of eligible seeds to put in front of an importing mayor (#13).
+
+        There is deliberately no ``draw_need`` beside this. Spec #13 (user
+        decision, 2026-08-31) replaced the hidden random draw with the importing
+        mayor's own choice, and the way to be sure a city can never receive a
+        need nobody picked is for the engine to own no function that picks one.
+        What the randomness decides now is only *which eligible seeds get shown*
+        -- the mayor may take any of them, take an eligible seed that is not on
+        the slate, or file a freeform order instead.
+
+        The slate spreads across categories before it doubles up on one, so a
+        mayor is offered a choice rather than three shades of the same thing.
+        """
+        if count < 1:
+            raise ConfigError(
+                "config.imports.suggestions_offered_to_importer must be at least 1; "
+                "spec #13 requires a small set of eligible suggestions"
+            )
         candidates = self.eligible_needs(**rules)
         if not candidates:
             raise NoEligibleImportNeed(
                 "no import need left for %s under the current repetition rules "
                 "(spec #14 / config.imports)" % city
             )
-        # Sorted first so the draw depends only on the seed, never on dict or
+        # Sorted first so the slate depends only on the seed, never on dict or
         # file ordering that a content edit could quietly change.
         candidates.sort(key=lambda n: n["id"])
-        return rng.choice(candidates)
+        rng.shuffle(candidates)
+        slate, seen_categories, spares = [], set(), []
+        for need in candidates:
+            if need["category"] in seen_categories:
+                spares.append(need)
+                continue
+            seen_categories.add(need["category"])
+            slate.append(need)
+            if len(slate) == count:
+                return slate
+        return (slate + spares)[:count]
 
     def need_by_id(self, need_id):
         for need in self.needs:

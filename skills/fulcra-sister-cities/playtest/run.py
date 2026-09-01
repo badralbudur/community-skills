@@ -4,32 +4,35 @@
     python3 -m playtest.run --check      # report only; write nothing
     python3 -m playtest.run --json       # the report as JSON
 
-Five steps, in the order a real game night actually happens in:
+Three steps, in the order a real game night actually happens in:
 
-1. **replay** the recorded game through the engine (:mod:`playtest.replay`);
+1. **replay** the recorded game through the engine (:mod:`playtest.replay`),
+   with the facilitator's desk (:mod:`facilitator`) attached to it, so every
+   completed round publishes its own edition and announces it as the round ends
+   -- which is the shape spec #26 requires and the shape a real game night has;
 2. **verify** that the recorded game is the game the mayors were briefed on --
    see :func:`assert_schedule_matches`, which is the one integrity check this
    module owns rather than borrows;
-3. **publish** every edition to ``editions/`` (:func:`newspaper.publish_game`);
-4. **build** the site at the paper's private address (:func:`hosting.build_site`);
-5. **check** all thirty-five requirements against the result at once
+3. **check** all thirty-five requirements against the result at once
    (:mod:`playtest.conformance`).
 
-Steps 3 and 4 are not decoration. Half the requirements in step 5 -- the
-archive, the identity rules, the images, the exposure policy -- are properties
-of *published bytes*, and there is no way to check a published byte without
-publishing it.
+Publishing used to be steps of its own here, run after the game finished. It is
+not any more, and the difference is the requirement: half the requirements in
+step 3 -- the archive, the identity rules, the images, the exposure policy --
+are properties of *published bytes*, and the other half of spec #26 is that
+those bytes appear without anybody running this script. So this module no
+longer publishes anything; it plays the game and reads what the desk did.
 """
 
 import json
 import os
+import shutil
 import sys
 
-import hosting
+from engine import Config, Content
 from engine.config import repo_root
-from hosting import identity as identity_module
-from newspaper.edition import Paper
-from newspaper.publish import publish_game
+from facilitator import Facilitator
+from hosting.build import MANIFEST_FILENAME
 
 from . import conformance
 from .replay import replay
@@ -58,7 +61,7 @@ def _site_dir(config, root=None):
     return os.path.join(root or repo_root(), config.require_str("playtest.site_dir"))
 
 
-def assert_schedule_matches(game, journal):
+def assert_schedule_matches(game, journal, transcript=None):
     """The recorded game must be the game the mayors were briefed on.
 
     Each mayor's agent was shown, in advance, the notices their check-ins would
@@ -67,14 +70,24 @@ def assert_schedule_matches(game, journal):
     only honest if the *schedule* is a function of the seed and the seating plan
     rather than of anything the mayors wrote.
 
-    It is: which need a city draws depends on the seed, the city and the
-    categories that city has already had, and nothing else; when a rotation
-    closes depends on who is in the queue. So a stand-in game and the real game
-    must agree, need for need and round for round, and they differ only in what
-    was said and who won. This asserts exactly that, because if it ever stopped
-    being true the briefs would be describing a game nobody played.
+    It is: which need a city opens is the one its mayor ordered (spec #13) and
+    the archive records those orders; when a rotation closes depends on who is
+    in the queue. Neither depends on a word anybody wrote. So a stand-in game
+    and the real game must agree, need for need and round for round, and they
+    differ only in what was said and who won. This asserts exactly that,
+    because if it ever stopped being true the briefs would be describing a game
+    nobody played.
+
+    The stand-ins are handed the recorded *orders* and nothing else. Before
+    spec #13 they needed nothing: the schedule was a function of the seed. Now
+    an order is a decision, so the reference pass has to be given the same
+    decisions -- otherwise this would be comparing two different games and
+    finding, correctly, that they differ.
     """
-    reference, _ = replay(StandIns(), config=game.config, content=game.content)
+    stand_ins = StandIns(
+        import_choices=transcript.import_orders() if transcript is not None else None
+    )
+    reference, _ = replay(stand_ins, config=game.config, content=game.content)
     ours = {
         key: (need.importing_city, need.category, need.opened_round, need.closed_round)
         for key, need in game.needs.items()
@@ -111,47 +124,106 @@ def play(write=True, label=None, root=None):
     editions and the site are still *built* -- they have to be, or half the
     requirements could not be checked -- but into a temporary directory, so a
     check run leaves the repository alone.
+
+    Nothing in here publishes anything. The desk attached in
+    :func:`_played_with_a_desk` does, one round at a time, as each round ends
+    (spec #26); what is left afterwards is reading what it produced.
     """
-    transcript = load_transcript(root=root)
-    game, journal = replay(transcript)
-    assert_schedule_matches(game, journal)
+    import tempfile
 
-    paper = Paper(game)
-    identity = identity_module.load_or_create(game.config, root=root)
-    label = label if label is not None else _label(game.config)
-
+    config = Config.load()
+    label = label if label is not None else _label(config)
     if write:
-        editions = publish_game(game, label=label, paper=paper)
-        site = hosting.build_site(
-            game, out_dir=_site_dir(game.config, root), paper=paper,
-            identity=identity, root=root,
+        return _played_with_a_desk(config, label, root, editions_dir=None,
+                                   site_dir=_site_dir(config, root))
+    with tempfile.TemporaryDirectory() as tmp:
+        return _played_with_a_desk(
+            config, label, root,
+            editions_dir=os.path.join(tmp, "editions"),
+            site_dir=os.path.join(tmp, "site"),
         )
-    else:
-        import tempfile
 
-        with tempfile.TemporaryDirectory() as tmp:
-            editions = publish_game(
-                game, label=label, out_dir=os.path.join(tmp, "editions"), paper=paper
-            )
-            site = hosting.build_site(
-                game, out_dir=os.path.join(tmp, "site"), paper=paper,
-                identity=identity, root=root,
-            )
-            artifacts = _artifacts(paper, editions, site, identity, transcript)
-            return game, journal, conformance.run(game, journal, artifacts), artifacts
 
-    artifacts = _artifacts(paper, editions, site, identity, transcript)
+def _clear_previous_run(config, label, root, editions_dir, site_dir):
+    """Empty the directories this replay is about to fill from round 1.
+
+    Spec #27's append-only promise is about a *live* address: an edition a
+    mayor was given a link to stays where it was put. This is not that. It is
+    the same recorded game being played again from its first round, and the
+    editions already on disk are the previous run of it -- so the honest thing
+    is to start the address again too, and let git show whether the bytes
+    changed. Without it, round 1's build would be refused for removing round
+    17, which is the guard being right about a situation that is not this one.
+
+    Only ever the two directories this run publishes into, and only when they
+    are the ones config names for the recorded game.
+    """
+    editions_dir = editions_dir or os.path.join(
+        root or repo_root(), config.require_str("newspaper.output.editions_dir"), label
+    )
+    public = os.path.join(site_dir, config.require_str("hosting.public_subdir"))
+    for directory in (editions_dir, public):
+        if os.path.isdir(directory):
+            shutil.rmtree(directory)
+    manifest = os.path.join(site_dir, MANIFEST_FILENAME)
+    if os.path.exists(manifest):
+        os.remove(manifest)
+
+
+def _played_with_a_desk(config, label, root, editions_dir, site_dir):
+    _clear_previous_run(config, label, root, editions_dir, site_dir)
+    transcript = load_transcript(root=root)
+    content = Content.load(config)
+    desks = []
+
+    def attach(game):
+        # Spec #26: the desk is hung on the game before the timer starts, so
+        # every edition in this run is the product of a round *ending* rather
+        # than of this function calling a publisher afterwards. There is no
+        # publish step below to compensate if it fails.
+        desks.append(
+            Facilitator.attach(
+                game, editions_dir=editions_dir, site_dir=site_dir, label=label,
+                root=root,
+            )
+        )
+
+    game, journal = replay(transcript, config=config, content=content, attach=attach)
+    desk = desks[0]
+    assert_schedule_matches(game, journal, transcript)
+    artifacts = _artifacts(desk, transcript)
     return game, journal, conformance.run(game, journal, artifacts), artifacts
 
 
-def _artifacts(paper, editions, site, identity, transcript):
+def _artifacts(desk, transcript):
+    """What the desk published, in the shape the conformance pass reads.
+
+    Assembled from the desk's own receipts rather than by re-publishing the
+    game: re-publishing would produce the same bytes and prove a different
+    thing (that a renderer *can* be called), which is exactly the distinction
+    spec #26 draws.
+    """
+    published = [t for t in desk.transactions if t.published]
+    last = published[-1] if published else None
+    editions = {
+        "label": desk.label,
+        "directory": last.published["directory"] if last else None,
+        "index": last.published["index"] if last else None,
+        "archive": last.published["archive"] if last else None,
+        "editions": [t.published["edition"] for t in published],
+        "final": last.published["final"] if last else None,
+        "formats": last.published["formats"] if last else None,
+        "archive_prior_editions": desk.paper.archive_prior,
+    }
+    site = desk.transactions[-1].site or {}
     return {
-        "archive": paper.archive(),
+        "archive": desk.paper.archive(),
         "editions": editions,
         "site": site,
-        "site_id": identity.site_id,
+        "site_id": desk.identity.site_id,
         "public_files": read_public_files(site["public_root"]),
         "transcript_data": transcript.data,
+        "desk": desk,
     }
 
 

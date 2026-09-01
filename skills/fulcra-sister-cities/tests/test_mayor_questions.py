@@ -22,7 +22,10 @@ import json
 import os
 import unittest
 
-from harness import advance, everyone_exports, make_config, new_game, play_out, question_doc
+from harness import (
+    advance, everyone_exports, file_orders, make_config, new_game, play_out,
+    question_doc,
+)
 from engine import Content, GameEngine, Ladder, aggregate, audit, views
 from engine.aggregate import Predicate
 from engine.clock import utc
@@ -198,12 +201,13 @@ def _game_with_questions(doc, **overrides):
     real = Content.load(config)
     content = Content(
         real.needs, list(real.categories.values()), doc["questions"], real.gazetteer,
-        root=real.root, question_doc=doc,
+        root=real.root, question_doc=doc, trade_policy=real.trade.doc,
     )
     game = GameEngine.for_test(utc(2026, 9, 1, 12), rng_seed=1, config=config, content=content)
     game.register_player("p1", "@ada", "Reykjavík", is_facilitator=True)
     game.register_player("p2", "@bo", "Valparaíso")
     game.register_player("p3", "@cy", "Hobart")
+    file_orders(game)
     game.start()
     return game
 

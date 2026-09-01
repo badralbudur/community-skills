@@ -60,7 +60,7 @@ class Player:
     __slots__ = (
         "player_id", "handle", "city", "is_facilitator", "joined_round",
         "queued_round", "import_turns_allotted", "import_turns_served",
-        "cumulative_profit",
+        "import_turns_forfeited", "import_programme", "cumulative_profit",
     )
 
     def __init__(self, player_id, handle, city, is_facilitator, joined_round):
@@ -73,6 +73,15 @@ class Player:
         self.queued_round = None
         self.import_turns_allotted = None
         self.import_turns_served = 0
+        # Turns that came round while this mayor had filed no order and were
+        # passed over rather than filled with something they did not choose
+        # (spec #13, #16's no-penalty-no-substitution reading of a no-show).
+        self.import_turns_forfeited = 0
+        # The orders this mayor has filed and the game has not opened yet, in
+        # the order they will open (spec #13). A need is only ever opened for a
+        # city out of this list, which is what "cannot receive an unchosen
+        # import" means structurally rather than as a promise.
+        self.import_programme = []
         self.cumulative_profit = Fraction(0)
 
     @property
@@ -157,12 +166,12 @@ class ImportNeed:
     __slots__ = (
         "need_key", "content_need_id", "category", "importing_player_id", "importing_city",
         "rendered", "opened_round", "rotation", "closed_round", "resolved_round",
-        "status", "pick", "resolution",
+        "status", "pick", "resolution", "order",
     )
 
     def __init__(
         self, need_key, content_need_id, category, importing_player_id, importing_city,
-        rendered, opened_round, rotation,
+        rendered, opened_round, rotation, order=None,
     ):
         self.need_key = need_key
         self.content_need_id = content_need_id
@@ -172,6 +181,11 @@ class ImportNeed:
         self.rendered = rendered
         self.opened_round = opened_round
         self.rotation = rotation
+        # How this need came to be this city's: which mayor filed it, in which
+        # round, from the slate or freehand (spec #13). Carried on the need
+        # rather than looked up later, because "who chose this" is a fact of the
+        # round it opened in and the paper prints it.
+        self.order = dict(order or {})
         self.closed_round = None
         self.resolved_round = None
         self.status = COLLECTING
@@ -191,7 +205,7 @@ class RoundRecord:
 
     __slots__ = (
         "index", "starts_at", "ends_at", "events", "question_id", "answers",
-        "answer_buckets", "bucket_source", "standings",
+        "answer_buckets", "bucket_source", "standings", "completed",
     )
 
     def __init__(self, index, starts_at, ends_at):
@@ -214,6 +228,10 @@ class RoundRecord:
         # :mod:`engine.aggregate`).
         self.answer_buckets = None
         self.bucket_source = None
+        # Set once, when the round finishes and the completed-round transaction
+        # has run over it (spec #26). It is what stops a round being published
+        # twice, and what ``engine.views.published_rounds`` means by "finished".
+        self.completed = False
 
     def log(self, op, **detail):
         entry = {"op": op}

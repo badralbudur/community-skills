@@ -52,21 +52,60 @@ def question_doc(questions, config=None):
     }
 
 
-def new_game(founders=None, seed=1, config=None, start=True, **overrides):
+def file_orders(game, player_ids=None):
+    """Every mayor files the import orders they are owed (spec #13).
+
+    Since the 2026-08-31 decision a city imports what its mayor ordered, so a
+    game where nobody has ordered anything opens nothing at all. Cooperative
+    fixtures therefore file up front -- taking the first suggestion on the
+    slate, which is a choice like any other and keeps a fixture's needs a
+    function of the seed. Tests about *not* filing (the held turn, the
+    forfeited turn) skip this deliberately; see ``tests/test_import_choice.py``.
+    """
+    filed = []
+    for player_id in sorted(player_ids if player_ids is not None else game.players):
+        while game.unfiled_import_turns(player_id) > 0:
+            offer = game.import_choice_offer(player_id)
+            filed.append(
+                game.choose_import(player_id, need_id=offer["suggestions"][0]["need_id"])
+            )
+    return filed
+
+
+def trade_policy(config=None):
+    """The shipped trade policy (spec #13a), for hand-made content fixtures.
+
+    Borrowed rather than restated, for the same reason :func:`question_doc`
+    borrows the real scope and ladder: a fixture that wrote its own policy could
+    pass while the real one was broken.
+    """
+    return Content.load(config or make_config()).trade.doc
+
+
+def new_game(founders=None, seed=1, config=None, start=True, orders=True, **overrides):
     config = config if config is not None else make_config(**overrides)
     content = Content.load(config)
     game = GameEngine.for_test(START, rng_seed=seed, config=config, content=content)
     game.register_player(*FACILITATOR, is_facilitator=True)
     for player in (FOUNDERS if founders is None else founders):
         game.register_player(*player)
+    if orders:
+        file_orders(game)
     if start:
         game.start()
     return game
 
 
-def advance(game, rounds=1):
-    """Move the one round timer forward and let the engine catch up."""
+def advance(game, rounds=1, orders=True):
+    """Move the one round timer forward and let the engine catch up.
+
+    Files any outstanding import orders first, for the same reason
+    :func:`file_orders` exists: a cooperative table answers the game's
+    questions, and a mayor who joined this round has an order to file.
+    """
     for _ in range(rounds):
+        if orders and game.phase == "running":
+            file_orders(game)
         game.clock.advance(game.timer.window)
         game.tick()
     return game.current_round
@@ -105,6 +144,7 @@ def play_out(game, limit=40):
     """Run a full, cooperative game: everyone exports, every importer picks."""
     rounds = 0
     while game.phase == "running" and rounds < limit:
+        file_orders(game)
         for player_id in sorted(game.players):
             pick_first(game, player_id)
         everyone_exports(game, "round%d" % game.current_round)

@@ -2,7 +2,10 @@
 
 import unittest
 
-from harness import FACILITATOR, FOUNDERS, LATECOMER, advance, everyone_exports, make_config, new_game, play_out
+from harness import (
+    FACILITATOR, FOUNDERS, LATECOMER, advance, everyone_exports, file_orders,
+    make_config, new_game, play_out,
+)
 from engine import Content, GameEngine
 from engine.clock import utc
 from engine.errors import RosterError
@@ -209,9 +212,11 @@ class RosterLimitsTest(unittest.TestCase):
                                    content=Content.load(config))
         game.register_player(*FACILITATOR, is_facilitator=True)
         game.register_player(*FOUNDERS[0])
+        file_orders(game)
         with self.assertRaises(RosterError):
             game.start()
         game.register_player(*FOUNDERS[1])
+        file_orders(game)
         game.start()
         self.assertEqual(game.phase, "running")
 

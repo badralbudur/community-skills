@@ -740,6 +740,40 @@
     ]
   },
 
+  "bulletin": {
+    "_comment": "Spec #26's last clause: after an edition is published, the group is told it is available. This is what the facilitator's agent says out loud when the completed-round transaction finishes (facilitator/transaction.py) -- the one piece of the paper's writing that is not printed in the paper. It is content for the same reason everything else here is: 'the presses have stopped' versus 'a new edition is up' is a writing decision. Frames may use {publication}, {game}, {round}, {lede} and {url}; the url is the private address and is the one placeholder that must never end up in a committed file, which is why the notice object carries a redacted form of itself for anything that gets written down.",
+    "round_notice": [
+      "{publication} No. {round} has gone to press. {lede} It is at {url}",
+      "The presses have stopped: {publication}, round {round}, is up. {lede} {url}",
+      "New edition. {publication} No. {round}, hot, slightly smudged. {lede} {url}",
+      "Round {round} of {game} is in print. {lede} Read it at {url}"
+    ],
+    "round_notice_without_url": [
+      "{publication} No. {round} has gone to press. {lede} It is at the usual address.",
+      "The presses have stopped: {publication}, round {round}, is up at the usual address. {lede}"
+    ],
+    "final_notice": [
+      "The last edition of {publication} is out: the crown, the consequences, and a portrait of every city. {url}",
+      "{publication} has printed its final edition of {game} — one crown, several regrets, a picture of each of you. {url}",
+      "That's the game. The final {publication} is up, with the standings, the consequences and every city's portrait. {url}"
+    ],
+    "final_notice_without_url": [
+      "The last edition of {publication} is out at the usual address: the crown, the consequences, and a portrait of every city.",
+      "{publication} has printed its final edition of {game}, at the usual address — one crown, several regrets, a picture of each of you."
+    ],
+    "opened_lede": [
+      "{city} is buying: {title}.",
+      "This round's order comes from {city} — {title}.",
+      "{city} has filed for {title}.",
+      "On the front: {city}, and {title}."
+    ],
+    "quiet_lede": [
+      "No new order was filed this round; the paper found other things to look at.",
+      "Nobody opened a notice this round, which the paper has taken personally.",
+      "A quiet round on the order desk, so the paper went and looked at the harbour instead."
+    ]
+  },
+
   "tone": {
     "_comment": "Spec #30: funny, fun, colorful, allowed to be pointed, never snide or mean. The first three are judged by a human or a judging role; this block is the mechanical half. forbidden_register is run over every rendered edition when config.newspaper.tone.disallow_snide_or_mean is true, and an edition that trips it does not publish. It is deliberately a list of words that can only be doing one job in a sentence: attacking somebody. It is a floor, not a ceiling -- passing it is not the same as being kind.",
     "forbidden_register": [

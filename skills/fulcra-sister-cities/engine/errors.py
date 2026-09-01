@@ -38,6 +38,23 @@ class ContentError(GameError):
     """A content/*.json file is missing or does not match its expected shape."""
 
 
+class TradeRefused(GameError):
+    """A need that is not an order for goods or services (spec #13a).
+
+    Raised over a seed at load, over a player-suggested addition to the pool,
+    and over an importing mayor's freeform request -- the same policy at all
+    three doors, so a game cannot acquire an advice prompt through the one
+    nobody was watching. ``phrase`` carries the words that failed, because the
+    facilitator's agent has to be able to tell a mayor *why* their request came
+    back rather than simply that it did.
+    """
+
+    def __init__(self, message, where=None, phrase=None):
+        super().__init__(message)
+        self.where = where
+        self.phrase = phrase
+
+
 class NoEligibleImportNeed(GameError):
     """No import need is left that satisfies the repetition rule (spec #14).
 
@@ -89,6 +106,17 @@ class SubmissionRejected(RuleViolation):
 
 class PickRejected(RuleViolation):
     """A winner pick the rules do not accept (spec #18)."""
+
+
+class ImportChoiceRejected(RuleViolation):
+    """An import order the rules do not accept (spec #13, #14).
+
+    The mayor chooses their city's next import, so this is what refusing one
+    looks like: no turn left to file for, a need somebody else already reserved,
+    or a category this city has already imported. Distinct from
+    :class:`TradeRefused`, which is about *what* was ordered rather than about
+    whether this mayor may order it now.
+    """
 
 
 class CheckInExhausted(RuleViolation):

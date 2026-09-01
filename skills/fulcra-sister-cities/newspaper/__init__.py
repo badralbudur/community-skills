@@ -34,17 +34,27 @@ What M7 adds
 * the two illustrations that edition needs (:mod:`newspaper.portrait`), drawn
   through the same modality policy as every other picture (spec #29, #32)
 
+What M9 adds
+------------
+* :func:`newspaper.publish.publish_round`, the per-round door: one completed
+  round's edition written beside every earlier one, for the facilitator's
+  completed-round transaction (spec #26, #27)
+* the ``bulletin`` block in ``content/newspaper.json``
+  (:meth:`newspaper.copy.NewspaperCopy.bulletin`) -- what the group is told when
+  an edition lands, which is the paper's voice and so is the paper's content,
+  even though it is the one piece of it that is never printed in an edition
+
 What it does not cover: serving the archive at an unguessable, noindex URL
-(spec #26, #27), which is the :mod:`hosting` package.
-:func:`newspaper.publish.publish_game` writes editions to disk as files;
-:func:`hosting.build_site` publishes the same editions as a site.
+(spec #26, #27), which is the :mod:`hosting` package, and *when* any of this
+happens, which is :mod:`facilitator`. This package renders and writes; it is
+never the thing that decides it is time.
 """
 
-from .edition import build_archive, build_edition, build_final_edition
-from .publish import publish_game
+from .edition import Paper, build_archive, build_edition, build_final_edition
+from .publish import publish_game, publish_round
 from .render import to_markdown
 
 __all__ = [
     "build_edition", "build_archive", "build_final_edition", "to_markdown",
-    "publish_game",
+    "publish_game", "publish_round", "Paper",
 ]

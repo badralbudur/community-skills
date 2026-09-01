@@ -41,6 +41,12 @@ EXPECTED_READS = {
     "imports.allow_repeat_category_across_cities",
     "imports.allow_repeat_category_for_same_city",
     "imports.reuse_same_need_within_game",
+    # Spec #13's parameters: how big a slate a mayor is offered, how early the
+    # check-in starts asking for the order, and how long a turn nobody has
+    # ordered for is held before it is given up.
+    "imports.suggestions_offered_to_importer",
+    "imports.choice_offered_rounds_ahead",
+    "imports.unchosen_turn_grace_rounds",
     "exports.max_submissions_per_player_per_import_per_round",
     "exports.importer_may_export_to_own_need",
     "economy.profit_roll",
@@ -122,6 +128,17 @@ HOSTING_READS = {
     "hosting.privacy.referrer_policy",
     "hosting.privacy.cache_control",
     "hosting.privacy.content_security_policy",
+}
+
+#: Parameters the *facilitator's desk* takes from config.json -- the fourth
+#: consumer, and a fourth set for the same reason the paper and the site have
+#: their own: nothing else reads these, and running one completed-round
+#: transaction reads all of them (spec #26).
+FACILITATOR_READS = {
+    "facilitator.completed_round_transaction",
+    "facilitator.editions_label",
+    "facilitator.notice.channel",
+    "facilitator.notice.include_url",
 }
 
 #: Parameters that belong to a later milestone's surface, listed so their absence
@@ -240,6 +257,29 @@ class ReadTrackingTest(unittest.TestCase):
         missing = HOSTING_READS - set(config.keys_read())
         self.assertEqual(missing, set(), "not read from config.json: %s" % sorted(missing))
 
+    def test_the_facilitators_desk_reads_every_parameter_it_should_from_config(self):
+        import shutil
+        import tempfile
+
+        from facilitator import Facilitator
+
+        config = make_config()
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        game = new_game(config=config)
+        Facilitator.attach(
+            game,
+            editions_dir=os.path.join(tmp, "editions"),
+            site_dir=os.path.join(tmp, "site"),
+            root=tmp,
+        )
+        # One round window is one completed round, which is one whole
+        # transaction: render, publish, build, notify.
+        everyone_exports(game)
+        advance(game)
+        missing = FACILITATOR_READS - set(config.keys_read())
+        self.assertEqual(missing, set(), "not read from config.json: %s" % sorted(missing))
+
     def test_every_key_the_engine_reads_actually_exists_in_config_json(self):
         config = make_config()
         play_out(new_game(config=config))
@@ -356,6 +396,28 @@ class NoInlineDefaultsTest(unittest.TestCase):
         from hosting.manifest import resolve_categories
 
         self._assert_needs("hosting.publish", resolve_categories)
+
+    def test_the_import_choice_parameters_have_no_inline_default(self):
+        """Spec #13's knobs: a missing one must not resolve to a quiet guess.
+
+        ``unchosen_turn_grace_rounds`` especially -- a default of zero would
+        silently start giving away import turns, and a large default would stall
+        a game on one absent mayor. Both are facilitator decisions.
+        """
+        def play(config):
+            game = new_game(config=config)
+            play_out(game)
+
+        for dotted in ("imports.suggestions_offered_to_importer",
+                       "imports.choice_offered_rounds_ahead",
+                       "imports.unchosen_turn_grace_rounds"):
+            self._assert_needs(dotted, play)
+
+    def test_the_completed_round_transaction_has_no_inline_default(self):
+        """Spec #26: what happens when a round ends is not guessed at."""
+        from facilitator.transaction import resolve_steps
+
+        self._assert_needs("facilitator.completed_round_transaction", resolve_steps)
 
 
 class BehaviourFollowsConfigTest(unittest.TestCase):

@@ -204,6 +204,13 @@ def need_briefing(engine, need):
         # ``need.rendered`` by the paper, so every consumer sees the same
         # redaction decisions taken in one module.
         "category_label": category.get("label", need.category),
+        # Spec #13: who filed this order and whether they took a seed or wrote
+        # their own. Public by construction -- the importing city and its mayor
+        # are already on the notice, and nothing here touches an *exporter's*
+        # identity, which is the one spec #21 protects.
+        "filed_by": need.order.get("filed_by"),
+        "request_source": need.order.get("request_source"),
+        "trade_family": need.order.get("trade_family"),
         "exporter_prompt": need.rendered["exporter_prompt"],
         "title": need.rendered["title"],
         "need_brief": need.rendered["need_brief"],

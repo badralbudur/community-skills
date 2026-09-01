@@ -1,20 +1,59 @@
 {
-  "schema_version": 1,
-  "_comment": "Seeded import-need list for Sister Cities (spec #13, #14, #33). Each round, one city's import need opens; every other city may submit ONE freeform export in response (spec #15). Needs are written city-agnostic and rendered by substituting placeholders (see placeholders below). Repetition is governed by config.json -> imports (a category may repeat across different cities but not for the same city twice, unless config says otherwise). Player-suggested needs are appended to this same list at runtime with \"source\": \"player\" (spec #13).",
+  "schema_version": 2,
+  "_comment": "Seeded import-need list for Sister Cities (spec #13, #13a, #14, #33). Each round, one city's import need opens; every other city may submit ONE freeform export in response (spec #15). A need is a PURCHASE ORDER: the importing city names goods or services it wants delivered, and an export is an offer to supply them. Needs are written city-agnostic and rendered by substituting placeholders (see placeholders below). Repetition is governed by config.json -> imports (a category may repeat across different cities but not for the same city twice, unless config says otherwise). Which of these a city receives is the importing mayor's own choice (spec #13): the facilitator's agent offers a slate of eligible seeds and accepts a freeform request instead, and both are checked against trade_policy below. Player-suggested needs are appended to this same list at runtime with \"source\": \"player\".",
+
+  "_schema_2_note": "Schema 1 wrote every need as a civic PROBLEM and asked exporters what the city should do about it. The user decision of 2026-08-31 (spec #13a) retired that: an import need must describe an actual tradable import -- food or candy, materials, equipment, living things, cultural works, or specialist services -- and may not reduce to a request for generic advice or civic problem solving. Every seed kept its id, its category and its subject matter and changed its framing: the humming city is now buying hydrophones rather than asking for an explanation, and the seafront that lost its trees is buying rooted stock by the crate. Ids are stable on purpose -- playtest/transcript.json records a played game by need id, and a recorded game must go on meaning what it meant.",
 
   "placeholders": {
     "_comment": "Declared so rendering is checkable rather than assumed. A need is city-agnostic precisely because it names no city itself.",
     "{city}": { "renders_to": "the importing city's name", "required_in": ["need_brief", "exporter_prompt"] },
-    "{mayor}": { "renders_to": "the importing city's mayor, styled per NAME.md (always 'Mayor', e.g. 'the Mayor of Reykjavík')", "required_in": [], "_note": "Available but deliberately unused by all 48 seeds -- the briefs read better as municipal grievances than as messages from a named office. Player-suggested needs may use it." }
+    "{mayor}": { "renders_to": "the importing city's mayor, styled per NAME.md (always 'Mayor', e.g. 'the Mayor of Reykjavík')", "required_in": [], "_note": "Available but deliberately unused by all 48 seeds -- the notices read better as procurement than as correspondence. Player-suggested and freeform needs may use it." }
   },
 
   "design_notes": [
-    "Every need is a PROBLEM, never a shopping list. A need that names its own solution ('needs 40 tonnes of gravel') collapses the export phase into a single correct answer; these are written so a shipbuilder, a poet, and a bureaucrat could each plausibly win.",
-    "Needs are absurd-adjacent but never nonsense: each one has a real municipal grievance underneath it, so mayors can answer from actual civic experience and the newspaper has something true to exaggerate.",
-    "Category is the unit of the repetition rule. 16 categories x 3 needs = 48 seeds, which comfortably covers the maximum game (10 cities x 2 rotations = 20 import needs) without any city drawing the same category twice.",
-    "'exporter_prompt' is the line shown to exporting mayors. It deliberately does NOT hint at a preferred answer shape, because the importing mayor judges subjectively with no rubric (spec #18).",
-    "'excess_flavor' is a hint for the endgame: what a NON-chosen export of this kind piles up as in the exporting city (spec #32). It is never shown during play and never attributed to a losing city."
+    "Every need is an ORDER, never a riddle. It names the kind of thing the city wants delivered -- crates, livestock, plant, people on secondment, a commissioned object -- and leaves wide open which of those a supplier sends. A shipbuilder, a nursery and a cook can all fill 'a windbreak, delivered before November'; none of them can fill 'what should we do about the wind', which is the request spec #13a forbids.",
+    "Needs are absurd-adjacent but never nonsense: each order has a real municipal grievance behind it, so mayors can quote from actual civic experience and the newspaper has something true to exaggerate. The grievance is the reason for the purchase, not the purchase.",
+    "Category is the unit of the repetition rule. 16 categories x 3 needs = 48 seeds, which comfortably covers the maximum game (10 cities x 2 rotations = 20 import needs) without any city ordering from the same category twice.",
+    "'trade_family' says which of spec #13a's six kinds of tradable thing the order is mainly for. It is checked at load, it is what makes 'this is trade, not advice' a property the test suite can read, and it is deliberately the *need's* family and not the export's -- an offer may fill a materials order with a service, and often should.",
+    "'exporter_prompt' is the line shown to exporting mayors. It asks for a consignment and says nothing about which consignment would win, because the importing mayor judges subjectively with no rubric (spec #18).",
+    "'excess_flavor' is a hint for the endgame: what a NON-chosen offer of this kind piles up as in the exporting city (spec #32). It is never shown during play and never attributed to a losing city."
   ],
+
+  "trade_policy": {
+    "_comment": "Spec #13a, made checkable. engine.trade reads this block and applies it to all three ways a need can enter a game: the seeds below (at load), a player-suggested addition to the pool, and an importing mayor's freeform request (spec #13). One rule, three doors -- so a game cannot acquire an advice prompt through the door nobody was watching.",
+    "families": {
+      "foodstuffs": { "label": "Food, drink and candy", "examples": ["a season's fruit", "cooks and their pans", "sacks of coffee", "a night canteen's stock"] },
+      "materials": { "label": "Materials", "examples": ["timber", "stone", "cable", "canvas", "line paint", "rooted cuttings by the crate"] },
+      "equipment": { "label": "Equipment and plant", "examples": ["pumps", "freezers", "hydrophones", "rolling stock", "a funicular in kit form"] },
+      "living_things": { "label": "Living things", "examples": ["hives", "seedlings", "a pair of trained hawks", "oyster spat"] },
+      "cultural_works": { "label": "Cultural works", "examples": ["a commissioned verse", "a cast monument", "sheet music", "a trophy", "a print run"] },
+      "specialist_services": { "label": "Specialist services", "examples": ["a surveyor for a fortnight", "interpreters", "carers on secondment", "a stamped structural calculation"] }
+    },
+    "rules": [
+      "A need names goods or services the city is buying. It may be strange, it may be funny, and it must be procurable: somebody could put it on a lorry, in a hold, or on a plane with a person inside it.",
+      "A need may not reduce to a request for advice, opinions, ideas, plans or civic problem solving. 'Send us pumps' is an order; 'what should we do about the water' is not.",
+      "The grievance behind the order may be described at any length. It is context for the buyer's mood, not the thing being bought.",
+      "An exporter's offer stays free-form (spec #15) and may fill an order with something nobody expected -- including a service where goods were asked for. The policy binds the order, never the offer."
+    ],
+    "supply_verbs": ["ship", "send", "supply", "deliver", "consign", "freight", "load", "crate", "stock", "quote", "fill", "put"],
+    "_supply_verbs_note": "Every exporter_prompt must use at least one of these, because a prompt that asks for a consignment reads differently from one that asks for a suggestion, and the difference is checkable. Matched on word boundaries, case-insensitively.",
+    "advice_markers": [
+      "what should", "how should", "what to do", "tell {city} what", "come up with",
+      "advice", "advise", "ideas for", "idea for", "suggestions for", "suggestion for",
+      "solve", "solution to", "figure out", "work out what", "explain", "explanation for",
+      "invent", "brainstorm", "recommend", "recommendation", "opinions on", "thoughts on",
+      "fix {city}", "help {city} decide", "decide what {city}"
+    ],
+    "_advice_markers_note": "Substrings that mark a request for advice rather than a consignment, checked case-insensitively over a need's title, brief and exporter prompt. Refused rather than rewritten: a marker in a seed is a content bug, and a marker in a mayor's freeform request is a request the facilitator's agent should ask them to re-file as an order (engine.trade.TradeRefused carries the reason and the failing phrase).",
+    "freeform": {
+      "_comment": "Spec #13's other half: a mayor who wants something the slate does not offer writes their own order. These are the defaults the facilitator's agent fills in around whatever they actually said, so a freeform request arrives in the same shape as a seed and is judged by the same policy.",
+      "id_prefix": "need-freeform",
+      "default_exporter_prompt": "Ship {city} what it has asked for, in whatever form your city can actually supply it.",
+      "default_excess_flavor": "consignments, unshipped, still labelled",
+      "required_fields": ["category", "trade_family", "title", "need_brief"],
+      "note_to_mayor": "Name what your city is buying and roughly how much of it. You are placing an order, not asking a question -- the other mayors will decide for themselves what to put in the crate."
+    }
+  },
 
   "categories": [
     { "id": "infrastructure", "label": "Infrastructure & Public Works", "blurb": "Things that are load-bearing, literally or otherwise." },
@@ -39,9 +78,10 @@
     {
       "id": "need-infrastructure-01",
       "category": "infrastructure",
-      "title": "A bridge that goes somewhere",
-      "need_brief": "{city} has a magnificent bridge. It was completed in the spring, under budget, and it lands in the overflow car park of a closed appliance showroom. The bridge is not the problem. The far side is the problem.",
-      "exporter_prompt": "What does {city} put on the other side of that bridge?",
+      "trade_family": "equipment",
+      "title": "The far side of a bridge, delivered",
+      "need_brief": "{city} has a magnificent bridge. It was completed in the spring, under budget, and it lands in the overflow car park of a closed appliance showroom. The bridge is not for sale. {city} is buying what goes on the end of it: a building's worth of fittings, market stalls, plant, stock, a whole going concern if one will fit on a lorry.",
+      "exporter_prompt": "Ship {city} something worth crossing a bridge for, and say what comes off the lorry.",
       "excess_flavor": "far sides, unattached, stacked by the water",
       "tags": ["absurd", "civic", "physical"],
       "source": "seed"
@@ -49,9 +89,10 @@
     {
       "id": "need-infrastructure-02",
       "category": "infrastructure",
-      "title": "Load-bearing optimism",
-      "need_brief": "The roof of {city}'s town hall is currently supported by scaffolding, three generations of temporary permits, and the shared belief that it will hold. Two of those three are expiring.",
-      "exporter_prompt": "Send {city} something that can hold up a civic roof — structurally, financially, or spiritually.",
+      "trade_family": "materials",
+      "title": "Twenty metres of clear span, and a signature",
+      "need_brief": "The roof of {city}'s town hall is held up by scaffolding, three generations of temporary permits and the shared belief that it will hold. Two of those three expire in October. Wanted: trusses, beams, ties, fixings — timber, steel or stone, {city} is not fussy — and a stamped calculation from somebody insured.",
+      "exporter_prompt": "Send {city} the structure that will hold up a civic roof, and whatever crew or certificate travels with it.",
       "excess_flavor": "unused support, propped against every wall in town",
       "tags": ["absurd", "civic", "physical"],
       "source": "seed"
@@ -59,9 +100,10 @@
     {
       "id": "need-infrastructure-03",
       "category": "infrastructure",
-      "title": "A junction that ends the argument",
-      "need_brief": "At the Fifth and Harbour crossing, {city}'s drivers have developed an elaborate unwritten protocol involving eye contact, headlight flashes, and one particular hand gesture. Visitors do not know the protocol. Visitors are not doing well.",
-      "exporter_prompt": "How does {city} settle who goes first?",
+      "trade_family": "equipment",
+      "title": "One junction, in kit form",
+      "need_brief": "At the Fifth and Harbour crossing, {city}'s drivers use an unwritten protocol involving eye contact, headlight flashes and one particular hand gesture. Visitors do not know the protocol. Visitors are not doing well. {city} will buy signals, posts, signage, kerbstones, a roundabout in flat pack — anything that can be bolted down by March.",
+      "exporter_prompt": "Ship {city} the hardware that settles who goes first, in crates it can lift.",
       "excess_flavor": "right-of-way conventions, mutually incompatible",
       "tags": ["everyday", "civic", "social"],
       "source": "seed"
@@ -70,19 +112,21 @@
     {
       "id": "need-water_and_waste-01",
       "category": "water_and_waste",
-      "title": "Somewhere for the rain to go",
-      "need_brief": "{city}'s storm drains were designed for a climate that has since resigned. Every heavy rain, the water arrives at the low end of Market Street and simply waits there, in public, for four days.",
-      "exporter_prompt": "Give {city}'s standing water somewhere to be, or something to become.",
-      "excess_flavor": "drainage ideas, pooling",
+      "trade_family": "equipment",
+      "title": "Pumps, pipe and four days of standing water",
+      "need_brief": "{city}'s storm drains were built for a climate that has since resigned. Every heavy rain, the water arrives at the low end of Market Street and waits there, in public, for four days. Purchase order: pumps, hose, pipe, gravel, tanks, decking, and hands that have laid any of it before.",
+      "exporter_prompt": "Ship {city} the plant, pipework or people that will move the water at the low end of Market Street — or make it welcome there.",
+      "excess_flavor": "drainage kit, pooling on the quay",
       "tags": ["climate", "civic", "physical"],
       "source": "seed"
     },
     {
       "id": "need-water_and_waste-02",
       "category": "water_and_waste",
-      "title": "A dignified end for 400 tonnes of seaweed",
-      "need_brief": "The tide brings {city} four hundred tonnes of seaweed a season. Burning it is illegal, burying it is unpopular, and the phrase 'municipal seaweed' now appears in eleven separate complaint letters.",
-      "exporter_prompt": "What should {city} do with all that seaweed?",
+      "trade_family": "equipment",
+      "title": "Plant for four hundred tonnes of seaweed",
+      "need_brief": "The tide brings {city} four hundred tonnes of seaweed a season. Burning it is illegal, burying it is unpopular, and the phrase 'municipal seaweed' now appears in eleven separate complaint letters. {city} is buying the machinery that turns it into a product: balers, dryers, presses, tanks — or a standing order from somebody who wants the stuff.",
+      "exporter_prompt": "Ship {city} the plant that makes seaweed into something, or the contract that takes it away by the tonne.",
       "excess_flavor": "second, third and fourth uses for seaweed, unclaimed",
       "tags": ["surplus", "coastal", "physical"],
       "source": "seed"
@@ -90,9 +134,10 @@
     {
       "id": "need-water_and_waste-03",
       "category": "water_and_waste",
-      "title": "Water that doesn't taste like 1978",
-      "need_brief": "{city}'s tap water is perfectly safe and tastes strongly of the decade in which the pipes were laid. Residents have stopped noticing. Their guests have not.",
-      "exporter_prompt": "Send {city} something that fixes the taste, the pipes, or the guests.",
+      "trade_family": "materials",
+      "title": "Pipe that does not taste of 1978",
+      "need_brief": "{city}'s tap water is perfectly safe and tastes strongly of the decade in which the pipes were laid. Residents have stopped noticing. Their guests have not. Wanted: pipe, liner, filter media, fittings by the pallet, and a re-lining crew who work nights.",
+      "exporter_prompt": "Supply {city} the pipe, lining or filtration that changes what comes out of the tap — and the crew who install it.",
       "excess_flavor": "flavour corrections, decanted",
       "tags": ["everyday", "infrastructure-adjacent", "sensory"],
       "source": "seed"
@@ -101,9 +146,10 @@
     {
       "id": "need-food_and_drink-01",
       "category": "food_and_drink",
-      "title": "A signature dish, urgently",
-      "need_brief": "A travel magazine has listed {city} as 'a city best experienced between meals.' The council has convened. The council would like this corrected before the next issue.",
-      "exporter_prompt": "What is {city} famous for eating, starting now?",
+      "trade_family": "specialist_services",
+      "title": "A signature dish, cooks included",
+      "need_brief": "A travel magazine has listed {city} as 'a city best experienced between meals.' The council has convened, and has money for one thing only: a dish. {city} is buying cooks on secondment, the pans and griddles they insist on, the recipe under licence, and enough of the ingredients to get through the first month.",
+      "exporter_prompt": "Send {city} a cook, a recipe and the kit to make it — and say what is in the first crate.",
       "excess_flavor": "candidate national dishes, going cold",
       "tags": ["identity", "culinary", "reputation"],
       "source": "seed"
@@ -111,9 +157,10 @@
     {
       "id": "need-food_and_drink-02",
       "category": "food_and_drink",
-      "title": "Ninety thousand surplus plums",
-      "need_brief": "A clerical error in {city}'s orchard subsidy has produced a plum harvest roughly nine times the town's historical plum appetite. They are ripening on schedule and entirely without mercy.",
-      "exporter_prompt": "Send {city} a use for ninety thousand plums, within the week.",
+      "trade_family": "equipment",
+      "title": "Preservation, for ninety thousand plums",
+      "need_brief": "A clerical error in {city}'s orchard subsidy has produced a plum harvest roughly nine times the town's historical plum appetite. They are ripening on schedule and entirely without mercy. {city} will buy freezers, presses, drying racks, salt, sugar, casks, reefer containers, jars — and the hands to run them — delivered inside nine days.",
+      "exporter_prompt": "Ship {city} what keeps ninety thousand plums, and say how fast it can be on the quay.",
       "excess_flavor": "plum schemes, fermenting quietly",
       "tags": ["surplus", "culinary", "deadline"],
       "source": "seed"
@@ -121,9 +168,10 @@
     {
       "id": "need-food_and_drink-03",
       "category": "food_and_drink",
-      "title": "A breakfast that survives a night shift",
-      "need_brief": "{city} runs on people finishing work at 5am — the port, the bakery, the hospital, the fish market. Nothing is open for them, and what is open is designed for people who slept.",
-      "exporter_prompt": "What does {city} feed the people coming off the night shift?",
+      "trade_family": "foodstuffs",
+      "title": "A night canteen, four till eight",
+      "need_brief": "{city} runs on people finishing work at 5am — the port, the bakery, the hospital, the fish market. Nothing is open for them, and what is open is designed for people who slept. {city} is buying the canteen entire: urns, pots, a counter, the food to fill it, and cooks willing to work the wrong end of the night.",
+      "exporter_prompt": "Send {city} the kit, the stock and the cooks for a counter that opens at four in the morning.",
       "excess_flavor": "breakfasts, served at the wrong hour",
       "tags": ["everyday", "culinary", "labour"],
       "source": "seed"
@@ -132,9 +180,10 @@
     {
       "id": "need-culture_and_arts-01",
       "category": "culture_and_arts",
-      "title": "A statue of somebody less complicated",
-      "need_brief": "The plinth in {city}'s central square has been empty for two years. The previous occupant turned out to have opinions. The plinth is a good plinth and the square feels the absence.",
-      "exporter_prompt": "Who or what should stand on {city}'s empty plinth?",
+      "trade_family": "cultural_works",
+      "title": "An object for an empty plinth",
+      "need_brief": "The plinth in {city}'s central square has been empty for two years. The previous occupant turned out to have opinions. The plinth is a good plinth, it is rated to eleven tonnes, and the square feels the absence. {city} is commissioning and buying the thing that stands on it — cast, carved, welded or grown, crated and shipped.",
+      "exporter_prompt": "Ship {city} something to put on an eleven-tonne plinth, and name the material.",
       "excess_flavor": "rejected monuments, in storage, facing the wall",
       "tags": ["identity", "civic", "public-art"],
       "source": "seed"
@@ -142,9 +191,10 @@
     {
       "id": "need-culture_and_arts-02",
       "category": "culture_and_arts",
-      "title": "A second verse for the anthem",
-      "need_brief": "{city}'s anthem has exactly one verse. At every civic occasion the band reaches the end, hesitates, and plays it again, slightly louder, while everyone stares straight ahead.",
-      "exporter_prompt": "Give {city} something to sing after the first verse.",
+      "trade_family": "cultural_works",
+      "title": "A second verse, with performance rights",
+      "need_brief": "{city}'s anthem has exactly one verse. At every civic occasion the band reaches the end, hesitates, and plays it again, slightly louder, while everyone stares straight ahead. Wanted: a second verse — words and score, parts for a municipal band of nineteen, rights assigned in perpetuity, and someone to conduct the first performance.",
+      "exporter_prompt": "Supply {city} a second verse: the sheet music, the rights, and whoever comes to play it.",
       "excess_flavor": "unsung verses, filed alphabetically",
       "tags": ["identity", "music", "ceremony"],
       "source": "seed"
@@ -152,9 +202,10 @@
     {
       "id": "need-culture_and_arts-03",
       "category": "culture_and_arts",
-      "title": "An orchestra that fits in a stairwell",
-      "need_brief": "{city}'s concert hall is closed for repairs until the year after next. The only municipal space with acceptable acoustics is the east stairwell of the parking structure, which seats nine and echoes gloriously.",
-      "exporter_prompt": "What music should {city} make in a stairwell?",
+      "trade_family": "cultural_works",
+      "title": "An ensemble that fits in a stairwell",
+      "need_brief": "{city}'s concert hall is closed for repairs until the year after next. The only municipal space with acceptable acoustics is the east stairwell of the parking structure, which seats nine and echoes gloriously. {city} is buying instruments that fit, players who will travel, and a programme written for a room with a landing in it.",
+      "exporter_prompt": "Send {city} the instruments and the players for a room that seats nine.",
       "excess_flavor": "ensembles, too large for the venue",
       "tags": ["constraint", "music", "make-do"],
       "source": "seed"
@@ -163,9 +214,10 @@
     {
       "id": "need-civic_ritual-01",
       "category": "civic_ritual",
-      "title": "A festival for the shortest day",
-      "need_brief": "{city} gets six usable hours of daylight in December and has never done anything about it. Neighbouring towns have festivals. {city} has a note in the minutes reading 'discuss lights?'",
-      "exporter_prompt": "Invent what {city} does on its darkest day of the year.",
+      "trade_family": "cultural_works",
+      "title": "Everything a midwinter festival needs, in crates",
+      "need_brief": "{city} gets six usable hours of daylight in December and has never done anything about it. Neighbouring towns have festivals. {city} has a note in the minutes reading 'discuss lights?' and a budget line that must be spent by November. Wanted: lamps, braziers, lanterns, costume, fireworks, a touring act with its own van.",
+      "exporter_prompt": "Ship {city} the makings of a festival for the darkest day of the year, packed for December weather.",
       "excess_flavor": "unheld festivals, dated and unattended",
       "tags": ["seasonal", "ceremony", "identity"],
       "source": "seed"
@@ -173,9 +225,10 @@
     {
       "id": "need-civic_ritual-02",
       "category": "civic_ritual",
-      "title": "A ribbon-cutting people attend",
-      "need_brief": "{city} opened a new footbridge, a new clinic and a new recycling depot this year. Combined public attendance at the three ceremonies was eleven, four of whom were the mayor's family.",
-      "exporter_prompt": "How does {city} get a crowd to show up to an opening?",
+      "trade_family": "specialist_services",
+      "title": "A crowd, hired honestly",
+      "need_brief": "{city} opened a new footbridge, a new clinic and a new recycling depot this year. Combined public attendance at the three ceremonies was eleven, four of whom were the mayor's family. {city} is buying the apparatus of an occasion: a brass band under contract, bunting by the kilometre, catering for four hundred, and a name people would leave the house for.",
+      "exporter_prompt": "Send {city} the band, the bunting, the food or the famous person — priced per ribbon.",
       "excess_flavor": "ceremonies, uncut ribbons still on the spool",
       "tags": ["ceremony", "civic", "attendance"],
       "source": "seed"
@@ -183,9 +236,10 @@
     {
       "id": "need-civic_ritual-03",
       "category": "civic_ritual",
-      "title": "A better way to swear in a mayor",
-      "need_brief": "In {city}, the mayor takes office by signing a form in a side office with two witnesses and a stapler. It is legally impeccable and emotionally insufficient.",
-      "exporter_prompt": "Design how {city} should install its next mayor.",
+      "trade_family": "cultural_works",
+      "title": "Regalia for a mayor with none",
+      "need_brief": "In {city}, the mayor takes office by signing a form in a side office with two witnesses and a stapler. It is legally impeccable and emotionally insufficient. Wanted, in time for the spring installation: a chain of office, a staff or a seal, a book heavy enough to swear on, and robes that survive rain.",
+      "exporter_prompt": "Ship {city} the regalia its next mayor takes office in, and say what it is made of.",
       "excess_flavor": "oaths of office, unspoken",
       "tags": ["ceremony", "office", "identity"],
       "source": "seed"
@@ -194,9 +248,10 @@
     {
       "id": "need-wildlife_and_nature-01",
       "category": "wildlife_and_nature",
-      "title": "A predator for the pigeons that isn't worse than the pigeons",
-      "need_brief": "{city} imported hawks. The hawks were worse. {city} then imported a plan to manage the hawks. That plan is now the third item on this list of things {city} manages.",
-      "exporter_prompt": "Solve {city}'s pigeon situation without starting a fourth situation.",
+      "trade_family": "living_things",
+      "title": "Something that outranks a pigeon",
+      "need_brief": "{city} imported hawks. The hawks were worse. {city} then imported a plan to manage the hawks, and that plan is the third item on this list of things {city} manages. The council is now buying stock and hardware only: birds with paperwork, netting, spikes, feed that pigeons dislike, and a falconer who will stay a season.",
+      "exporter_prompt": "Ship {city} the creature or the kit, with its paperwork, and say what it eats.",
       "excess_flavor": "introduced species, awaiting introduction",
       "tags": ["ecology", "escalation", "urban"],
       "source": "seed"
@@ -204,9 +259,10 @@
     {
       "id": "need-wildlife_and_nature-02",
       "category": "wildlife_and_nature",
+      "trade_family": "living_things",
       "title": "Pollinators willing to work at altitude",
-      "need_brief": "{city}'s rooftop farms are eleven storeys up and produce almost nothing, because the bees — reasonably — stay near the ground where the flowers already are.",
-      "exporter_prompt": "Get something up to {city}'s eleventh floor to do the pollinating.",
+      "need_brief": "{city}'s rooftop farms are eleven storeys up and produce almost nothing, because the bees — reasonably — stay near the ground where the flowers already are. {city} is buying colonies, queens, hives, mason bee tubes, or any other living thing that will do the work at sixty metres, delivered with instructions.",
+      "exporter_prompt": "Send {city} the colonies, hives or hardware that pollinate an eleventh floor.",
       "excess_flavor": "pollination schemes, grounded",
       "tags": ["ecology", "vertical", "agriculture"],
       "source": "seed"
@@ -214,9 +270,10 @@
     {
       "id": "need-wildlife_and_nature-03",
       "category": "wildlife_and_nature",
-      "title": "A tree that can take the salt",
-      "need_brief": "Every tree {city} has planted along the seafront promenade has died within two winters, politely and in order, west to east. The promenade is now a row of very well-maintained stakes.",
-      "exporter_prompt": "Give {city} something that will grow where the salt is.",
+      "trade_family": "living_things",
+      "title": "Planting stock that stands in salt",
+      "need_brief": "Every tree {city} has planted along the seafront promenade has died within two winters, politely and in order, west to east. The promenade is now a row of very well-maintained stakes. {city} is buying stock by the crate: rooted cuttings, whips, seedlings, pups, sets — anything that has already lived somewhere the spray reaches.",
+      "exporter_prompt": "Ship {city} rooted stock that grows where the salt is, and say where yours has been standing.",
       "excess_flavor": "saplings, unplanted, still in their pots",
       "tags": ["ecology", "coastal", "persistence"],
       "source": "seed"
@@ -225,9 +282,10 @@
     {
       "id": "need-weather_and_climate-01",
       "category": "weather_and_climate",
-      "title": "Shade, in an installable form",
-      "need_brief": "For five weeks a year {city}'s main square reaches temperatures that the local paper describes with a single exclamation mark. Trees take twenty years. The square has five weeks.",
-      "exporter_prompt": "Send {city} shade that can be installed before August.",
+      "trade_family": "materials",
+      "title": "Shade, on a pallet, before August",
+      "need_brief": "For five weeks a year {city}'s main square reaches temperatures that the local paper describes with a single exclamation mark. Trees take twenty years. The square has five weeks. Wanted: sails, canopies, awnings, poles, anchors, semi-mature trees in rootballs — anything that casts shade and arrives ready to install.",
+      "exporter_prompt": "Ship {city} shade it can put up before August, with the fixings.",
       "excess_flavor": "shade, cast on nothing",
       "tags": ["climate", "urgent", "physical"],
       "source": "seed"
@@ -235,9 +293,10 @@
     {
       "id": "need-weather_and_climate-02",
       "category": "weather_and_climate",
-      "title": "Something to do with the fog",
-      "need_brief": "{city} is fogged in two hundred days a year. It has been treated as a defect since the town was founded. A subcommittee has quietly suggested this may have been an error.",
-      "exporter_prompt": "Turn {city}'s fog into an asset.",
+      "trade_family": "equipment",
+      "title": "Two hundred days of fog, bought wholesale",
+      "need_brief": "{city} is fogged in two hundred days a year. It has been treated as a defect since the town was founded, and a subcommittee has quietly suggested this may have been an error. {city} is buying the equipment that makes fog into a product: mesh, collectors, condensers, tanks, lenses, whatever a foggy town can be fitted with.",
+      "exporter_prompt": "Ship {city} the equipment that harvests, uses or sells two hundred days of fog.",
       "excess_flavor": "unrealised uses for fog, drifting",
       "tags": ["climate", "reframe", "identity"],
       "source": "seed"
@@ -245,9 +304,10 @@
     {
       "id": "need-weather_and_climate-03",
       "category": "weather_and_climate",
-      "title": "Wind, redirected",
-      "need_brief": "The wind comes down {city}'s main avenue at a speed that has removed four awnings, one election banner and the dignity of most residents between November and March.",
-      "exporter_prompt": "Tell {city} what to do with the wind coming down the avenue.",
+      "trade_family": "materials",
+      "title": "Windbreak for one avenue, bolted down",
+      "need_brief": "The wind comes down {city}'s main avenue at a speed that has removed four awnings, one election banner and the dignity of most residents between November and March. Purchase order: screens, baffles, slats, canvas, rope, planters heavy enough to stay put, and a crew to bolt it all down before the first gale.",
+      "exporter_prompt": "Ship {city} the windbreak for a four-kilometre avenue, and the crew who fix it in place.",
       "excess_flavor": "windbreaks, blown over",
       "tags": ["climate", "physical", "seasonal"],
       "source": "seed"
@@ -256,9 +316,10 @@
     {
       "id": "need-labor_and_expertise-01",
       "category": "labor_and_expertise",
-      "title": "Somebody who understands the old pipe network",
-      "need_brief": "One person in {city} knew where all the pipes go. He retired in March. He left a map. The map is a napkin, and it is honestly quite beautiful, and it is not sufficient.",
-      "exporter_prompt": "Send {city} whatever it needs to know where its own pipes go.",
+      "trade_family": "specialist_services",
+      "title": "A survey crew, and the gear to do it with",
+      "need_brief": "One person in {city} knew where all the pipes go. He retired in March. He left a map, the map is a napkin, it is honestly quite beautiful, and it is not sufficient. {city} is buying survey time: ground radar and the people who read it, tracers, a draughtsman, and a drawing set the water department can hang on a wall.",
+      "exporter_prompt": "Send {city} the survey crew and the gear, and say what they hand over at the end.",
       "excess_flavor": "expertise, offered to no one",
       "tags": ["knowledge-loss", "infrastructure-adjacent", "people"],
       "source": "seed"
@@ -266,9 +327,10 @@
     {
       "id": "need-labor_and_expertise-02",
       "category": "labor_and_expertise",
-      "title": "Childcare that runs at 3am",
-      "need_brief": "{city}'s biggest employers run around the clock. {city}'s childcare runs 8 to 6. The gap is currently being covered by grandmothers, goodwill, and a rota taped inside a locker door.",
-      "exporter_prompt": "Cover {city}'s night hours.",
+      "trade_family": "specialist_services",
+      "title": "Night care, ten till seven",
+      "need_brief": "{city}'s biggest employers run around the clock. {city}'s childcare runs 8 to 6. The gap is currently covered by grandmothers, goodwill and a rota taped inside a locker door. {city} is buying the night shift: carers on secondment, cots, blackout blinds, a licensed rota it can copy, and relief staff for the weeks somebody has flu.",
+      "exporter_prompt": "Send {city} the carers, the cots and the paperwork for a room that opens at ten at night.",
       "excess_flavor": "care arrangements, unrostered",
       "tags": ["labour", "care", "everyday"],
       "source": "seed"
@@ -276,9 +338,10 @@
     {
       "id": "need-labor_and_expertise-03",
       "category": "labor_and_expertise",
-      "title": "Translators for the harbour market",
-      "need_brief": "Nine languages pass through {city}'s harbour market every morning and business is conducted almost entirely through pointing, tone of voice, and an agreed set of noises. It works. It works about 80% of the time.",
-      "exporter_prompt": "Help {city}'s market understand itself.",
+      "trade_family": "specialist_services",
+      "title": "Nine languages, before the market opens",
+      "need_brief": "Nine languages pass through {city}'s harbour market every morning and business is conducted almost entirely through pointing, tone of voice and an agreed set of noises. It works about 80% of the time. {city} is buying interpreters by the morning, printed signage, phrasebooks by the box, and a scale of weights everybody can read.",
+      "exporter_prompt": "Ship {city} the interpreters, signage or printed matter its market trades through.",
       "excess_flavor": "phrasebooks, for languages nobody brought",
       "tags": ["language", "commerce", "people"],
       "source": "seed"
@@ -287,9 +350,10 @@
     {
       "id": "need-transport_and_logistics-01",
       "category": "transport_and_logistics",
-      "title": "A last-mile solution for a very steep mile",
-      "need_brief": "Deliveries to {city}'s upper town stop at the bottom of a 19% gradient. From there, everything — furniture, groceries, one piano — proceeds by arrangement, on foot, badly.",
-      "exporter_prompt": "Get {city}'s deliveries up the hill.",
+      "trade_family": "equipment",
+      "title": "Haulage for a nineteen per cent gradient",
+      "need_brief": "Deliveries to {city}'s upper town stop at the bottom of a 19% gradient. From there everything — furniture, groceries, one piano — proceeds by arrangement, on foot, badly. {city} will buy winches, hoists, cargo bikes, a funicular in kit form, mules with their tack, or the crew that already does this somewhere steeper.",
+      "exporter_prompt": "Ship {city} the machinery or the animals that get a piano up a nineteen per cent hill.",
       "excess_flavor": "conveyances, parked at the bottom of the hill",
       "tags": ["terrain", "logistics", "physical"],
       "source": "seed"
@@ -297,9 +361,10 @@
     {
       "id": "need-transport_and_logistics-02",
       "category": "transport_and_logistics",
-      "title": "A bus route people would ride for fun",
-      "need_brief": "{city}'s buses are punctual, clean, and used exclusively by people with no alternative. Ridership studies have concluded, at some expense, that the buses are 'fine.'",
-      "exporter_prompt": "Give {city} a bus route worth riding on a day off.",
+      "trade_family": "equipment",
+      "title": "One bus, worth riding on a day off",
+      "need_brief": "{city}'s buses are punctual, clean and used exclusively by people with no alternative. Ridership studies have concluded, at some expense, that the buses are 'fine.' {city} is buying rolling stock and everything that goes inside it: a vehicle with a history, seats worth sitting in, a livery, a driver on loan for the first season.",
+      "exporter_prompt": "Ship {city} the vehicle, the fittings or the crew that make a bus route worth riding for its own sake.",
       "excess_flavor": "routes, unrun, timetabled anyway",
       "tags": ["transit", "delight", "civic"],
       "source": "seed"
@@ -307,9 +372,10 @@
     {
       "id": "need-transport_and_logistics-03",
       "category": "transport_and_logistics",
-      "title": "Parking, spiritually",
-      "need_brief": "{city} has adequate parking. Every study confirms it. Every resident disputes it. The gap between the studies and the residents is now {city}'s single most reliable source of public feeling.",
-      "exporter_prompt": "Resolve {city}'s parking question — the real one, not the arithmetic.",
+      "trade_family": "equipment",
+      "title": "Kerbside equipment, and people to work it",
+      "need_brief": "{city} has adequate parking. Every study confirms it. Every resident disputes it. The gap between the studies and the residents is {city}'s single most reliable source of public feeling, and the council has stopped buying studies. Wanted instead: line paint, stencils, counters, boards, barriers, ticket machines, attendants in vests, or the lift that makes the whole question moot.",
+      "exporter_prompt": "Ship {city} the kerbside equipment or the people who work it, priced per street.",
       "excess_flavor": "parking solutions, double-parked",
       "tags": ["civic", "perception", "conflict"],
       "source": "seed"
@@ -318,9 +384,10 @@
     {
       "id": "need-energy_and_utilities-01",
       "category": "energy_and_utilities",
-      "title": "Power for the four coldest weeks",
-      "need_brief": "{city}'s grid is comfortable for forty-eight weeks of the year and holds its breath for the other four. Every January it makes a sound. Engineers have described the sound as 'not ideal.'",
-      "exporter_prompt": "Get {city} through the four weeks.",
+      "trade_family": "equipment",
+      "title": "Four weeks of margin, in hardware",
+      "need_brief": "{city}'s grid is comfortable for forty-eight weeks of the year and holds its breath for the other four. Every January it makes a sound, and engineers have described the sound as 'not ideal.' {city} is buying capacity it can wheel in: generators, batteries, fuel, cable, heaters, a load-shedding controller with a manual.",
+      "exporter_prompt": "Ship {city} the plant, fuel or cable that carries a grid through four cold weeks.",
       "excess_flavor": "reserve capacity, unspent",
       "tags": ["seasonal", "grid", "risk"],
       "source": "seed"
@@ -328,9 +395,10 @@
     {
       "id": "need-energy_and_utilities-02",
       "category": "energy_and_utilities",
-      "title": "A use for the waste heat",
-      "need_brief": "The data centre on {city}'s eastern edge produces enough waste heat to warm a small district and currently uses it to make one particular field extremely comfortable for foxes.",
-      "exporter_prompt": "Put {city}'s waste heat to work.",
+      "trade_family": "equipment",
+      "title": "Buyers, or plant, for a field of warm air",
+      "need_brief": "The data centre on {city}'s eastern edge produces enough waste heat to warm a small district and currently uses it to make one particular field extremely comfortable for foxes. {city} is buying the plant that catches it — exchangers, insulated pipe, glasshouses, tanks — or a tenant who will take the heat by the megawatt and pay for it.",
+      "exporter_prompt": "Ship {city} the plant that moves waste heat somewhere useful, or the business that will buy it.",
       "excess_flavor": "heat, radiating into the evening",
       "tags": ["surplus", "energy", "reuse"],
       "source": "seed"
@@ -338,9 +406,10 @@
     {
       "id": "need-energy_and_utilities-03",
       "category": "energy_and_utilities",
-      "title": "Streetlights that leave the stars alone",
-      "need_brief": "{city} upgraded its streetlights and gained excellent visibility, a 40% energy saving, and the loss of every star its residents had grown up looking at. The petition has 3,000 signatures and a very good title.",
-      "exporter_prompt": "Light {city}'s streets without taking its sky.",
+      "trade_family": "equipment",
+      "title": "Lanterns that leave the stars alone",
+      "need_brief": "{city} upgraded its streetlights and gained excellent visibility, a 40% energy saving, and the loss of every star its residents had grown up looking at. The petition has 3,000 signatures and a very good title. Wanted: warm lamps, shields, hoods, lanterns, dimmers and the columns to hang them on — eleven hundred of them.",
+      "exporter_prompt": "Supply {city} eleven hundred lanterns, shields or lamps, and say what the sky looks like under yours.",
       "excess_flavor": "lighting proposals, switched off",
       "tags": ["tradeoff", "night", "civic"],
       "source": "seed"
@@ -349,9 +418,10 @@
     {
       "id": "need-tourism_and_reputation-01",
       "category": "tourism_and_reputation",
-      "title": "A reason to stay a second night",
-      "need_brief": "Visitors to {city} arrive at four, see the thing, eat somewhere adequate, and leave before eleven the next morning. {city} has been described in three separate guidebooks as 'a good stop.'",
-      "exporter_prompt": "Give {city}'s visitors a reason to stay another night.",
+      "trade_family": "cultural_works",
+      "title": "An evening, bought outright",
+      "need_brief": "Visitors to {city} arrive at four, see the thing, eat somewhere adequate and leave before eleven the next morning. Three separate guidebooks call it 'a good stop.' {city} is buying an evening: a touring show with its own rigging, a late kitchen, bedding for forty rooms, a boat that runs after dark — delivered, not described.",
+      "exporter_prompt": "Ship {city} the show, the kit or the stock that keeps a visitor for a second night.",
       "excess_flavor": "attractions, unvisited, open late",
       "tags": ["reputation", "economy", "identity"],
       "source": "seed"
@@ -359,9 +429,10 @@
     {
       "id": "need-tourism_and_reputation-02",
       "category": "tourism_and_reputation",
-      "title": "A rebrand for the least-loved district",
-      "need_brief": "Everyone in {city} agrees the Northgate district is the worst part of town. Nobody who says this has been to Northgate since 2009. Northgate, meanwhile, has quietly become quite good.",
-      "exporter_prompt": "Change {city}'s mind about Northgate.",
+      "trade_family": "equipment",
+      "title": "Something for Northgate, worth the bus fare",
+      "need_brief": "Everyone in {city} agrees the Northgate district is the worst part of town. Nobody who says this has been to Northgate since 2009. Northgate, meanwhile, has quietly become quite good. {city} has a building, a budget and no stock: it is buying plant, fittings, equipment or the staff to run one thing in Northgate that people from the other side of town would travel for.",
+      "exporter_prompt": "Ship {city} the plant, fittings or people for one thing in Northgate worth the bus fare.",
       "excess_flavor": "rebrands, unadopted, still in draft",
       "tags": ["reputation", "neighbourhood", "perception"],
       "source": "seed"
@@ -369,9 +440,10 @@
     {
       "id": "need-tourism_and_reputation-03",
       "category": "tourism_and_reputation",
-      "title": "A postcard that isn't the bridge",
-      "need_brief": "Every image of {city} ever printed shows the same view from the same hill. The hill is lovely. {city} would like to be more than one photograph.",
-      "exporter_prompt": "Show {city} to the world from a different angle.",
+      "trade_family": "cultural_works",
+      "title": "A print run that isn't the bridge",
+      "need_brief": "Every image of {city} ever printed shows the same view from the same hill. The hill is lovely. {city} would like to be more than one photograph, and has ordered forty thousand postcards it cannot yet fill. Wanted: photographers and their negatives, prints, plates, a poster series, the rights to all of it.",
+      "exporter_prompt": "Ship {city} the photographs, prints or plates for forty thousand postcards, and say who took them.",
       "excess_flavor": "views, unphotographed",
       "tags": ["reputation", "image", "identity"],
       "source": "seed"
@@ -380,9 +452,10 @@
     {
       "id": "need-bureaucracy_and_paperwork-01",
       "category": "bureaucracy_and_paperwork",
-      "title": "A form nobody cries over",
-      "need_brief": "{city}'s residency form is four pages, requires two documents that no longer exist, and is completed correctly on the first attempt by roughly one applicant in nine.",
-      "exporter_prompt": "Fix {city}'s worst form.",
+      "trade_family": "specialist_services",
+      "title": "A form, redrawn and printed",
+      "need_brief": "{city}'s residency form is four pages, requires two documents that no longer exist, and is completed correctly on the first attempt by roughly one applicant in nine. {city} is buying the work and the paper: a draughtsman or typesetter for a month, the plates, and sixty thousand copies of whatever they hand over.",
+      "exporter_prompt": "Supply {city} the people, the plates and the paper for a form its residents can finish standing up.",
       "excess_flavor": "simplified forms, unfiled",
       "tags": ["bureaucracy", "everyday", "design"],
       "source": "seed"
@@ -390,9 +463,10 @@
     {
       "id": "need-bureaucracy_and_paperwork-02",
       "category": "bureaucracy_and_paperwork",
-      "title": "Twelve kilometres of unread minutes",
-      "need_brief": "{city}'s archive holds twelve linear kilometres of council minutes going back to 1804. Somewhere in there is the decision that explains the pipes. Nobody has ever read past 1861.",
-      "exporter_prompt": "Do something with {city}'s archive.",
+      "trade_family": "equipment",
+      "title": "Twelve kilometres of minutes, and the gear to read them",
+      "need_brief": "{city}'s archive holds twelve linear kilometres of council minutes going back to 1804. Somewhere in there is the decision that explains the pipes. Nobody has ever read past 1861. {city} is buying scanners, book cradles, acid-free boxes, shelving by the run, and archivists who will come for a season and stay in the basement.",
+      "exporter_prompt": "Ship {city} the scanning gear, the boxes or the archivists for twelve kilometres of paper.",
       "excess_flavor": "indexing schemes, themselves unindexed",
       "tags": ["archive", "memory", "scale"],
       "source": "seed"
@@ -400,9 +474,10 @@
     {
       "id": "need-bureaucracy_and_paperwork-03",
       "category": "bureaucracy_and_paperwork",
-      "title": "A queue for the permit office",
-      "need_brief": "{city}'s permit office opens at nine. The queue forms at six. The queue has developed its own customs, its own coffee arrangement, and, as of last spring, a newsletter.",
-      "exporter_prompt": "Sort out {city}'s queue — or decide what it should become.",
+      "trade_family": "equipment",
+      "title": "Fittings for a queue that forms at six",
+      "need_brief": "{city}'s permit office opens at nine. The queue forms at six. The queue has developed its own customs, its own coffee arrangement and, as of last spring, a newsletter. {city} is buying the queue better furniture: a shelter, benches, ticket machines, an awning, heaters, and a coffee cart with somebody in it.",
+      "exporter_prompt": "Ship {city} the shelter, the seating or the machinery for three hundred people waiting outdoors at six in the morning.",
       "excess_flavor": "queueing systems, waiting their turn",
       "tags": ["bureaucracy", "social", "everyday"],
       "source": "seed"
@@ -411,19 +486,21 @@
     {
       "id": "need-sport_and_recreation-01",
       "category": "sport_and_recreation",
-      "title": "A sport that can be played in this wind",
-      "need_brief": "{city} has three excellent pitches and a prevailing crosswind that has turned every ball sport ever attempted here into a lottery with injuries.",
-      "exporter_prompt": "Invent or send {city} a sport that works in a gale.",
+      "trade_family": "equipment",
+      "title": "Sporting equipment rated for a crosswind",
+      "need_brief": "{city} has three excellent pitches and a prevailing crosswind that has turned every ball sport ever attempted here into a lottery with injuries. {city} is buying kit that ignores weather: heavy balls, stakes, nets, boots, weighted markers, the equipment for a game that already works somewhere windy — two hundred sets, plus a coach for the first season.",
+      "exporter_prompt": "Ship {city} two hundred sets of equipment for a game that works in a gale, and a coach who has played it.",
       "excess_flavor": "unplayable sports, equipment included",
-      "tags": ["sport", "constraint", "invention"],
+      "tags": ["sport", "constraint", "kit"],
       "source": "seed"
     },
     {
       "id": "need-sport_and_recreation-02",
       "category": "sport_and_recreation",
-      "title": "A rival worth having",
-      "need_brief": "{city}'s team has no traditional rival. Matches are cordial. Attendance is stable. Something essential is missing and everyone is too polite to name it.",
-      "exporter_prompt": "Give {city} something or someone to beat.",
+      "trade_family": "cultural_works",
+      "title": "A rivalry, in kind",
+      "need_brief": "{city}'s team has no traditional rival. Matches are cordial. Attendance is stable. Something essential is missing and everyone is too polite to name it. {city} is buying the whole apparatus: a trophy heavy enough to be a nuisance to carry, a signed fixture in perpetuity, an away support that travels, drums, banners, and a grievance with a date on it.",
+      "exporter_prompt": "Ship {city} the trophy, the fixture or the travelling support — and say who is expected to carry it home.",
       "excess_flavor": "grudges, unreciprocated",
       "tags": ["sport", "social", "identity"],
       "source": "seed"
@@ -431,9 +508,10 @@
     {
       "id": "need-sport_and_recreation-03",
       "category": "sport_and_recreation",
-      "title": "The empty pool, October to April",
-      "need_brief": "{city}'s outdoor municipal pool is magnificent for eleven weeks and a large blue rectangle of civic guilt for the remaining forty-one.",
-      "exporter_prompt": "Fill {city}'s pool with something for the winter.",
+      "trade_family": "equipment",
+      "title": "Forty-one weeks of empty pool, filled",
+      "need_brief": "{city}'s outdoor municipal pool is magnificent for eleven weeks and a large blue rectangle of civic guilt for the remaining forty-one. Wanted: decking, a chiller and rink boards, a marquee, planters, market stalls, a stage — anything that drops into a twenty-five metre tank in October and comes out again in May.",
+      "exporter_prompt": "Ship {city} whatever goes into a drained twenty-five metre pool for the winter, in pieces two people can lift.",
       "excess_flavor": "off-season uses, drained",
       "tags": ["seasonal", "reuse", "civic"],
       "source": "seed"
@@ -442,9 +520,10 @@
     {
       "id": "need-education_and_knowledge-01",
       "category": "education_and_knowledge",
-      "title": "A library card worth bragging about",
-      "need_brief": "{city}'s library is free, excellent, and holds active cards for 8% of residents. The librarians have tried posters. The posters were not the issue.",
-      "exporter_prompt": "Make {city} want its own library card.",
+      "trade_family": "cultural_works",
+      "title": "Stock a library card is worth having for",
+      "need_brief": "{city}'s library is free, excellent, and holds active cards for 8% of residents. The librarians have tried posters. The posters were not the issue. {city} is buying stock and hardware: books nobody else lends, instruments, tools, seeds, a van with shelves in it — anything a card can be used to take home.",
+      "exporter_prompt": "Ship {city} the stock its library lends out, and say what a borrower carries away.",
       "excess_flavor": "membership drives, unenrolled",
       "tags": ["civic", "culture", "persuasion"],
       "source": "seed"
@@ -452,9 +531,10 @@
     {
       "id": "need-education_and_knowledge-02",
       "category": "education_and_knowledge",
-      "title": "A subject that didn't exist last year",
-      "need_brief": "{city}'s schools have one free period on the timetable and a standing instruction to teach something useful in it. So far it has been used for supervised silence.",
-      "exporter_prompt": "Tell {city} what to teach in the empty period.",
+      "trade_family": "specialist_services",
+      "title": "One free period, equipped",
+      "need_brief": "{city}'s schools have one free period on the timetable and a standing instruction to teach something useful in it. So far it has been used for supervised silence. {city} is buying the subject in a box: a curriculum under licence, the tools or kits for thirty pupils at a time, and a teacher on loan for a year to start it off.",
+      "exporter_prompt": "Ship {city} the kits, the materials and the teacher for one period a week, thirty at a time.",
       "excess_flavor": "curricula, untaught",
       "tags": ["education", "future", "civic"],
       "source": "seed"
@@ -462,9 +542,10 @@
     {
       "id": "need-education_and_knowledge-03",
       "category": "education_and_knowledge",
-      "title": "The river's history, told without boring anyone",
-      "need_brief": "{city}'s river has eight hundred years of documented history and a heritage plaque that begins with the words 'In 1214, following the settlement of a dispute regarding weirs.' Nobody has ever reached the second sentence.",
-      "exporter_prompt": "Make {city}'s river interesting to a fourteen-year-old.",
+      "trade_family": "cultural_works",
+      "title": "Eight hundred years of river, in objects",
+      "need_brief": "{city}'s river has eight hundred years of documented history and a heritage plaque that begins 'In 1214, following the settlement of a dispute regarding weirs.' Nobody has ever reached the second sentence. {city} is buying exhibits: a boat, a dredged object with a story, a print run, a film, models, anything a fourteen-year-old would stop walking for.",
+      "exporter_prompt": "Ship {city} the objects, prints or films that put eight hundred years of river in a room.",
       "excess_flavor": "histories, unread past the first line",
       "tags": ["heritage", "storytelling", "civic"],
       "source": "seed"
@@ -473,9 +554,10 @@
     {
       "id": "need-health_and_wellness-01",
       "category": "health_and_wellness",
-      "title": "The four o'clock municipal slump",
-      "need_brief": "Between 3:40 and 4:20 every weekday, productivity across {city} collapses in a way visible on the traffic sensors, the power draw, and the tone of every phone call made in that window.",
-      "exporter_prompt": "Get {city} through the afternoon.",
+      "trade_family": "foodstuffs",
+      "title": "Something to eat at ten to four",
+      "need_brief": "Between 3:40 and 4:20 every weekday, productivity across {city} collapses in a way visible on the traffic sensors, the power draw and the tone of every phone call made in that window. {city} is buying the afternoon: coffee and tea by the sack, biscuits, candy, fruit, a trolley per floor, and the crockery to serve it in.",
+      "exporter_prompt": "Ship {city} what it should be eating and drinking at ten to four, by the sack and by the crate.",
       "excess_flavor": "remedies, past their moment",
       "tags": ["everyday", "rhythm", "wellbeing"],
       "source": "seed"
@@ -483,9 +565,10 @@
     {
       "id": "need-health_and_wellness-02",
       "category": "health_and_wellness",
-      "title": "Somewhere to be sad in public",
-      "need_brief": "{city} has benches for waiting, benches for eating and benches for supervising children. It has nowhere a person can sit and feel awful for twenty minutes without somebody asking if they're all right.",
-      "exporter_prompt": "Give {city} a decent place to have a bad afternoon.",
+      "trade_family": "materials",
+      "title": "A shelter for a bad afternoon",
+      "need_brief": "{city} has benches for waiting, benches for eating and benches for supervising children. It has nowhere a person can sit and feel awful for twenty minutes without somebody asking if they are all right. Wanted: a shelter, seating that faces away from the path, planting, a roof, stone or timber — six of each, for six parks.",
+      "exporter_prompt": "Ship {city} the shelter, the seating or the planting for somewhere a person can sit badly in peace.",
       "excess_flavor": "quiet corners, unoccupied",
       "tags": ["wellbeing", "public-space", "tender"],
       "source": "seed"
@@ -493,9 +576,10 @@
     {
       "id": "need-health_and_wellness-03",
       "category": "health_and_wellness",
-      "title": "Open when the ferry docks",
-      "need_brief": "The last ferry reaches {city} at 11:40pm. Everything on the island shuts at ten. Whatever the passengers need — medicine, dinner, a plaster, a phone charger — they need it tomorrow.",
-      "exporter_prompt": "Cover {city}'s last hour of the day.",
+      "trade_family": "equipment",
+      "title": "Stock and fittings for the 11:40 ferry",
+      "need_brief": "The last ferry reaches {city} at 11:40pm. Everything on the island shuts at ten. Whatever the passengers need — medicine, dinner, a plaster, a phone charger — they need it tomorrow. {city} is buying a small shop's worth of fittings and stock, or the machines that stand in for one, sited forty metres from the ramp.",
+      "exporter_prompt": "Ship {city} the fittings, the machines or the stock for the last hour of the day, forty metres from a ferry ramp.",
       "excess_flavor": "late-night services, closed",
       "tags": ["access", "timing", "everyday"],
       "source": "seed"
@@ -504,9 +588,10 @@
     {
       "id": "need-mysteries_and_anomalies-01",
       "category": "mysteries_and_anomalies",
-      "title": "An explanation for the humming",
-      "need_brief": "Since February, {city} has hummed. Two residents in five can hear it. The utility says it isn't theirs, the geologists say it isn't the ground, and the council has begun describing it in writing as 'the ambience.'",
-      "exporter_prompt": "Explain {city}'s hum, or make it somebody's problem in a way that helps.",
+      "trade_family": "equipment",
+      "title": "Listening equipment, and ears to go with it",
+      "need_brief": "Since February, {city} has hummed. Two residents in five can hear it. The utility says it is not theirs, the geologists say it is not the ground, and the council has begun describing it in writing as 'the ambience.' {city} is buying instruments and time: hydrophones, geophones, meters, recorders — and people who have found a noise before, for a fortnight, with a bicycle each.",
+      "exporter_prompt": "Ship {city} the listening equipment, the people or the instruments the hum turns out to need.",
       "excess_flavor": "explanations, unconvincing, filed under 'ambience'",
       "tags": ["mystery", "civic", "comedy"],
       "source": "seed"
@@ -514,9 +599,10 @@
     {
       "id": "need-mysteries_and_anomalies-02",
       "category": "mysteries_and_anomalies",
-      "title": "The hole that keeps coming back",
-      "need_brief": "{city}'s works department has filled the hole on Fifth Street eleven times. It has reappeared eleven times, always the same diameter, never in quite the same place. Budget line 44-C is now titled 'Fifth Street (ongoing).'",
-      "exporter_prompt": "Send {city} something for the hole.",
+      "trade_family": "materials",
+      "title": "Material for a hole that comes back",
+      "need_brief": "{city}'s works department has filled the hole on Fifth Street eleven times. It has reappeared eleven times, always the same diameter, never in quite the same place. Budget line 44-C is now titled 'Fifth Street (ongoing).' {city} will buy fill, plate, kerbing, a cast cover, a bollard, a railing — twelve of everything, and something to put on top of the twelfth.",
+      "exporter_prompt": "Ship {city} the material for a hole that has come back eleven times, and say how much to keep in the yard.",
       "excess_flavor": "hole-fillings, surplus to requirement",
       "tags": ["mystery", "recurring", "comedy"],
       "source": "seed"
@@ -524,9 +610,10 @@
     {
       "id": "need-mysteries_and_anomalies-03",
       "category": "mysteries_and_anomalies",
-      "title": "A protocol for when the lighthouse answers back",
-      "need_brief": "{city}'s lighthouse was decommissioned in 1997 and disconnected in 1998. Three times this year it has signalled, at night, in a rhythm that the harbourmaster describes as 'polite.' Nobody has agreed what to do if it does it again.",
-      "exporter_prompt": "Tell {city} what to do the next time the lighthouse signals.",
+      "trade_family": "equipment",
+      "title": "A signal lamp and somebody who reads one",
+      "need_brief": "{city}'s lighthouse was decommissioned in 1997 and disconnected in 1998. Three times this year it has signalled, at night, in a rhythm the harbourmaster describes as 'polite.' The harbour office has nothing to signal back with. {city} is buying a lamp, fuel, a log book, and a keeper who can read lamp-rhythm, for three clear nights.",
+      "exporter_prompt": "Ship {city} the lamp, the fuel and the keeper for three nights on a headland.",
       "excess_flavor": "protocols, never invoked",
       "tags": ["mystery", "coastal", "eerie"],
       "source": "seed"
@@ -534,13 +621,15 @@
   ],
 
   "player_extensions": {
-    "_comment": "Spec #13 -- players may suggest additional import needs during play. Appended here (or to the game's runtime state file) with the same schema.",
-    "required_fields": ["id", "category", "title", "need_brief", "exporter_prompt", "source"],
+    "_comment": "Spec #13, #33 -- players may suggest additional import needs during play, and an importing mayor may file a freeform request instead of taking one from the slate. Both are appended to this same list at runtime with the same schema and are checked against trade_policy above.",
+    "required_fields": ["id", "category", "trade_family", "title", "need_brief", "exporter_prompt", "source"],
     "rules": [
       "source must be \"player\", plus a proposed_by_city field naming the suggesting city.",
       "category must be one of the ids in categories[], so the repetition rule in config.json -> imports still applies. If no category fits, add the category here first rather than leaving it blank.",
-      "need_brief must use the {city} placeholder rather than naming a specific city, so the need can be drawn by whichever city comes up.",
-      "A suggested need may not name a specific export or city, to keep the export phase open-ended and blind judging fair."
+      "trade_family must be one of trade_policy.families, because spec #13a is a rule about what is being bought and an unfamilied need is one nobody has checked.",
+      "need_brief must use the {city} placeholder rather than naming a specific city, so the need can be taken by whichever city files it.",
+      "The need must be an order for goods or services, not a request for advice, ideas or civic problem solving (spec #13a). engine.trade refuses one that reads as the latter and says which phrase did it.",
+      "A suggested need may not name a specific exporting city or a specific export, to keep the export phase open-ended and blind judging fair."
     ]
   }
 }

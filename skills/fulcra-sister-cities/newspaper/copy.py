@@ -226,7 +226,8 @@ class NewspaperCopy:
             raise ContentError("newspaper content must be a JSON object")
         self.data = data
         self.source = source
-        for block in ("mastheads", "departments", "wire_styles", "imagery", "site", "tone"):
+        for block in ("mastheads", "departments", "wire_styles", "imagery", "site",
+                      "bulletin", "tone"):
             if not isinstance(data.get(block), dict):
                 raise ContentError(
                     "newspaper content at %s has no %r block" % (source, block)
@@ -362,6 +363,19 @@ class NewspaperCopy:
             if not site["nav"].get(field):
                 raise ContentError("site.nav is missing %r" % field)
         return site
+
+    def bulletin(self):
+        """What the facilitator says to the group when an edition lands (#26).
+
+        Not printed in the paper, and still the paper's voice, so it lives with
+        the rest of the copy rather than in the code that sends it.
+        """
+        bulletin = self.data["bulletin"]
+        for field in ("round_notice", "round_notice_without_url", "final_notice",
+                      "final_notice_without_url", "opened_lede", "quiet_lede"):
+            if not isinstance(bulletin.get(field), list) or not bulletin[field]:
+                raise ContentError("bulletin block is missing %r (spec #26)" % field)
+        return bulletin
 
     def tone(self):
         tone = self.data["tone"]

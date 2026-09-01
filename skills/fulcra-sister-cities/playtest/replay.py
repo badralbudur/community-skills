@@ -29,6 +29,7 @@ from engine.game import (
     ENDED,
     RUNNING,
     SLOT_EXPORT,
+    SLOT_IMPORT_CHOICE,
     SLOT_IMPORT_PICK,
     SLOT_QUESTION,
 )
@@ -99,13 +100,18 @@ class Journal:
 
 
 def replay(decisions=None, config=None, content=None, seats=SEATS, seed=SEED,
-           start=START, limit=ROUND_LIMIT):
+           start=START, limit=ROUND_LIMIT, attach=None):
     """Play the table's game to its end. Returns ``(game, journal)``.
 
     With no ``decisions``, stand-ins play it: everybody present acts, nobody
     says anything interesting, and the result is the round-by-round schedule the
     real mayors are briefed from. With a
     :class:`~playtest.transcript.Transcript`, the real game replays.
+
+    ``attach(game)`` runs once, after the engine exists and before the timer
+    starts. It is how the facilitator's desk gets hung on this game's
+    round-completed hook (spec #26) -- a replay that published by calling a
+    publisher at the end would prove the opposite of what it needs to prove.
     """
     decisions = decisions if decisions is not None else StandIns()
     config = config if config is not None else Config.load()
@@ -114,10 +120,13 @@ def replay(decisions=None, config=None, content=None, seats=SEATS, seed=SEED,
         config=config, content=content, clock=ManualClock(start), rng_seed=seed
     )
     journal = Journal()
+    if attach is not None:
+        attach(game)
 
     for seat in seats:
         if seat.joins_round == 0:
             journal.join(0, seat, _seat(game, seat))
+            _file_import_orders(game, seat, 0, decisions, journal)
     game.start()
 
     played = 0
@@ -126,6 +135,7 @@ def replay(decisions=None, config=None, content=None, seats=SEATS, seed=SEED,
         for seat in seats:
             if seat.joins_round == index:
                 journal.join(index, seat, _seat(game, seat))
+                _file_import_orders(game, seat, index, decisions, journal)
 
         record = game.rounds[index]
         if record.question_id is not None:
@@ -162,6 +172,36 @@ def _seat(game, seat):
     )
 
 
+def _file_import_orders(game, seat, index, decisions, journal):
+    """This mayor files what their city is buying (spec #13).
+
+    Done at the table, on arrival: a facilitator's agent asks a joining mayor
+    what their city needs in the same breath as which city they are, and a
+    mayor who has said so is not asked again during a round. The check-in still
+    asks anyone who has not (see :func:`_check_in`); this is the ordinary path
+    and that one is the reminder.
+    """
+    filed = []
+    while game.unfiled_import_turns(seat.player_id) > 0:
+        offer = game.import_choice_offer(seat.player_id)
+        choice = decisions.import_choice_for(seat.player_id, offer)
+        if not choice:
+            break
+        filed.append(_apply_import_choice(game, seat.player_id, choice))
+    if filed:
+        journal.joins[-1] = dict(journal.joins[-1], import_orders=filed)
+    return filed
+
+
+def _apply_import_choice(game, player_id, choice):
+    """A recorded choice, through the public door: a seed id or an order."""
+    if isinstance(choice, dict) and "request" in choice:
+        return game.choose_import(player_id, request=choice["request"])
+    if isinstance(choice, dict):
+        return game.choose_import(player_id, request=choice)
+    return game.choose_import(player_id, need_id=choice)
+
+
 def _check_in(game, seat, index, decisions, journal):
     """One mayor's one check-in for this round (spec #11, #23).
 
@@ -179,6 +219,8 @@ def _check_in(game, seat, index, decisions, journal):
             continue
         if slot["kind"] == SLOT_IMPORT_PICK:
             _pick(game, seat, index, slot, decisions, journal)
+        elif slot["kind"] == SLOT_IMPORT_CHOICE:
+            _order(game, seat, index, slot, decisions, journal)
         elif slot["kind"] == SLOT_EXPORT:
             _export(game, seat, index, slot, decisions, journal)
         elif slot["kind"] == SLOT_QUESTION:
@@ -197,6 +239,21 @@ def _pick(game, seat, index, slot, decisions, journal):
         # the round. Which ref won is public the moment the need resolves.
         "ballot_ref": applied["ballot_ref"],
         "because": pick.get("because"),
+    })
+
+
+def _order(game, seat, index, slot, decisions, journal):
+    """The check-in asked this mayor for their next import order (spec #13)."""
+    choice = decisions.import_choice_for(seat.player_id, slot)
+    if not choice:
+        # Spec #13's other path: a mayor who files nothing has the turn held,
+        # and then loses it. No penalty and no substitution.
+        return
+    filed = _apply_import_choice(game, seat.player_id, choice)
+    journal.acted(index, seat.player_id, SLOT_IMPORT_CHOICE, {
+        "need_id": filed["need_id"],
+        "category": filed["category"],
+        "request_source": filed["request_source"],
     })
 
 

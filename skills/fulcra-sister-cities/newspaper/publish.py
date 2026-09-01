@@ -107,6 +107,79 @@ def _write_edition(root, stem, edition, formats):
     return files
 
 
+def publish_round(engine, round_index, label="game", out_dir=None, paper=None,
+                  edition=None):
+    """Write **one** completed round's edition, and refresh the index (spec #26).
+
+    The per-round door, for the facilitator's completed-round transaction: it
+    writes the files for exactly one edition, leaves every earlier edition
+    untouched on disk (spec #27 -- an archive, not an overwrite), and rewrites
+    only the two documents that describe the whole run, the index and
+    ``archive.json``.
+
+    :func:`publish_game` remains the whole-run door, for a game that is being
+    republished from scratch. The two agree by construction: both write the
+    same payloads through :func:`_write_edition`.
+    """
+    paper = paper or Paper(engine)
+    formats = _formats(engine.config)
+    configured_dir = engine.config.require_str("newspaper.output.editions_dir")
+    root = out_dir or os.path.join(repo_root(), configured_dir, label)
+    os.makedirs(root, exist_ok=True)
+
+    edition = edition if edition is not None else paper.edition(round_index)
+    files = _write_edition(root, "round-%02d" % round_index, edition, formats)
+    image = edition.get("image") or {}
+    written = {
+        "round": round_index,
+        "files": files,
+        "image_modality": (image.get("provenance") or {}).get("modality"),
+        "image_provider": (image.get("provenance") or {}).get("provider"),
+        "departments": [department["id"] for department in edition["departments"]],
+    }
+
+    archive = paper.archive()
+    final = archive.get("final")
+    final_written = None
+    if final is not None:
+        # The game ended with this round, so the last edition goes out beside it
+        # (spec #31) rather than waiting for somebody to run a script.
+        final_files = _write_edition(root, FINAL_STEM, final, formats)
+        final_image = final.get("image") or {}
+        final_written = {
+            "round": final["round"],
+            "files": final_files,
+            "image_modality": (final_image.get("provenance") or {}).get("modality"),
+            "image_provider": (final_image.get("provenance") or {}).get("provider"),
+            "departments": [department["id"] for department in final["departments"]],
+            "cities": [entry["city"] for entry in final.get("city_images") or ()],
+        }
+
+    index = _write(root, "index.md", archive_index_to_markdown(archive))
+    archive_json = _write(
+        root, "archive.json",
+        json.dumps(
+            dict(
+                archive,
+                editions=[without_image_content(e) for e in archive["editions"]],
+                final=None if final is None else without_image_content(final),
+            ),
+            indent=2, ensure_ascii=False,
+        ) + "\n",
+    )
+    return {
+        "label": label,
+        "directory": root,
+        "index": index,
+        "archive": archive_json,
+        "edition": written,
+        "final": final_written,
+        "formats": formats,
+        "editions_on_disk": len(archive["editions"]),
+        "spec": "#26, #27",
+    }
+
+
 def publish_game(engine, label="game", out_dir=None, paper=None):
     """Render and write every edition of ``engine``'s game so far.
 

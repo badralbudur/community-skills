@@ -2,7 +2,9 @@
 
 import unittest
 
-from harness import make_config, new_game, play_out, question_doc
+from harness import (
+    file_orders, make_config, new_game, play_out, question_doc, trade_policy,
+)
 from engine import Content, GameEngine
 from engine.clock import utc
 from engine.errors import NoEligibleImportNeed
@@ -21,9 +23,12 @@ def tiny_content(category_count, needs_per_category, questions=6):
                 {
                     "id": "%s-%02d" % (category["id"], slot),
                     "category": category["id"],
+                    # Orders, not questions: every need in every pool obeys spec
+                    # #13a, fixtures included (engine.trade checks them at load).
+                    "trade_family": "materials",
                     "title": "need %s %d" % (category["id"], slot),
-                    "need_brief": "{city} has a problem.",
-                    "exporter_prompt": "What does {city} do?",
+                    "need_brief": "{city} is buying six crates of %s." % category["id"],
+                    "exporter_prompt": "Ship {city} six crates of something.",
                     "source": "seed",
                 }
             )
@@ -34,7 +39,8 @@ def tiny_content(category_count, needs_per_category, questions=6):
         ]
     )
     return Content(
-        needs, categories, doc["questions"], {"cities": []}, root=".", question_doc=doc
+        needs, categories, doc["questions"], {"cities": []}, root=".", question_doc=doc,
+        trade_policy=trade_policy(),
     )
 
 
@@ -44,6 +50,7 @@ def game_with(content, config=None, **overrides):
     game.register_player("p1", "@ada", "Reykjavík", is_facilitator=True)
     game.register_player("p2", "@bo", "Valparaíso")
     game.register_player("p3", "@cy", "Hobart")
+    file_orders(game)
     game.start()
     return game
 
@@ -107,14 +114,28 @@ class CrossCityRepetitionTest(unittest.TestCase):
         self.assertEqual(len(game.needs), 6)
         self.assertEqual({need.category for need in game.needs.values()}, {"c0"})
 
-    def test_an_impossible_draw_raises_instead_of_repeating_silently(self):
-        # One category, three needs, three cities, two rotations. The second
-        # rotation cannot be dealt without breaking the rule, so it must not be.
+    def test_an_impossible_order_raises_instead_of_repeating_silently(self):
+        # One category, three needs, three cities, two rotations. Every city can
+        # order once; nobody can order twice without breaking the rule, and
+        # since spec #13 that impossibility surfaces where the mayor is being
+        # offered a slate rather than three rounds later where a draw would have
+        # happened -- which is the better place for it to surface.
         content = tiny_content(category_count=1, needs_per_category=3)
-        game = game_with(content)
-        with self.assertRaises(NoEligibleImportNeed):
-            play_out(game)
-        self.assertEqual(len(game.needs), 3)
+        config = make_config()
+        game = GameEngine.for_test(
+            utc(2026, 9, 1, 12), rng_seed=3, config=config, content=content
+        )
+        for player_id, handle, city in (
+            ("p1", "@ada", "Reykjavík"), ("p2", "@bo", "Valparaíso"), ("p3", "@cy", "Hobart"),
+        ):
+            game.register_player(player_id, handle, city, is_facilitator=player_id == "p1")
+        for player_id in ("p1", "p2", "p3"):
+            offer = game.import_choice_offer(player_id)
+            game.choose_import(player_id, need_id=offer["suggestions"][0]["need_id"])
+        for player_id in ("p1", "p2", "p3"):
+            self.assertEqual(game.unfiled_import_turns(player_id), 1)
+            with self.assertRaises(NoEligibleImportNeed):
+                game.import_choice_offer(player_id)
 
     def test_need_reuse_can_be_enabled_by_config(self):
         content = tiny_content(category_count=1, needs_per_category=1)
@@ -179,13 +200,33 @@ class PlayerSuggestedNeedTest(unittest.TestCase):
             {
                 "id": "need-player-01",
                 "category": "civic_ritual",
-                "title": "A ribbon that will not cut",
-                "need_brief": "{city} has a ribbon of unusual tensile strength.",
-                "exporter_prompt": "How does {city} open the bridge?",
+                "trade_family": "materials",
+                "title": "Four hundred metres of ribbon",
+                "need_brief": "{city} is buying ribbon by the roll, in a weave that "
+                              "cuts cleanly on the first attempt.",
+                "exporter_prompt": "Ship {city} the ribbon, the scissors or both.",
             },
         )
         self.assertEqual(added["source"], "player")
         self.assertEqual(len(game.content.needs), before + 1)
+
+    def test_a_player_suggestion_that_asks_for_advice_is_refused(self):
+        """Spec #13a holds at every door into the pool, this one included."""
+        from engine.errors import TradeRefused
+
+        game = new_game()
+        with self.assertRaises(TradeRefused):
+            game.suggest_import_need(
+                "p2",
+                {
+                    "id": "need-player-02",
+                    "category": "civic_ritual",
+                    "trade_family": "cultural_works",
+                    "title": "A better ribbon-cutting",
+                    "need_brief": "{city} has a ribbon problem.",
+                    "exporter_prompt": "What should {city} do about the ribbon?",
+                },
+            )
 
     def test_player_suggestions_can_be_switched_off(self):
         from engine.errors import RuleViolation
@@ -193,7 +234,9 @@ class PlayerSuggestedNeedTest(unittest.TestCase):
         game = new_game(content__allow_player_suggested_import_needs=False)
         with self.assertRaises(RuleViolation):
             game.suggest_import_need("p2", {"id": "x", "category": "civic_ritual",
-                                            "need_brief": "{city}.", "exporter_prompt": "?"})
+                                            "trade_family": "materials",
+                                            "need_brief": "{city} is buying rope.",
+                                            "exporter_prompt": "Ship {city} rope."})
 
 
 if __name__ == "__main__":

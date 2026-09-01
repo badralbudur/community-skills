@@ -249,6 +249,46 @@ class FullGameTest(unittest.TestCase):
         self.assertEqual(len(self.game.timers()), 1)
         self.assertEqual(audit.find_extra_timers(), [])
 
+    # -- M9: who ordered, what they ordered, and who published it -----------
+
+    def test_every_need_in_the_whole_game_was_ordered_by_its_own_mayor(self):
+        """Spec #13, over a seventeen-round game rather than a fixture."""
+        for need in self.game.needs.values():
+            mayor = self.game.players[need.importing_player_id].mayor
+            self.assertEqual(need.order["filed_by"], mayor, need.need_key)
+            self.assertIn(need.order["request_source"], ("seed", "freeform"))
+            self.assertIn(need.order["trade_family"], self.game.content.trade.families)
+
+    def test_no_prompt_this_game_asked_a_mayor_for_advice(self):
+        """Spec #13a, over everything the game actually put in front of anybody."""
+        policy = self.game.content.trade
+        for need in self.game.needs.values():
+            for field in ("title", "need_brief", "exporter_prompt"):
+                self.assertIsNone(
+                    policy.advice_marker_in(need.rendered[field]),
+                    "%s: %s" % (need.need_key, need.rendered[field]),
+                )
+
+    def test_the_paper_came_out_because_rounds_ended_not_because_a_script_ran(self):
+        """Spec #26: publication is a consequence of the game, not of the harness."""
+        desk = self.artifacts["desk"]
+        completed = self.game.completed_rounds()
+        self.assertEqual([t.round for t in desk.transactions], completed)
+        self.assertEqual([n.round for n in desk.notices], completed)
+        self.assertEqual(completed, sorted(self.game.rounds))
+        for transaction in desk.transactions:
+            self.assertEqual(transaction.edition["round"], transaction.round)
+            self.assertEqual(transaction.published["edition"]["round"], transaction.round)
+        self.assertTrue(desk.transactions[-1].ended)
+        self.assertTrue(desk.transactions[-1].published["final"])
+
+    def test_the_notices_carry_the_address_and_the_receipts_never_do(self):
+        desk = self.artifacts["desk"]
+        site_id = self.artifacts["site_id"]
+        for notice in desk.notices:
+            self.assertIn(site_id, notice.text)
+        self.assertNotIn(site_id, json.dumps(desk.describe(), ensure_ascii=False))
+
     # -- the artifacts ------------------------------------------------------
 
     def test_the_editions_and_the_site_agree_about_the_game(self):

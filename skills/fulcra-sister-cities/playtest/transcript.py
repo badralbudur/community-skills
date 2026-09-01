@@ -54,6 +54,15 @@ class Decisions:
     the two agree round for round.
     """
 
+    def import_choice_for(self, player_id, offer):
+        """Which import this city orders next (spec #13).
+
+        Returns a seeded need id, a ``{"request": {...}}`` mapping for a
+        freeform order, or ``None`` to leave the turn unfiled -- which is a
+        legitimate thing for a mayor to do and costs them the turn.
+        """
+        raise NotImplementedError
+
     def export_for(self, player_id, round_index, need):
         raise NotImplementedError
 
@@ -82,8 +91,27 @@ class StandIns(Decisions):
     roster and who showed up -- never of what anybody wrote.
     """
 
-    def __init__(self):
+    def __init__(self, import_choices=None):
         self.counter = 0
+        #: The orders each city files, if the caller has some. The stand-in pass
+        #: exists to discover *what each round asks of each city*, and since
+        #: spec #13 that depends on what the mayors ordered -- so the pass that
+        #: has to agree with the recorded game is given the recorded game's
+        #: orders, and only the writing is stood in for. With none supplied a
+        #: stand-in takes the first suggestion on the slate, which is a choice
+        #: like any other.
+        self.import_choices = {
+            player_id: list(orders) for player_id, orders in (import_choices or {}).items()
+        }
+
+    def import_choice_for(self, player_id, offer):
+        filed = self.import_choices.get(player_id)
+        if filed:
+            return filed.pop(0)
+        if filed is not None:
+            # This mayor's orders are all filed; anything further is not theirs.
+            return None
+        return offer["suggestions"][0]["need_id"]
 
     def export_for(self, player_id, round_index, need):
         self.counter += 1
@@ -116,12 +144,38 @@ class Transcript(Decisions):
         self._answers = _by_round(data.get("answers", {}))
         self._picks = dict(data.get("picks", {}))
         self._clusters = {int(k): v for k, v in (data.get("clusters", {}) or {}).items()}
+        self._imports = {
+            player_id: list(orders)
+            for player_id, orders in (data.get("import_orders", {}) or {}).items()
+            if not player_id.startswith("_")
+        }
         #: Every lookup that came back empty, so a replay can report "this mayor
         #: was at their desk and chose not to act" separately from "the
         #: transcript is missing a round".
         self.misses = []
 
     # -- Decisions ---------------------------------------------------------
+
+    def import_choice_for(self, player_id, offer):
+        """The notice this city opened next, from the record (spec #13).
+
+        See this file's ``import_orders._note``: the recorded game was played
+        before mayors chose their own imports, so these are the notices the
+        archive says each city actually opened, replayed through the choice API
+        so that a recording made under the old rule still plays under the new
+        one. They are the archive's record, not decisions its agents made.
+        """
+        filed = self._imports.get(player_id)
+        if not filed:
+            self.misses.append({"kind": "import_order", "player": player_id})
+            return None
+        return filed.pop(0)
+
+    def import_orders(self):
+        """The recorded orders, unconsumed -- for the stand-in reference pass."""
+        return {player_id: list(orders) for player_id, orders in
+                (self.data.get("import_orders", {}) or {}).items()
+                if not player_id.startswith("_")}
 
     def export_for(self, player_id, round_index, need):
         return self._get(self._exports, player_id, round_index, "export")

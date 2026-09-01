@@ -130,7 +130,8 @@ def run(game, journal, artifacts):
         _roster_size, _city_uniqueness, _late_joins, _facilitator_first,
         _queue_on_first_export, _facilitator_fixed, _facilitator_plays,
         _facilitator_relays, _one_timer_lockstep, _round_window, _one_checkin,
-        _two_rotations, _seeded_needs, _import_repetition, _freeform_capped_exports,
+        _two_rotations, _importer_chooses, _needs_are_trade, _import_repetition,
+        _freeform_capped_exports,
         _silent_skip, _ramp_up, _pick_the_round_after, _even_split, _profit_rolls,
         _origin_never_exposed, _exposure_is_configured, _two_slots, _question_framing,
         _aggregate_phrasing, _one_edition_per_round, _archive_browsable,
@@ -353,18 +354,72 @@ def _two_rotations(game, journal, artifacts):
 
 # --- the import/export/winner cycle --------------------------------------
 
-def _seeded_needs(game, journal, artifacts):
+def _importer_chooses(game, journal, artifacts):
+    """#13: the need a city opens is the one its own mayor filed."""
     seeded = {need["id"] for need in game.content.needs}
-    unknown = [n.content_need_id for n in game.needs.values() if n.content_need_id not in seeded]
+    unfiled = [n.need_key for n in game.needs.values() if not n.order.get("filed_by")]
+    unknown = [
+        n.content_need_id for n in game.needs.values()
+        if n.content_need_id not in seeded
+    ]
+    mismatched = [
+        n.need_key for n in game.needs.values()
+        if n.order.get("filed_by") != game.players[n.importing_player_id].mayor
+    ]
+    held = [
+        event for record in game.rounds.values() for event in record.events
+        if event["op"] == "OPEN" and event.get("rounds_held")
+    ]
+    offer = game.import_choice_offer(game.facilitator.player_id)
+    sources = sorted({n.order.get("request_source") for n in game.needs.values()})
     return _verdict(
-        "#13", "needs drawn from the seeded list", not unknown,
-        "%d needs opened, all drawn from content/import_needs.json's %d seeds "
-        "(player-suggested additions enabled: %s)"
+        "#13", "the importing mayor chooses their city's next import",
+        not unfiled and not unknown and not mismatched,
+        "%d needs opened, every one of them filed in advance by the mayor of the "
+        "importing city (request sources: %s); the engine holds a turn whose mayor "
+        "has filed nothing rather than opening one for them (%d held this game) and "
+        "owns no function that picks a need. A mayor is offered %s eligible "
+        "suggestions plus a freeform order, and may take any eligible seed shown "
+        "or not"
         % (
-            len(game.needs), len(seeded),
-            game.config.require_bool("content.allow_player_suggested_import_needs"),
+            len(game.needs), sources, len(held),
+            game.config.require_int("imports.suggestions_offered_to_importer"),
         ),
-        unknown or None,
+        {
+            "unfiled": unfiled or None,
+            "not_from_the_pool": unknown or None,
+            "filed_by_somebody_else": mismatched or None,
+            "held_turns": [
+                {"round": e.get("city"), "rounds_held": e["rounds_held"]} for e in held
+            ] or None,
+            "offer_is_still_available_at_game_end": bool(offer),
+        },
+    )
+
+
+def _needs_are_trade(game, journal, artifacts):
+    """#13a: what is ordered is goods or services, never advice."""
+    policy = game.content.trade
+    refused = []
+    for need in game.content.needs:
+        try:
+            policy.check_need(need, where=need["id"])
+        except Exception as exc:  # pragma: no cover - a failure is the finding
+            refused.append({"need": need["id"], "why": str(exc)})
+    families = sorted({need["trade_family"] for need in game.content.needs
+                       if need.get("trade_family")})
+    opened = sorted({n.order.get("trade_family") for n in game.needs.values()})
+    prompts = [n.rendered["exporter_prompt"] for n in game.needs.values()]
+    advice = [p for p in prompts if policy.advice_marker_in(p)]
+    return _verdict(
+        "#13a", "import needs are orders for actual tradable things",
+        not refused and not advice,
+        "all %d needs in the pool declare one of spec #13a's kinds of tradable "
+        "thing (%s) and none of them, or of the %d prompts this game put in front "
+        "of exporting mayors, reads as a request for advice or civic problem "
+        "solving; this game's own orders covered %s"
+        % (len(game.content.needs), families, len(prompts), opened),
+        {"refused": refused or None, "advice_prompts": advice or None},
     )
 
 
@@ -733,19 +788,44 @@ def _aggregate_phrasing(game, journal, artifacts):
 def _one_edition_per_round(game, journal, artifacts):
     editions = artifacts["editions"]["editions"]
     rounds = [entry["round"] for entry in editions]
-    completed = sorted(game.rounds)
-    ok = rounds == completed and len(set(rounds)) == len(rounds)
+    completed = game.completed_rounds()
+    desk = artifacts.get("desk")
+    # The half of spec #26 that a finished archive cannot show: these editions
+    # exist because rounds *ended*, not because this script published them. The
+    # desk was attached before the timer started and every entry below is one
+    # transaction it ran on its own (see playtest/run.py, facilitator/).
+    transacted = [t.round for t in desk.transactions] if desk else []
+    notices = [n.round for n in desk.notices] if desk else []
+    ok = (
+        rounds == completed
+        and len(set(rounds)) == len(rounds)
+        and transacted == completed
+        and notices == completed
+    )
     return _verdict(
-        "#26", "one edition per completed round, at one private address",
+        "#26", "one edition per completed round, automatically, at one private address",
         ok and artifacts["site"]["published"],
-        "%d editions for %d completed rounds, published to one unguessable "
-        "%s address with robots noindex in three places"
-        % (len(rounds), len(completed), game.config.require_str("hosting.url_style")),
+        "%d editions for %d completed rounds -- each one written by the round "
+        "ending, in the facilitator's completed-round transaction (%s), and each "
+        "followed by one notice to the group that it is up; published to one "
+        "unguessable %s address with robots noindex in three places"
+        % (
+            len(rounds), len(completed),
+            ", ".join(desk.steps) if desk else "no desk attached",
+            game.config.require_str("hosting.url_style"),
+        ),
         {
             "privacy": artifacts["site"]["privacy"],
+            "transactions": transacted,
+            "notices": notices,
+            "example_notice": desk.notices[0].describe() if desk and desk.notices else None,
             "address_in_published_bytes": any(
                 artifacts["site_id"] in text
                 for text in artifacts["public_files"].values()
+            ),
+            "address_in_the_written_down_notices": any(
+                artifacts["site_id"] in json.dumps(n.describe())
+                for n in (desk.notices if desk else [])
             ),
         },
     )
@@ -931,21 +1011,25 @@ def _game_content(game, journal, artifacts):
     needs = game.content.needs
     categories = {need["category"] for need in needs}
     briefs = {need["need_brief"] for need in needs}
+    families = {need.get("trade_family") for need in needs}
     return Finding(
         "#33", "a good name, and a seeded import list that is varied and gameable",
         JUDGED,
         "the game is %r and the paper is %r (see NAME.md); the seed list holds %d "
-        "needs across %d categories, %d distinct briefs, of which %d were drawn in "
-        "this game. Whether the name reads as chosen rather than placeheld, and "
-        "whether the list is varied rather than repetitive, is the judged part"
+        "orders across %d categories and %d kinds of tradable thing, %d distinct "
+        "briefs, of which %d were ordered in this game. Whether the name reads as "
+        "chosen rather than placeheld, and whether the list is varied and gameable "
+        "rather than repetitive, is the judged part"
         % (
             artifacts["archive"]["game"], artifacts["archive"]["publication"],
-            len(needs), len(categories), len(briefs), len(game.needs),
+            len(needs), len(categories), len(families), len(briefs), len(game.needs),
         ),
         {
             "categories": sorted(categories),
-            "drawn_this_game": sorted(
-                (n.importing_city, n.category) for n in game.needs.values()
+            "trade_families": sorted(f for f in families if f),
+            "ordered_this_game": sorted(
+                (n.importing_city, n.category, n.rendered["title"])
+                for n in game.needs.values()
             ),
         },
     )

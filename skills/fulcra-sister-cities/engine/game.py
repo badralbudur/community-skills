@@ -27,6 +27,23 @@ and picking rounds, the final two rounds of a game OPEN nothing -- they close an
 resolve the tail. Those two drain rounds are logged with the same three ops (with
 ``need: null`` on OPEN), so the lockstep invariant holds for every round of the
 game without exception.
+
+Who chooses the import (spec #13)
+---------------------------------
+OPEN does not draw. Since the user decision of 2026-08-31 an importing mayor
+files their city's next import order themselves -- from a slate of eligible
+seeds, or freehand -- and OPEN opens whatever is at the front of that city's
+programme. There is no other way for a need to exist, which is the strong form
+of "a city cannot receive an import nobody chose": not a promise, an absence.
+
+A mayor with an unfiled turn is offered the order in their check-in as the round
+of their turn approaches (``imports.choice_offered_rounds_ahead``); they may also
+file earlier, and most do, at the table before the game starts. If a due mayor
+has still filed nothing, the queue *holds* their turn for
+``imports.unchosen_turn_grace_rounds`` rounds -- the round opens nothing rather
+than opening something they did not ask for -- and then passes over it. A missed
+import turn costs the mayor the turn and nothing else, which is spec #16's
+no-penalty-no-substitution rule applied to the other side of the trade.
 """
 
 import random
@@ -41,7 +58,9 @@ from .economy import Economy
 from .errors import (
     CheckInExhausted,
     ConfigError,
+    ContentError,
     DuplicateCity,
+    ImportChoiceRejected,
     PhaseError,
     PickRejected,
     RosterError,
@@ -79,8 +98,16 @@ OP_RESOLVE = "RESOLVE"
 LOCKSTEP_OPS = (OP_OPEN, OP_CLOSE, OP_RESOLVE)
 
 SLOT_IMPORT_PICK = "import_pick"
+SLOT_IMPORT_CHOICE = "import_choice"
 SLOT_EXPORT = "export"
 SLOT_QUESTION = "mayor_question"
+
+#: The order the check-in fills its two slots with pending game actions.
+#: A lapsed pick costs the whole table a winner (spec #19's even split), an
+#: unfiled order costs its city the import turn (spec #13), and a missed export
+#: costs one offer -- so they queue in that order, and the question fills what
+#: is left over (spec #23).
+GAME_ACTION_PRIORITY = (SLOT_IMPORT_PICK, SLOT_IMPORT_CHOICE, SLOT_EXPORT)
 
 
 class GameEngine:
@@ -101,6 +128,12 @@ class GameEngine:
         # And again: an unknown duplicate-pick resolution mode is a startup
         # error, not something the fifth player to join finds out about.
         self.registrar = CityRegistrar(self.config, self.content)
+        # Same reason once more, for spec #13's three parameters. Two of them
+        # are only consulted on a path a cooperative table never takes -- the
+        # lookahead when somebody has not ordered yet, the grace when nobody
+        # does -- so a typo in either would lie dormant until the first absent
+        # mayor, which is the worst moment to discover it.
+        self._validate_import_rules()
         self.clock = clock if clock is not None else SystemClock()
         self._seed = (
             self.config.require_nullable_int("engine.rng_seed")
@@ -125,6 +158,16 @@ class GameEngine:
         self._asked_question_ids = []
         self._need_counter = 0
         self._submission_counter = 0
+        self._freeform_counter = 0
+        # Consecutive rounds the queue has held a turn open waiting for its
+        # mayor to file an order (spec #13); cleared when they file or lose it.
+        self._waited = {}
+        # What runs when a round finishes -- see :meth:`on_round_completed`.
+        # Empty here on purpose: the engine states that a round is complete and
+        # the facilitator's desk decides that this means publishing a paper
+        # (spec #26). An engine that imported the newspaper would be an engine
+        # that could not be tested without one.
+        self._round_completed_hooks = []
 
     # -- construction helpers ---------------------------------------------
 
@@ -134,6 +177,30 @@ class GameEngine:
         config = config if config is not None else Config.load()
         content = content if content is not None else Content.load(config)
         return cls(config=config, content=content, clock=ManualClock(start_at), rng_seed=rng_seed)
+
+    def _validate_import_rules(self):
+        """Spec #13's parameters, checked before a game exists (config.imports)."""
+        suggestions = self.config.require_int("imports.suggestions_offered_to_importer")
+        if suggestions < 1:
+            raise ConfigError(
+                "config.imports.suggestions_offered_to_importer must be at least 1; "
+                "spec #13 requires a small set of eligible suggestions, got %d"
+                % suggestions
+            )
+        ahead = self.config.require_int("imports.choice_offered_rounds_ahead")
+        if ahead < 1:
+            raise ConfigError(
+                "config.imports.choice_offered_rounds_ahead must be at least 1 -- a "
+                "mayor has to be asked before the round their turn opens in, or the "
+                "turn is held (spec #13), got %d" % ahead
+            )
+        grace = self.config.require_int("imports.unchosen_turn_grace_rounds")
+        if grace < 0:
+            raise ConfigError(
+                "config.imports.unchosen_turn_grace_rounds must be >= 0 (0 gives up "
+                "on an unfiled turn at once), got %d" % grace
+            )
+        return {"suggestions": suggestions, "ahead": ahead, "grace": grace}
 
     def _rng(self, purpose, key=""):
         """A stream per (purpose, key), so adding a draw elsewhere cannot shift
@@ -243,6 +310,19 @@ class GameEngine:
             raise RosterError(
                 "a facilitator must be seated before the game starts (spec #4, #6)"
             )
+        if not self.facilitator.import_programme:
+            # Spec #4 puts the facilitator's city at position 1 precisely so
+            # round 1 has a need to open; spec #13 says that need is the one
+            # their mayor ordered. Both hold only if the order exists before the
+            # timer starts, so this is a startup error rather than a dead round 1.
+            raise ImportChoiceRejected(
+                "%s opens round 1 (spec #4), and a city imports what its mayor "
+                "ordered (spec #13) -- file the facilitator's first import order "
+                "before starting the game: game.import_choice_offer(%r) then "
+                "game.choose_import(%r, need_id=...)"
+                % (self.facilitator.city, self.facilitator.player_id,
+                   self.facilitator.player_id)
+            )
         epoch = ensure_aware(at if at is not None else self.clock.now())
         window = timedelta(hours=self.config.require_number("rounds.round_window_hours"))
         self.timer = RoundTimer(epoch, window)
@@ -270,10 +350,11 @@ class GameEngine:
         return advanced
 
     def _begin_round(self, index):
-        # The previous round is over the instant this one starts, so this is where
-        # its closing standing is fixed -- after every check-in it was going to
-        # get, including a mayor who joined part-way through it.
-        self._close_standings(index - 1)
+        # The previous round is over the instant this one starts, so this is
+        # where it is completed -- its standing fixed, its edition published --
+        # after every check-in it was going to get, including a mayor who joined
+        # part-way through it.
+        self._complete_round(index - 1)
         record = RoundRecord(index, self.timer.round_start(index), self.timer.round_end(index))
         self.rounds[index] = record
         self.current_round = index
@@ -288,9 +369,48 @@ class GameEngine:
         if self._game_is_over():
             self.phase = ENDED
             self.ended_round = index
-            # No round follows this one, so nothing else will close its standing.
-            self._close_standings(index)
+            # No round follows this one, so nothing else will complete it -- and
+            # the last round's edition is also the one the endgame is published
+            # with (spec #31), so it must not be skipped.
+            self._complete_round(index)
         return record
+
+    def on_round_completed(self, hook):
+        """Run ``hook(game, round_index)`` the moment a round finishes.
+
+        This is spec #26's hinge. "Publishes exactly one redacted edition after
+        every completed round ... a manually callable renderer alone does not
+        satisfy this requirement" means something has to fire without anybody
+        remembering to call it, and a round ending is the only honest trigger:
+        it is the same instant the round's standing freezes, so an edition can
+        never be printed from a round that is still moving.
+
+        The engine holds the trigger and not the newspaper. It knows when a
+        round is over; what to do about it -- render, publish, build the site,
+        tell the group -- is the facilitator's completed-round transaction, in
+        :mod:`facilitator`, which is where the newspaper and the hosting live.
+        A hook that raises stops the game rather than letting a round pass
+        unpublished, which is the right way round: an edition that could not be
+        published (a redaction failure, a tone failure) is an emergency.
+        """
+        if not callable(hook):
+            raise TypeError("a round-completed hook must be callable, got %r" % (hook,))
+        self._round_completed_hooks.append(hook)
+        return hook
+
+    def _complete_round(self, index):
+        """Finish one round, once: freeze its standing, then run the hooks."""
+        record = self.rounds.get(index)
+        if record is None or record.completed:
+            return None
+        self._close_standings(index)
+        record.completed = True
+        for hook in list(self._round_completed_hooks):
+            hook(self, index)
+        return record
+
+    def completed_rounds(self):
+        return [index for index in sorted(self.rounds) if self.rounds[index].completed]
 
     def _close_standings(self, index):
         """Freeze one round's cumulative leaderboard, once (see RoundRecord).
@@ -314,33 +434,55 @@ class GameEngine:
     # -- lockstep operations ----------------------------------------------
 
     def _op_open(self, record):
-        """One new import need opens (spec #9)."""
-        importer_id = self.queue.next_importer(self.players, record.index)
-        if importer_id is None:
-            record.log(
-                OP_OPEN,
-                need=None,
-                reason="no import turns remain; draining the last needs",
+        """One new import need opens -- the one its mayor ordered (spec #9, #13).
+
+        Nothing is drawn here. The queue says whose turn it is, and that city's
+        own programme says what opens; a due mayor who has filed nothing has
+        their turn held, and eventually passed over, rather than filled.
+        """
+        grace = self._validate_import_rules()["grace"]
+        forfeited = []
+        while True:
+            importer_id = self.queue.next_importer(
+                self.players, record.index, ready=self._has_filed_import_order
             )
-            return None
+            if importer_id is not None:
+                break
+            waiting_id = self.queue.waiting_on
+            if waiting_id is None:
+                record.log(
+                    OP_OPEN,
+                    need=None,
+                    reason="no import turns remain; draining the last needs",
+                    **({"forfeited": forfeited} if forfeited else {})
+                )
+                return None
+            waiting = self.players[waiting_id]
+            waited = self._waited.get(waiting_id, 0) + 1
+            self._waited[waiting_id] = waited
+            if waited <= grace:
+                # Spec #13: no need opens rather than one this mayor did not
+                # order. The round still runs its other two operations.
+                record.log(
+                    OP_OPEN,
+                    need=None,
+                    city=waiting.city,
+                    reason="%s's import turn is held: its mayor has not filed an "
+                           "order yet (spec #13)" % waiting.city,
+                    rounds_held=waited,
+                    grace_rounds=grace,
+                    **({"forfeited": forfeited} if forfeited else {})
+                )
+                return None
+            self.queue.pass_over(waiting_id, record.index)
+            waiting.import_turns_forfeited += 1
+            self._waited.pop(waiting_id, None)
+            forfeited.append(waiting.city)
 
         player = self.players[importer_id]
-        need_doc = self.content.draw_need(
-            self._rng("need", "%s|%d" % (player.city, record.index)),
-            player.city,
-            used_need_ids={n.content_need_id for n in self.needs.values()},
-            categories_used_by_city={
-                n.category for n in self.needs.values() if n.importing_city == player.city
-            },
-            categories_used_anywhere={n.category for n in self.needs.values()},
-            allow_repeat_for_same_city=self.config.require_bool(
-                "imports.allow_repeat_category_for_same_city"
-            ),
-            allow_repeat_across_cities=self.config.require_bool(
-                "imports.allow_repeat_category_across_cities"
-            ),
-            allow_need_reuse=self.config.require_bool("imports.reuse_same_need_within_game"),
-        )
+        self._waited.pop(importer_id, None)
+        order = player.import_programme.pop(0)
+        need_doc = order["need"]
 
         self._need_counter += 1
         need = ImportNeed(
@@ -352,6 +494,13 @@ class GameEngine:
             rendered=self.content.render_need(need_doc, player.city),
             opened_round=record.index,
             rotation=self.queue.rotation,
+            order={
+                "filed_by": player.mayor,
+                "request_source": order["request_source"],
+                "trade_family": need_doc.get("trade_family"),
+                "filed_in_round": order["filed_in_round"],
+                "spec": "#13, #13a",
+            },
         )
         self.needs[need.need_key] = need
         player.import_turns_served += 1
@@ -361,8 +510,13 @@ class GameEngine:
             city=player.city,
             category=need.category,
             rotation=need.rotation,
+            request_source=order["request_source"],
+            **({"forfeited": forfeited} if forfeited else {})
         )
         return need
+
+    def _has_filed_import_order(self, player_id):
+        return bool(self.players[player_id].import_programme)
 
     def _op_close(self, record):
         """One export-collection window closes (spec #9)."""
@@ -470,6 +624,271 @@ class GameEngine:
             },
         }
         return need.resolution
+
+    # -- the importing mayor's own order (spec #13, #13a, #14) --------------
+
+    def _import_allotment(self, player):
+        """Import turns this mayor is owed, including one they have not earned yet.
+
+        A player who has not exported yet is not in the queue and has no
+        allotment (spec #5). They may still file an order: filing is not being
+        assigned a need, the need opens only when their turn comes, and asking a
+        joining mayor what their city needs is the natural first question to ask
+        them. So an unqueued player is quoted the allotment they would take if
+        they exported now.
+        """
+        if player.import_turns_allotted is not None:
+            return player.import_turns_allotted
+        return self.queue.allotment_for_new_entrant()
+
+    def unfiled_import_turns(self, player_id):
+        """Import turns this mayor has neither filed an order for nor lost."""
+        player = self._player(player_id)
+        return max(
+            0,
+            self._import_allotment(player)
+            - player.import_turns_served
+            - player.import_turns_forfeited
+            - len(player.import_programme),
+        )
+
+    def _eligibility_rules(self, player):
+        """What this city may still order, per spec #14 and config.imports.
+
+        Orders already filed count exactly as opened needs do. Without that, two
+        mayors could file the same seed on the same evening and the repetition
+        rule would be enforced only against whoever happened to open first --
+        which is the same rule holding by luck rather than by construction.
+        """
+        opened = list(self.needs.values())
+        filed = [
+            order for other in self.players.values() for order in other.import_programme
+        ]
+        return {
+            "used_need_ids": (
+                {need.content_need_id for need in opened}
+                | {order["need"]["id"] for order in filed}
+            ),
+            "categories_used_by_city": (
+                {n.category for n in opened if n.importing_player_id == player.player_id}
+                | {order["need"]["category"] for order in player.import_programme}
+            ),
+            "categories_used_anywhere": (
+                {need.category for need in opened}
+                | {order["need"]["category"] for order in filed}
+            ),
+            "allow_repeat_for_same_city": self.config.require_bool(
+                "imports.allow_repeat_category_for_same_city"
+            ),
+            "allow_repeat_across_cities": self.config.require_bool(
+                "imports.allow_repeat_category_across_cities"
+            ),
+            "allow_need_reuse": self.config.require_bool(
+                "imports.reuse_same_need_within_game"
+            ),
+        }
+
+    def _rounds_until_unfiled_turn(self, player):
+        """Rounds until the turn this mayor's next order would fill, or ``None``.
+
+        Counted against the *unfiled* turn rather than the next one: a mayor who
+        has already filed for their next turn is being asked about the one after
+        it, and telling them it is one round away would be a lie in the
+        direction that makes them hurry.
+        """
+        if not player.is_queued:
+            return None
+        upcoming = self.queue.upcoming(self.players)
+        positions = [i for i, pid in enumerate(upcoming) if pid == player.player_id]
+        filed = len(player.import_programme)
+        return positions[filed] + 1 if filed < len(positions) else None
+
+    def import_choice_offer(self, player_id):
+        """What this mayor may order for their city's next import turn (#13).
+
+        ``None`` when they have no turn left to file for. Otherwise: a small
+        slate of eligible seeds, every one of which they may take; the standing
+        permission to write their own order instead; and how many rounds they
+        have before the turn comes round. The slate is a suggestion and not a
+        menu -- any eligible seed may be named, whether or not it was shown.
+        """
+        player = self._player(player_id)
+        if self.phase == ENDED:
+            return None
+        if self.unfiled_import_turns(player_id) < 1:
+            return None
+        rules = self._eligibility_rules(player)
+        count = self._validate_import_rules()["suggestions"]
+        turn = player.import_turns_served + len(player.import_programme) + 1
+        suggestions = self.content.suggest_needs(
+            self._rng("slate", "%s|%d" % (player.city, turn)), player.city, count, **rules
+        )
+        return {
+            "player_id": player_id,
+            "city": player.city,
+            "mayor": player.mayor,
+            "turn": turn,
+            "of": self._import_allotment(player),
+            "opens_in_rounds": self._rounds_until_unfiled_turn(player),
+            "queued": player.is_queued,
+            "suggestions": [self._suggestion(need, player.city) for need in suggestions],
+            "eligible_seeds": len(self.content.eligible_needs(**rules)),
+            "freeform": self.content.trade.describe(),
+            "note": "Take one of these, name any other eligible seed, or file your "
+                    "own order. Whatever you choose is what your city imports when "
+                    "its turn comes -- nothing is drawn for you (spec #13).",
+            "spec": "#13, #13a, #14",
+        }
+
+    def _suggestion(self, need, city):
+        category = self.content.categories.get(need["category"]) or {}
+        rendered = self.content.render_need(need, city)
+        return {
+            "need_id": need["id"],
+            "category": need["category"],
+            "category_label": category.get("label", need["category"]),
+            "trade_family": need.get("trade_family"),
+            "title": rendered["title"],
+            "need_brief": rendered["need_brief"],
+            "exporter_prompt": rendered["exporter_prompt"],
+            "source": need.get("source", "seed"),
+        }
+
+    def choose_import(self, player_id, need_id=None, request=None):
+        """File this city's next import order (spec #13).
+
+        Exactly one of ``need_id`` (an eligible seed, on the slate or not) and
+        ``request`` (the mayor's own words, checked against spec #13a's trade
+        policy). The order joins the city's programme and is what OPEN opens
+        when the queue reaches them.
+
+        The slot accounting is deliberately asymmetric. When the turn is close
+        enough that the check-in is *asking* for the order, filing one uses that
+        slot like any other game action (spec #11, #23). When it is not -- a
+        mayor filing at the table before the game starts, or volunteering their
+        second order early -- it costs nothing, because a mayor who says what
+        their city wants before being asked has not taken a second turn at the
+        round.
+        """
+        player = self._player(player_id)
+        if self.phase == ENDED:
+            raise PhaseError("the game is over")
+        if (need_id is None) == (request is None):
+            raise ImportChoiceRejected(
+                "file exactly one of a seeded need id or a freeform request "
+                "(spec #13 offers both, one at a time)"
+            )
+        if self.unfiled_import_turns(player_id) < 1:
+            raise ImportChoiceRejected(
+                "%s has no import turn left to file an order for (%d of %d served, "
+                "%d already filed)"
+                % (player.city, player.import_turns_served,
+                   self._import_allotment(player), len(player.import_programme))
+            )
+
+        rules = self._eligibility_rules(player)
+        if need_id is not None:
+            try:
+                need = self.content.need_by_id(need_id)
+            except ContentError:
+                raise ImportChoiceRejected(
+                    "there is no import need %r to order; call import_choice_offer() "
+                    "for what %s may take" % (need_id, player.city)
+                )
+            eligible = {candidate["id"] for candidate in self.content.eligible_needs(**rules)}
+            if need_id not in eligible:
+                raise ImportChoiceRejected(
+                    "%s may not order %r: it is either already taken this game or in a "
+                    "category %s has imported before (spec #14 / config.imports)"
+                    % (player.city, need_id, player.city)
+                )
+            source = "seed"
+        else:
+            self._freeform_counter += 1
+            need = self.content.trade.freeform_need(
+                request,
+                self.content.trade.freeform_id(self._freeform_counter),
+                proposed_by_city=player.city,
+            )
+            self._assert_category_is_free(player, need["category"], rules)
+            # Freeform orders join the pool (spec #33: the list players extend is
+            # the list mayors order from), which also means the repetition rule
+            # sees them without a second bookkeeping path.
+            self.content.add_need(need)
+            source = "freeform"
+
+        # Guarded before anything is written down, so a refused check-in leaves
+        # no half-filed order behind.
+        asked_this_round = self.phase == RUNNING and self._import_choice_is_due(player)
+        if asked_this_round:
+            self._guard_checkin(player_id, SLOT_IMPORT_CHOICE)
+
+        order = {
+            "need": need,
+            "request_source": source,
+            "filed_in_round": self.current_round,
+            "filed_in_check_in": asked_this_round,
+        }
+        player.import_programme.append(order)
+        self._waited.pop(player_id, None)
+        if asked_this_round:
+            self._mark_checkin(player_id, SLOT_IMPORT_CHOICE)
+        return self.import_programme_for(player_id)[-1]
+
+    def _assert_category_is_free(self, player, category, rules):
+        if category not in self.content.categories:
+            raise ImportChoiceRejected(
+                "%r is not one of this game's import categories: %s"
+                % (category, sorted(self.content.categories))
+            )
+        if not rules["allow_repeat_for_same_city"] and (
+            category in rules["categories_used_by_city"]
+        ):
+            raise ImportChoiceRejected(
+                "%s has already imported from %r and config.imports."
+                "allow_repeat_category_for_same_city is false (spec #14)"
+                % (player.city, category)
+            )
+        if not rules["allow_repeat_across_cities"] and (
+            category in rules["categories_used_anywhere"]
+        ):
+            raise ImportChoiceRejected(
+                "%r has been imported already this game and config.imports."
+                "allow_repeat_category_across_cities is false (spec #14)" % category
+            )
+
+    def import_programme_for(self, player_id):
+        """The orders this city has filed and the game has not opened yet."""
+        player = self._player(player_id)
+        return [
+            {
+                "need_id": order["need"]["id"],
+                "category": order["need"]["category"],
+                "trade_family": order["need"].get("trade_family"),
+                "title": order["need"].get("title"),
+                "request_source": order["request_source"],
+                "filed_in_round": order["filed_in_round"],
+                "filed_in_check_in": order["filed_in_check_in"],
+            }
+            for order in player.import_programme
+        ]
+
+    def _import_choice_is_due(self, player):
+        """Whether this round's check-in should be asking this mayor to file.
+
+        True when the turn is within ``imports.choice_offered_rounds_ahead``
+        rounds, and true immediately when the queue is already holding the turn
+        open for them -- at that point it is the most urgent thing the game
+        wants from anybody.
+        """
+        if self.unfiled_import_turns(player.player_id) < 1:
+            return False
+        if self.queue.waiting_on == player.player_id:
+            return True
+        distance = self._rounds_until_unfiled_turn(player)
+        if distance is None:
+            return False
+        return distance <= self._validate_import_rules()["ahead"]
 
     # -- the round's mayor question ----------------------------------------
 
@@ -669,18 +1088,25 @@ class GameEngine:
         deadline = self.rounds[self.current_round].ends_at
 
         # Which game actions this round asks of this player, regardless of what
-        # they have already done. Pick first: its window closes this round and
-        # letting it lapse triggers spec #19's even split.
+        # they have already done, in GAME_ACTION_PRIORITY order: a lapsed pick
+        # costs the table a winner, an unfiled order costs this city its import
+        # turn, a missed export costs one offer.
         applicable = []
         pick_need = self.picking_need_for(player_id)
         if pick_need is not None and self.submissions_for(pick_need.need_key):
             applicable.append((SLOT_IMPORT_PICK, pick_need))
+        if self._import_choice_is_due(player):
+            applicable.append((SLOT_IMPORT_CHOICE, None))
         open_need = self.collecting_need()
         if open_need is not None and self._export_slot_applies(player, open_need):
             applicable.append((SLOT_EXPORT, open_need))
+        # Ordered by the table above rather than by the order they were appended
+        # in, so the priority is a fact of GAME_ACTION_PRIORITY and not of how
+        # this function happens to be written.
+        applicable.sort(key=lambda item: GAME_ACTION_PRIORITY.index(item[0]))
 
         outstanding = [
-            self._game_action_slot(kind, need, deadline)
+            self._game_action_slot(player, kind, need, deadline)
             for kind, need in applicable
             if used.get(kind, 0) < self._slot_allowance(kind)
         ]
@@ -729,7 +1155,20 @@ class GameEngine:
             )
         return 1
 
-    def _game_action_slot(self, kind, need, deadline):
+    def _game_action_slot(self, player, kind, need, deadline):
+        if kind == SLOT_IMPORT_CHOICE:
+            # Spec #13's slot: the whole offer, in the check-in, because a mayor
+            # being asked to order needs the slate in front of them and not a
+            # pointer to a second call they might not make.
+            return dict(
+                self.import_choice_offer(player.player_id) or {},
+                kind=SLOT_IMPORT_CHOICE,
+                deadline=deadline.isoformat(),
+                note="File your city's next import: take one of these, name any "
+                     "other eligible seed, or write your own order. Nothing is "
+                     "drawn for you, and an unfiled turn is held and then lost "
+                     "(spec #13).",
+            )
         if kind == SLOT_IMPORT_PICK:
             return {
                 "kind": SLOT_IMPORT_PICK,
@@ -1002,6 +1441,8 @@ class GameEngine:
                     "queue_position": self.queue.position(pid),
                     "import_turns_allotted": p.import_turns_allotted,
                     "import_turns_served": p.import_turns_served,
+                    "import_turns_forfeited": p.import_turns_forfeited,
+                    "import_orders_filed": self.import_programme_for(pid),
                 }
                 for pid, p in self.players.items()
             },
@@ -1009,6 +1450,7 @@ class GameEngine:
                 key: {
                     "city": need.importing_city,
                     "category": need.category,
+                    "request_source": need.order.get("request_source"),
                     "opened_round": need.opened_round,
                     "closed_round": need.closed_round,
                     "resolved_round": need.resolved_round,
@@ -1022,6 +1464,7 @@ class GameEngine:
                 index: {"ops": record.ops, "events": record.events,
                         "question_id": record.question_id,
                         "answer_count": len(record.answers),
+                        "completed": record.completed,
                         "answers_clustered": record.answer_buckets is not None}
                 for index, record in self.rounds.items()
             },

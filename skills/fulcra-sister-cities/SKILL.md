@@ -1,6 +1,6 @@
 ---
 name: fulcra-sister-cities
-description: "Run or facilitate Sister Cities, an asynchronous city-trade social game for 3–10 players. Uses a shared Fulcra Workspace for game state and player-agent coordination; provides a tested local game engine, private newspaper/archive builder, and reproducible multi-agent playtest."
+description: "Run or facilitate Sister Cities, an asynchronous city-trade social game for 3–10 players. Mayors choose actual goods/services to import from suggestions or freeform orders; includes automatic redacted round editions, a tested local engine, and reproducible multi-agent playtest."
 homepage: "https://github.com/fulcradynamics/community-skills"
 license: "MIT"
 user-invocable: true
@@ -52,6 +52,10 @@ regression testing; it contains no real participant data.
 - 3–10 configurable players; each city is unique.
 - Fixed facilitator, first in city order, but their user plays normally.
 - One shared round timer (24 hours by default, configurable).
+- Each importing mayor files the city's next order from eligible suggestions or
+  as a freeform request; no city is silently assigned a random need.
+- Imports and exports are actual goods, materials, food, equipment, cultural
+  works, living things, or specialist services -- not generic advice prompts.
 - Each player gets one combined check-in per round, with up to two slots.
 - Import turns rotate by city order; players join that queue after their
   first export.
@@ -63,6 +67,8 @@ regression testing; it contains no real participant data.
 - Profit is 2d6-style and accumulates on the visible city leaderboard.
 - Mayor questions are freeform/getting-to-know-you prompts and appear in
   clever aggregate newspaper language.
+- Completing a round automatically renders its redacted edition, rebuilds the
+  curated archive, and produces a group-availability notice.
 - Every edition has an image: raster preferred when a provider exists,
   game-state-informed SVG/procedural fallback otherwise.
 
@@ -117,7 +123,10 @@ For each player interaction:
 
 1. Read that mayor's current check-in from the shared game state.
 2. Present only that mayor's allowed actions and question slot(s).
-3. Submit the player response through the engine's public game methods.
+3. Submit the player response through the engine's public game methods. Use
+   `facilitator.CompletedRoundTransaction` around a round advance so the
+   edition and availability notice are emitted as part of the committed
+   completed-round flow, rather than being an optional manual follow-up.
 4. Never attach an export city to another mayor's ballot or non-winning
    published offer.
 5. Update that agent's standard Workspace member progress/inbox archive.

@@ -35,7 +35,11 @@
     "allow_repeat_category_across_cities": true,
     "allow_repeat_category_for_same_city": false,
     "reuse_same_need_within_game": false,
-    "_note": "spec #14, #22 -- same category may go to different cities but not to the same city twice, by default. reuse_same_need_within_game governs the individual need rather than its category: with 48 seeds and at most 20 needs in a maximum game, replaying the exact same brief verbatim is never necessary, so it is off."
+    "suggestions_offered_to_importer": 4,
+    "choice_offered_rounds_ahead": 2,
+    "unchosen_turn_grace_rounds": 2,
+    "_note": "spec #13, #13a, #14, #22 -- same category may go to different cities but not to the same city twice, by default. reuse_same_need_within_game governs the individual need rather than its category: with 48 seeds and at most 20 needs in a maximum game, replaying the exact same brief verbatim is never necessary, so it is off.",
+    "_choice_note": "spec #13 (user decision, 2026-08-31): the importing mayor chooses their city's next import, so nothing here selects one. suggestions_offered_to_importer is the size of the slate of eligible seeds put in front of them -- 'a small set', large enough to be a choice and small enough to read in a message; the slate spreads across categories before it doubles up, and a mayor may also name an eligible seed that is not on it. choice_offered_rounds_ahead is how many rounds before their turn the check-in starts asking for the order (spec #23's slot budget means asking earlier would cost them a mayoral question every round from the moment they joined; asking later than 1 would be asking after the turn had opened). unchosen_turn_grace_rounds is how many rounds the queue holds an unfiled turn open before passing over it -- the round opens no need at all while it waits, because opening one nobody ordered is the thing spec #13 exists to stop, and a turn that is never filed is lost with no other penalty (spec #16's reading of a no-show, applied to the import side). There is deliberately no knob for 'accept freeform requests' or 'let the engine pick': spec #13 requires the first and forbids the second, and config.json holds the parameters of the rules, not switches for them."
   },
 
   "exports": {
@@ -98,6 +102,17 @@
       "disallow_snide_or_mean": true
     },
     "_note": "spec #26-#30; player_identity_style may later support more anonymity per decisions Q26. The four tone flags are load-bearing, not decorative: `funny` false drops the editorial asides and leaves the paper reporting facts, `colorful` false switches the edition image to the monochrome palette, `allow_pointed_humor` false filters out every frame content marks `pointed`, and `disallow_snide_or_mean` runs content/newspaper.json's forbidden register over the finished prose and refuses to publish an edition that trips it."
+  },
+
+  "facilitator": {
+    "completed_round_transaction": ["render_edition", "publish_editions", "build_site", "notify_group"],
+    "editions_label": "live-game",
+    "notice": {
+      "channel": "group",
+      "include_url": true
+    },
+    "_note": "spec #26. What the facilitator's desk does the instant a round finishes, without being asked -- facilitator/transaction.py hangs it on the engine's round-completed hook, so publication is a consequence of a round ending rather than of somebody running a script ('a manually callable renderer alone does not satisfy this requirement'). The four steps run in the order listed in facilitator.TRANSACTION_STEPS and this list chooses among them; render_edition, publish_editions and notify_group may not be dropped, because they are the requirement rather than a preference, and a config that drops one is refused with spec #26 quoted at it. build_site may be omitted for a deployment that serves the archive some other way -- config.hosting.enabled is the more usual way to say that. editions_label is where the live game's editions land under newspaper.output.editions_dir, beside the sample run's and the recorded playtest's, because spec #27 makes an edition directory append-only and two games cannot share one. notice.channel is what the desk labels the announcement with (the desk composes it and hands it back; it deliberately does not know what the group's inbox is), and notice.include_url decides whether the announcement carries the paper's address -- true is right for a group chat the players are already in, false for a channel a facilitator would rather not paste a credential into, in which case the notice says 'at the usual address'. The address never reaches a committed file either way: Notice.describe() is what gets written down.",
+    "_editions_label_note": "Deliberately not the same value as playtest.editions_label -- the recorded game and the live game are two games."
   },
 
   "hosting": {

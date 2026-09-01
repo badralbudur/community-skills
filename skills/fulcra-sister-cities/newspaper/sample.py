@@ -27,10 +27,45 @@ FOUNDERS = (
 )
 LATECOMER = ("m-brg", "@eli", "Bergen")
 
+#: What each city orders, in the order its turns come round (spec #13). Since the
+#: 2026-08-31 decision nothing is drawn: an importing mayor files their city's
+#: next import themselves, so a scripted game scripts that too. These are chosen
+#: to read like a table of mayors ordering for their own towns -- Valparaíso
+#: buying haulage for a hill, Bergen buying seaweed plant -- and to spread across
+#: spec #13a's kinds of tradable thing, because the sample editions are also the
+#: thing a reader looks at to find out what this game is about.
+#:
+#: Reykjavík's second order is a mapping rather than a seed id: that is the other
+#: half of spec #13, a mayor writing their own order when the slate does not have
+#: what the city needs, and it is in the sample on purpose so the freeform path
+#: is visible in published bytes rather than only in the test suite.
+ORDERS = {
+    "Reykjavík": (
+        "need-mysteries_and_anomalies-01",
+        {
+            "category": "energy_and_utilities",
+            "trade_family": "materials",
+            "title": "Ninety kilometres of insulated pipe",
+            "need_brief": "{city} has more hot water underneath it than pipe to put "
+                          "it in, and the district heating main stops four streets "
+                          "short of the new housing in both directions. Wanted: "
+                          "pre-insulated pipe in six-metre lengths, valves, lagging, "
+                          "and welders who have worked in a trench in February.",
+            "exporter_prompt": "Ship {city} the pipe, the fittings or the welders, "
+                               "and say how much of it fits on one lorry.",
+            "excess_flavor": "pipe, stacked and capped against the weather",
+        },
+    ),
+    "Valparaíso": ("need-transport_and_logistics-01", "need-culture_and_arts-01"),
+    "Hobart": ("need-weather_and_climate-03", "need-food_and_drink-03"),
+    "Kampala": ("need-food_and_drink-02", "need-sport_and_recreation-02"),
+    "Bergen": ("need-water_and_waste-02", "need-education_and_knowledge-01"),
+}
+
 #: Each city answers in a consistent voice, cycling through its own offers as the
-#: game goes on. Written to be plausible answers to almost any municipal
-#: grievance, because the seeded need list is drawn from at random (spec #13) and
-#: a mayor in a real game is improvising too.
+#: game goes on. Written as consignments rather than counsel (spec #13a, #15): a
+#: mayor filling somebody's order sends a thing or a person, and these are the
+#: things and people each of these five cities plausibly has going spare.
 OFFERS = {
     "Reykjavík": (
         "A retired harbourmaster, on loan, with strong opinions and a thermos.",
@@ -262,6 +297,7 @@ def sample_game(seed=7, config=None, limit=40):
     game.register_player(*FACILITATOR, is_facilitator=True)
     for founder in FOUNDERS:
         game.register_player(*founder)
+    _file_orders(game)
     game.start()
 
     offer_index = {}
@@ -270,6 +306,7 @@ def sample_game(seed=7, config=None, limit=40):
         step = PLAN.get(game.current_round, {})
         for late in step.get("register", ()):
             game.register_player(*late)
+            _file_orders(game)
         if not step.get("skip_picks"):
             _pick_winners(game)
         if not step.get("no_exports"):
@@ -279,6 +316,33 @@ def sample_game(seed=7, config=None, limit=40):
         game.tick()
         rounds += 1
     return game
+
+
+def _file_orders(game):
+    """Every mayor files what :data:`ORDERS` says their city is buying (#13).
+
+    Filed as soon as a mayor is at the table -- before the game starts for the
+    founders, on arrival for the latecomer -- which is what a facilitator's
+    agent would do with "what does your city need?" and what keeps the check-in
+    slots in this sample about exports, picks and questions.
+    """
+    filed = []
+    for player_id in sorted(game.players):
+        city = game.players[player_id].city
+        scripted = ORDERS.get(city, ())
+        while game.unfiled_import_turns(player_id) > 0:
+            index = len(game.import_programme_for(player_id)) + (
+                game.players[player_id].import_turns_served
+            )
+            if index >= len(scripted):
+                break
+            order = scripted[index]
+            filed.append(
+                game.choose_import(player_id, need_id=order)
+                if isinstance(order, str)
+                else game.choose_import(player_id, request=order)
+            )
+    return filed
 
 
 def _pick_winners(game):

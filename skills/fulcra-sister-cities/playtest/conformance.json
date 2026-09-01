@@ -1,7 +1,7 @@
 {
-  "checked": 35,
+  "checked": 36,
   "counts": {
-    "pass": 28,
+    "pass": 29,
     "process": 3,
     "judged": 4
   },
@@ -148,9 +148,26 @@
     },
     {
       "spec": "#13",
-      "title": "needs drawn from the seeded list",
+      "title": "the importing mayor chooses their city's next import",
       "status": "pass",
-      "detail": "15 needs opened, all drawn from content/import_needs.json's 48 seeds (player-suggested additions enabled: True)"
+      "detail": "15 needs opened, every one of them filed in advance by the mayor of the importing city (request sources: ['seed']); the engine holds a turn whose mayor has filed nothing rather than opening one for them (0 held this game) and owns no function that picks a need. A mayor is offered 4 eligible suggestions plus a freeform order, and may take any eligible seed shown or not",
+      "evidence": {
+        "unfiled": null,
+        "not_from_the_pool": null,
+        "filed_by_somebody_else": null,
+        "held_turns": null,
+        "offer_is_still_available_at_game_end": false
+      }
+    },
+    {
+      "spec": "#13a",
+      "title": "import needs are orders for actual tradable things",
+      "status": "pass",
+      "detail": "all 48 needs in the pool declare one of spec #13a's kinds of tradable thing (['cultural_works', 'equipment', 'foodstuffs', 'living_things', 'materials', 'specialist_services']) and none of them, or of the 15 prompts this game put in front of exporting mayors, reads as a request for advice or civic problem solving; this game's own orders covered ['cultural_works', 'equipment', 'foodstuffs', 'living_things', 'materials', 'specialist_services']",
+      "evidence": {
+        "refused": null,
+        "advice_prompts": null
+      }
     },
     {
       "spec": "#14",
@@ -1247,9 +1264,9 @@
     },
     {
       "spec": "#26",
-      "title": "one edition per completed round, at one private address",
+      "title": "one edition per completed round, automatically, at one private address",
       "status": "pass",
-      "detail": "17 editions for 17 completed rounds, published to one unguessable unguessable_subdomain address with robots noindex in three places",
+      "detail": "17 editions for 17 completed rounds -- each one written by the round ending, in the facilitator's completed-round transaction (render_edition, publish_editions, build_site, notify_group), and each followed by one notice to the group that it is up; published to one unguessable unguessable_subdomain address with robots noindex in three places",
       "evidence": {
         "privacy": {
           "robots_txt": true,
@@ -1259,7 +1276,55 @@
           "cache_control": "private, no-store",
           "content_security_policy": "default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"
         },
-        "address_in_published_bytes": false
+        "transactions": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "notices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "example_notice": {
+          "round": 1,
+          "kind": "round",
+          "channel": "group",
+          "text": "The Daily Manifest No. 1 has gone to press. This round's order comes from Reykjavík — Listening equipment, and ears to go with it. It is at <the paper's private address>",
+          "carries_url": true,
+          "address_withheld": true,
+          "spec": "#26"
+        },
+        "address_in_published_bytes": false,
+        "address_in_the_written_down_notices": false
       }
     },
     {
@@ -1303,7 +1368,7 @@
           },
           {
             "round": 1,
-            "text": "An explanation for the humming"
+            "text": "Listening equipment, and ears to go with it"
           },
           {
             "round": 1,
@@ -1311,11 +1376,11 @@
           },
           {
             "round": 1,
-            "text": "Since February, Reykjavík has hummed. Two residents in five can hear it. The utility says it isn't theirs, the geologists say it isn't the ground, and the council has begun describing it in writing as 'the ambience.'"
+            "text": "Since February, Reykjavík has hummed. Two residents in five can hear it. The utility says it is not theirs, the geologists say it is not the ground, and the council has begun describing it in writing as 'the ambience.' Reykjavík is buying instruments and time: hydrophones, geophones, meters, recorders — and people who have found a noise before, for a fortnight, with a bicycle each."
           },
           {
             "round": 1,
-            "text": "The office asks, and the paper repeats verbatim: *Explain Reykjavík's hum, or make it somebody's problem in a way that helps.*"
+            "text": "The office asks, and the paper repeats verbatim: *Ship Reykjavík the listening equipment, the people or the instruments the hum turns out to need.*"
           },
           {
             "round": 1,
@@ -1485,7 +1550,7 @@
         "descriptions": {
           "Belgrade": [
             "Belgrade, fourth on 11.40, drawn here from its own record and nobody else's.",
-            "Belgrade's notices this game: Ninety thousand surplus plums and Load-bearing optimism. Two in total, each one a problem it could not solve alone.",
+            "Belgrade's notices this game: Preservation, for ninety thousand plums and Twenty metres of clear span, and a signature. Two in total, each one a problem it could not solve alone.",
             "Two of Belgrade's offers were chosen across the game, each of them picked by a mayor who did not know whose it was.",
             "Chosen, in Naoshima, from Belgrade: *A rival from overseas is a friendly with extra travel. The ones that work live twenty minutes away and use the same butcher — so split the club: give the half of the town on the wrong side of the harbour road the older kit, the worse pitch and a grievance about a disputed goal in 1974 that we will happily draft in convincing detail, and we'll send two veterans of our supporters' club for a fortnight to teach the drumming, the banners and exactly where the line sits.*",
             "On Belgrade's own quay: eleven offers, arrived, read, and not chosen. All of it still there. The clerk's file calls the pile plum schemes, fermenting quietly and unused support, propped against every wall in town.",
@@ -1495,7 +1560,7 @@
           ],
           "Hobart": [
             "Hobart finishes third, on 16.40, and looks — the illustrator is firm about this — exactly like a city that finished third on 16.40.",
-            "What Hobart asked for, in order: A protocol for when the lighthouse answers back and Parking, spiritually.",
+            "What Hobart asked for, in order: A signal lamp and somebody who reads one and Kerbside equipment, and people to work it.",
             "Three times this game, a city read an unsigned offer and it turned out to be Hobart's.",
             "Valparaíso looked at a desk of unsigned offers and took Hobart's: *We'll send the woman who redrew our ferry timetable. She'll move one late service so it terminates in Northgate at eleven at night, because nobody has ever changed their mind about a suburb from a brochure -- they change it because they had to stand there twenty minutes and it was fine. Whatever you do, don't let anyone call it vibrant; that's how a place announces it's being sold to you.*",
             "Nine offers reached Hobart and went unchosen. Hobart kept the pile anyway — protocols, never invoked and parking solutions, double-parked — because nobody has ever worked out how to send an offer back.",
@@ -1506,17 +1571,17 @@
           ],
           "Kampala": [
             "Kampala finishes sixth, on 6.40, and looks — the illustrator is firm about this — exactly like a city that finished sixth on 6.40.",
-            "Kampala came to the world two times, over Somewhere for the rain to go and A tree that can take the salt.",
+            "Kampala came to the world two times, over Pumps, pipe and four days of standing water and Planting stock that stands in salt.",
             "Two times this game, a city read an unsigned offer and it turned out to be Kampala's.",
             "Chosen, in Kópavogur, from Kampala: *Chapati rolled hot around two eggs, cabbage and tomato, eaten standing in the street with one hand — we move four hundred thousand a night and we can spare three men, three griddles and the whole technique for nothing. It is not a meal and it is not between meals, which is precisely the hole your magazine fell into; the only rule is that the eggs are always two, never one.*",
-            "The excess at Kampala: nine offers, declined, filed under drainage ideas, pooling and saplings, unplanted, still in their pots, occupying a quay that has other uses.",
+            "The excess at Kampala: nine offers, declined, filed under drainage kit, pooling on the quay and saplings, unplanted, still in their pots, occupying a quay that has other uses.",
             "Two offers, reprinted without a sender, because the writing deserves a second reading:",
             "What Kampala sent that nobody chose is not itemised here and cannot be: this paper has never known which offers were Kampala's, and the one ledger that does know is not something the last edition gets to open. There is a shed for it in the portrait, with the door shut.",
             "On the question *Name a thing everybody else loves that you have never understood.*, Kampala's answer was: “Camping. You own a bed. You own a roof. You paid for both of them, and then you drive out of town to sleep on the ground and tell me about it for a week.”"
           ],
           "Kópavogur": [
             "Kópavogur finishes joint seventh, on 0, and looks — the illustrator is firm about this — exactly like a city that finished joint seventh on 0.",
-            "What Kópavogur asked for, in order: A signature dish, urgently and Childcare that runs at 3am.",
+            "What Kópavogur asked for, in order: A signature dish, cooks included and Night care, ten till seven.",
             "Kópavogur appears nowhere in the year's arrivals. The paper offers no theory and has several.",
             "One of Kópavogur's decisions was made by the clock instead, to the profit of 5 cities.",
             "The excess at Kópavogur: six offers, declined, filed under care arrangements, unrostered, occupying a quay that has other uses.",
@@ -1526,7 +1591,7 @@
           ],
           "Naoshima": [
             "Fifth: Naoshima, 7, and a harbour that has seen things this year.",
-            "Naoshima came to the world two times, over A last-mile solution for a very steep mile and A rival worth having.",
+            "Naoshima came to the world two times, over Haulage for a nineteen per cent gradient and A rivalry, in kind.",
             "Nothing in this paper's whole arrivals column came from Naoshima. The column is the poorer for it and has said so.",
             "Naoshima once put out a notice the whole world ignored, and then quietly did it itself, at full price.",
             "On Naoshima's own quay: six offers, arrived, read, and not chosen. All of it still there. The clerk's file calls the pile grudges, unreciprocated.",
@@ -1536,7 +1601,7 @@
           ],
           "Reykjavík": [
             "Second: Reykjavík, 28.40, and a harbour that has seen things this year.",
-            "Reykjavík came to the world two times, over An explanation for the humming and Wind, redirected.",
+            "Reykjavík came to the world two times, over Listening equipment, and ears to go with it and Windbreak for one avenue, bolted down.",
             "Five of Reykjavík's offers were chosen across the game, each of them picked by a mayor who did not know whose it was.",
             "Hobart looked at a desk of unsigned offers and took Reykjavík's: *The residents aren't asking for capacity, they're asking whether the street still belongs to them, and a study cannot say yes to that. Paint every household one numbered rectangle near its own door — theirs, by name, unenforced most of the time. We have the thermoplastic, the stencils and two line crews going spare in the spring, and after it's done the arithmetic can go on being right in private.*",
             "Seven offers reached Reykjavík and went unchosen. Reykjavík kept the pile anyway — explanations, unconvincing, filed under 'ambience' and windbreaks, blown over — because nobody has ever worked out how to send an offer back.",
@@ -1546,7 +1611,7 @@
           ],
           "Trieste": [
             "Joint eighth: Trieste, 0, and a harbour that has seen things this year.",
-            "What Trieste asked for, in order: A breakfast that survives a night shift.",
+            "What Trieste asked for, in order: A night canteen, four till eight.",
             "Trieste appears nowhere in the year's arrivals. The paper offers no theory and has several.",
             "The excess at Trieste: six offers, declined, filed under breakfasts, served at the wrong hour, occupying a quay that has other uses.",
             "From that pile, unattributed as ever:",
@@ -1555,7 +1620,7 @@
           ],
           "Valparaíso": [
             "Valparaíso finishes first, on 40.40, and looks — the illustrator is firm about this — exactly like a city that finished first on 40.40.",
-            "Valparaíso's notices this game: A rebrand for the least-loved district and A bridge that goes somewhere. Two in total, each one a problem it could not solve alone.",
+            "Valparaíso's notices this game: Something for Northgate, worth the bus fare and The far side of a bridge, delivered. Two in total, each one a problem it could not solve alone.",
             "Six times this game, a city read an unsigned offer and it turned out to be Valparaíso's.",
             "The world kept this, from Valparaíso: *Our port has run a night crèche since the docks went round the clock: one warm room by the gate, eleven cots, a levy the employers pay per night-shift worker rather than per child, and a standing rule that the children sleep there and are carried home asleep at seven. We'll lend you, for a full season, the two women who have worked the ten-to-seven shift for a decade and the two pages of rules that actually matter — and take that rota out of the locker and put it on the payroll, because goodwill is a wage somebody is quietly not being paid.* — chosen in Kópavogur.",
             "The excess at Valparaíso: seven offers, declined, filed under rebrands, unadopted, still in draft and far sides, unattached, stacked by the water, occupying a quay that has other uses.",
@@ -1571,7 +1636,7 @@
       "spec": "#33",
       "title": "a good name, and a seeded import list that is varied and gameable",
       "status": "judged",
-      "detail": "the game is 'Sister Cities' and the paper is 'The Daily Manifest' (see NAME.md); the seed list holds 48 needs across 16 categories, 48 distinct briefs, of which 15 were drawn in this game. Whether the name reads as chosen rather than placeheld, and whether the list is varied rather than repetitive, is the judged part",
+      "detail": "the game is 'Sister Cities' and the paper is 'The Daily Manifest' (see NAME.md); the seed list holds 48 orders across 16 categories and 6 kinds of tradable thing, 48 distinct briefs, of which 15 were ordered in this game. Whether the name reads as chosen rather than placeheld, and whether the list is varied and gameable rather than repetitive, is the judged part",
       "evidence": {
         "categories": [
           "bureaucracy_and_paperwork",
@@ -1591,66 +1656,89 @@
           "weather_and_climate",
           "wildlife_and_nature"
         ],
-        "drawn_this_game": [
+        "trade_families": [
+          "cultural_works",
+          "equipment",
+          "foodstuffs",
+          "living_things",
+          "materials",
+          "specialist_services"
+        ],
+        "ordered_this_game": [
           [
             "Belgrade",
-            "food_and_drink"
+            "food_and_drink",
+            "Preservation, for ninety thousand plums"
           ],
           [
             "Belgrade",
-            "infrastructure"
+            "infrastructure",
+            "Twenty metres of clear span, and a signature"
           ],
           [
             "Hobart",
-            "mysteries_and_anomalies"
+            "mysteries_and_anomalies",
+            "A signal lamp and somebody who reads one"
           ],
           [
             "Hobart",
-            "transport_and_logistics"
+            "transport_and_logistics",
+            "Kerbside equipment, and people to work it"
           ],
           [
             "Kampala",
-            "water_and_waste"
+            "water_and_waste",
+            "Pumps, pipe and four days of standing water"
           ],
           [
             "Kampala",
-            "wildlife_and_nature"
+            "wildlife_and_nature",
+            "Planting stock that stands in salt"
           ],
           [
             "Kópavogur",
-            "food_and_drink"
+            "food_and_drink",
+            "A signature dish, cooks included"
           ],
           [
             "Kópavogur",
-            "labor_and_expertise"
+            "labor_and_expertise",
+            "Night care, ten till seven"
           ],
           [
             "Naoshima",
-            "sport_and_recreation"
+            "sport_and_recreation",
+            "A rivalry, in kind"
           ],
           [
             "Naoshima",
-            "transport_and_logistics"
+            "transport_and_logistics",
+            "Haulage for a nineteen per cent gradient"
           ],
           [
             "Reykjavík",
-            "mysteries_and_anomalies"
+            "mysteries_and_anomalies",
+            "Listening equipment, and ears to go with it"
           ],
           [
             "Reykjavík",
-            "weather_and_climate"
+            "weather_and_climate",
+            "Windbreak for one avenue, bolted down"
           ],
           [
             "Trieste",
-            "food_and_drink"
+            "food_and_drink",
+            "A night canteen, four till eight"
           ],
           [
             "Valparaíso",
-            "infrastructure"
+            "infrastructure",
+            "The far side of a bridge, delivered"
           ],
           [
             "Valparaíso",
-            "tourism_and_reputation"
+            "tourism_and_reputation",
+            "Something for Northgate, worth the bus fare"
           ]
         ]
       }

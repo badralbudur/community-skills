@@ -123,6 +123,18 @@
       ]
     }
   ],
+  "import_orders": {
+    "_note": "The notice each city opened, in the order it opened them. This game was played in August 2026, before the user decision of 2026-08-31 gave the importing mayor the choice of their own import (spec #13) -- at the time the engine drew each city's need from the seeded pool under the repetition rule. These are the needs it drew, replayed through the choice API so that a recording made under the old rule still plays, need for need and round for round, under the new one. They are the archive's own record of what this game contained; they are not choices these mayors' agents made, and nothing here should be read as one. The seeds themselves were rewritten in M9 from civic problems into orders for goods and services (spec #13a) keeping their ids and their subjects, which is why the offers below still answer them: a city that asked what to do about four hundred tonnes of seaweed now asks for the plant to bale and dry it, and the mayors who sent balers and buyers are still sending balers and buyers. See docs/m9-imports-and-publication.md.",
+    "_spec": "#13 (whose choice it is), #13a (what may be ordered), #34 (why nobody's prose was rewritten to fit)",
+    "m-rvk": ["need-mysteries_and_anomalies-01", "need-weather_and_climate-03"],
+    "m-vlp": ["need-tourism_and_reputation-02", "need-infrastructure-01"],
+    "m-hbt": ["need-mysteries_and_anomalies-03", "need-transport_and_logistics-03"],
+    "m-kmp": ["need-water_and_waste-01", "need-wildlife_and_nature-03"],
+    "m-kop": ["need-food_and_drink-01", "need-labor_and_expertise-02"],
+    "m-nao": ["need-transport_and_logistics-01", "need-sport_and_recreation-02"],
+    "m-bel": ["need-food_and_drink-02", "need-infrastructure-02"],
+    "m-tri": ["need-food_and_drink-03"]
+  },
   "exports": {
     "m-rvk": {
       "2": "Put a municipal swimming pool in Northgate — the cheap kind, open half six to ten, cheaper than a coffee, no view and no ambition. A district stops being the worst part of town about eighteen months after people start going there twice a week wet, unarmoured, and slightly early. We'll send the plant drawings and a foreman who has built four of them.",
