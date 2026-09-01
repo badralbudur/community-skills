@@ -368,6 +368,14 @@ class GameEngine:
         """Advance as many rounds as the one round timer says have elapsed."""
         if self.phase != RUNNING:
             return []
+        # The final round has no successor to trigger its completion.  In
+        # particular, do this before consulting the clock: a failed terminal
+        # publication must be retryable immediately, not only after another
+        # (otherwise meaningless) round window has elapsed.
+        if (self.current_round in self.rounds and self._game_is_over()
+                and not self.rounds[self.current_round].completed):
+            self._complete_terminal_round(self.current_round)
+            return []
         now = ensure_aware(now if now is not None else self.clock.now())
         advanced = []
         while self.phase == RUNNING and self.timer.round_index_at(now) > self.current_round:
@@ -379,6 +387,12 @@ class GameEngine:
         # where it is completed -- its standing fixed, its edition published --
         # after every check-in it was going to get, including a mayor who joined
         # part-way through it.
+        # A failed final-round transaction leaves the game running and its
+        # round incomplete.  Retrying an advance must finish that same round,
+        # never open a fictional successor.
+        if (self.current_round in self.rounds and self._game_is_over()
+                and not self.rounds[self.current_round].completed):
+            return self._complete_terminal_round(self.current_round)
         self._complete_round(index - 1)
         record = RoundRecord(index, self.timer.round_start(index), self.timer.round_end(index))
         self.rounds[index] = record
@@ -392,13 +406,26 @@ class GameEngine:
 
         self._select_question(record)
         if self._game_is_over():
-            self.phase = ENDED
-            self.ended_round = index
             # No round follows this one, so nothing else will complete it -- and
             # the last round's edition is also the one the endgame is published
             # with (spec #31), so it must not be skipped.
-            self._complete_round(index)
+            self._complete_terminal_round(index)
         return record
+
+    def _complete_terminal_round(self, index):
+        """Publish the last round and atomically commit its terminal state."""
+        # The final-edition transaction needs to see the terminal state, but a
+        # failed transaction must not strand the game there.  Roll it back so
+        # the public retry routes can reach this incomplete final round again.
+        previous_phase, previous_ended_round = self.phase, self.ended_round
+        self.phase = ENDED
+        self.ended_round = index
+        try:
+            return self._complete_round(index)
+        except Exception:
+            self.phase = previous_phase
+            self.ended_round = previous_ended_round
+            raise
 
     def on_round_completed(self, hook):
         """Run ``hook(game, round_index)`` the moment a round finishes.
