@@ -220,6 +220,7 @@ def build_manifest(archive, copy, config, identity, privacy):
     # not there is a broken page rather than a graceful degradation.
     stylesheet = STYLESHEET_FILENAME if "stylesheet" in categories else None
     with_images = "edition_images" in categories
+    with_city_images = "city_images" in categories
     with_archive = "archive_index" in categories
     # The issue pages this build writes, so that nothing links one it did not.
     # Normally all of them; a publish list without `editions` is the case this
@@ -245,8 +246,8 @@ def build_manifest(archive, copy, config, identity, privacy):
     # front page is a copy of the current issue rather than its only home.
     newest = final if final is not None else (editions[-1] if editions else None)
     front = _front_page(
-        archive, newest, listed, site, privacy, stylesheet, with_images, with_archive,
-        rounds, categories, published_pages,
+        archive, newest, listed, site, privacy, stylesheet, with_images, with_city_images,
+        with_archive, rounds, categories, published_pages,
     )
     if front is not None:
         manifest.add(front)
@@ -259,7 +260,7 @@ def build_manifest(archive, copy, config, identity, privacy):
             "page the front door and every issue link back to (spec #30a)",
             page.archive_page(
                 archive, listed, site, privacy, stylesheet, with_images,
-                page_names=published_pages,
+                page_names=published_pages, with_city_images=with_city_images,
             ),
         ))
 
@@ -269,7 +270,7 @@ def build_manifest(archive, copy, config, identity, privacy):
         html = page.edition_page(
             edition, site, privacy, previous_round, next_round, stylesheet, with_images,
             final_page=final is not None and index == len(editions) - 1,
-            with_archive=with_archive,
+            with_archive=with_archive, with_city_images=with_city_images,
         )
         rendered[edition_key(edition)] = [html]
         if "editions" in categories:
@@ -296,7 +297,7 @@ def build_manifest(archive, copy, config, identity, privacy):
     if final is not None:
         _add_final_edition(
             manifest, rendered, final, site, privacy, stylesheet, with_images,
-            categories, rounds, with_archive,
+            with_city_images, categories, rounds, with_archive,
         )
 
     if front is not None and newest is not None:
@@ -345,7 +346,7 @@ def build_manifest(archive, copy, config, identity, privacy):
 
 
 def _front_page(archive, newest, listed, site, privacy, stylesheet, with_images,
-                with_archive, rounds, categories, published_pages):
+                with_city_images, with_archive, rounds, categories, published_pages):
     """``index.html``: the newest edition, or an honest empty shelf (spec #30a).
 
     Two cases, and the second one is why this is a function rather than a line:
@@ -378,7 +379,7 @@ def _front_page(archive, newest, listed, site, privacy, stylesheet, with_images,
             "invented edition or a 404 (spec #26, #30a)",
             page.archive_page(
                 archive, listed, site, privacy, stylesheet, with_images, front=True,
-                page_names=published_pages,
+                page_names=published_pages, with_city_images=with_city_images,
             ),
         )
     # What "previous" means on the front page: the issue before the newest one.
@@ -405,12 +406,13 @@ def _front_page(archive, newest, listed, site, privacy, stylesheet, with_images,
             newest, site, privacy, previous_round=previous_round, next_round=None,
             stylesheet=stylesheet, with_image=with_images, final_page=False,
             front=True, permalink=permalink, with_archive=with_archive,
+            with_city_images=with_city_images,
         ),
     )
 
 
 def _add_final_edition(manifest, rendered, final, site, privacy, stylesheet,
-                       with_images, categories, rounds, with_archive=True):
+                       with_images, with_city_images, categories, rounds, with_archive=True):
     """Declare the last edition, its finale picture and its portraits (#31, #32).
 
     The page is filed under its own category rather than under ``editions``,
@@ -424,7 +426,7 @@ def _add_final_edition(manifest, rendered, final, site, privacy, stylesheet,
         final, site, privacy,
         previous_round=rounds[-1] if rounds and "editions" in categories else None,
         next_round=None, stylesheet=stylesheet, with_image=with_images,
-        with_archive=with_archive,
+        with_archive=with_archive, with_city_images=with_city_images,
     )
     rendered[edition_key(final)] = [html]
 

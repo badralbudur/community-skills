@@ -87,7 +87,7 @@ _HEADING_TAGS = {1: "h1", 2: "h2", 3: "h3", 4: "h4"}
 DOCTYPE = "<!DOCTYPE html>"
 
 
-def block_to_html(block, extra_class=None):
+def block_to_html(block, extra_class=None, with_city_images=True):
     """One typed block from an edition payload. Mirrors ``block_to_markdown``.
 
     ``extra_class`` is a hook for the layout rather than for the payload: the
@@ -122,6 +122,8 @@ def block_to_html(block, extra_class=None):
         # today, a city's portrait in the last edition (spec #32). No width or
         # height, for the same reason the masthead image carries none: the
         # payload does not know them and config's would be a guess.
+        if not with_city_images:
+            return ""
         return (
             '<figure class="city-portrait">\n<img src="%s" alt="%s">\n'
             "<figcaption>%s</figcaption>\n</figure>"
@@ -139,7 +141,7 @@ def block_to_html(block, extra_class=None):
     raise ValueError("no HTML renderer for block kind %r" % kind)
 
 
-def department_to_html(department, lead=False):
+def department_to_html(department, lead=False, with_city_images=True):
     """One department as a newspaper section (spec #30a).
 
     The class list is what the stylesheet lays out from, and every part of it is
@@ -155,7 +157,10 @@ def department_to_html(department, lead=False):
 
     A department with neither is prose, and prose is what columns are for.
     """
-    blocks = department["blocks"]
+    blocks = [
+        block for block in department["blocks"]
+        if with_city_images or block["kind"] != "figure"
+    ]
     kinds = {block["kind"] for block in blocks}
     classes = ["department"]
     if lead:
@@ -171,7 +176,10 @@ def department_to_html(department, lead=False):
             (index for index, block in enumerate(blocks) if block["kind"] == "para"), None
         )
     body = "\n".join(
-        block_to_html(block, extra_class="opener" if index == opener else None)
+        block_to_html(
+            block, extra_class="opener" if index == opener else None,
+            with_city_images=with_city_images,
+        )
         for index, block in enumerate(blocks)
     )
     return (
@@ -342,7 +350,7 @@ def _issue_links(edition, site, previous_round, next_round, final_page, front,
 
 def edition_page(edition, site, privacy, previous_round=None, next_round=None,
                  stylesheet=None, with_image=True, final_page=False,
-                 front=False, permalink=None, with_archive=True):
+                 front=False, permalink=None, with_archive=True, with_city_images=True):
     """One edition, complete, at its own permanent name.
 
     ``final_page`` links the last edition (spec #31) from a round edition's nav.
@@ -423,7 +431,9 @@ def edition_page(edition, site, privacy, previous_round=None, next_round=None,
     parts.append(_inside_this_issue(departments, site))
     parts.append('<div class="pages">')
     parts.extend(
-        department_to_html(department, lead=index == 0)
+        department_to_html(
+            department, lead=index == 0, with_city_images=with_city_images,
+        )
         for index, department in enumerate(departments)
     )
     parts.append("</div>")
@@ -509,7 +519,7 @@ def _truncate(text, limit):
     return cut + "…"
 
 
-def _issue_card(edition, site, with_images, linked=True):
+def _issue_card(edition, site, with_images, with_city_images=True, linked=True):
     """One issue on the shelf: its picture, its name, its date and a teaser.
 
     ``linked`` is false when ``hosting.publish`` does not publish this issue's
@@ -543,7 +553,7 @@ def _issue_card(edition, site, with_images, linked=True):
             '<a class="picture" href="%s">%s</a>'
             % (escape(image["filename"]), escape(site["labels"]["image"]))
         )
-    if with_images and final:
+    if with_city_images and final:
         marks.extend(
             '<a class="portrait" href="%s">%s</a>'
             % (escape(entry["filename"]), escape(entry["city"]))
@@ -572,7 +582,7 @@ def _issue_card(edition, site, with_images, linked=True):
 
 
 def archive_page(archive, entries, site, privacy, stylesheet=None, with_images=True,
-                 front=False, page_names=None):
+                 front=False, page_names=None, with_city_images=True):
     """The shelf: every edition this paper has printed (spec #27).
 
     ``entries`` are the editions in the order they should be listed; the order is
@@ -592,7 +602,7 @@ def archive_page(archive, entries, site, privacy, stylesheet=None, with_images=T
     """
     rows = [
         _issue_card(
-            edition, site, with_images,
+            edition, site, with_images, with_city_images=with_city_images,
             linked=page_names is None or page_name_for(edition) in page_names,
         )
         for edition in entries

@@ -356,6 +356,42 @@ class CuratedPublicationTest(unittest.TestCase):
         self.assertIn("round-01.html", names)
         self.assertIn("robots.txt", names)
 
+    def test_edition_and_city_images_are_independently_linked_only_when_published(self):
+        """The two supported image categories must not create dangling links."""
+        common = [
+            "front_page", "archive_index", "editions", "final_edition",
+            "archive_json", "stylesheet", "robots",
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            edition_only = build_into(tmp, config=make_config(
+                hosting__publish=common + ["edition_images"],
+            ))
+            names = {entry["path"] for entry in edition_only["files"]}
+            with open(os.path.join(edition_only["public_root"], "archive.html"), encoding="utf-8") as fh:
+                archive = fh.read()
+            with open(os.path.join(edition_only["public_root"], "final.html"), encoding="utf-8") as fh:
+                final = fh.read()
+            self.assertTrue(any(name.startswith("round-") and name.endswith(".svg") for name in names))
+            self.assertFalse(any(name.startswith("city-") for name in names))
+            self.assertNotIn("city-", archive)
+            self.assertNotIn("city-", final)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            city_only = build_into(tmp, config=make_config(
+                hosting__publish=common + ["city_images"],
+            ))
+            names = {entry["path"] for entry in city_only["files"]}
+            with open(os.path.join(city_only["public_root"], "archive.html"), encoding="utf-8") as fh:
+                archive = fh.read()
+            with open(os.path.join(city_only["public_root"], "final.html"), encoding="utf-8") as fh:
+                final = fh.read()
+            cities = sorted(name for name in names if name.startswith("city-") and name.endswith(".svg"))
+            self.assertTrue(cities)
+            self.assertFalse(any(name.startswith("round-") and name.endswith(".svg") for name in names))
+            for portrait in cities:
+                self.assertIn(portrait, archive)
+                self.assertIn(portrait, final)
+
     def test_an_unknown_category_is_refused(self):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(ConfigError):
