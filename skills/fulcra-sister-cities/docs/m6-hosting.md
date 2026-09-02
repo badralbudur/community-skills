@@ -113,6 +113,13 @@ Two things enforce it and one M5 groundwork makes it possible.
 - M5 froze each round's closing standings for exactly this reason; without it an
   archive of twelve editions prints the final table twelve times.
 
+M10 later moved the *front door* without touching any of this: `index.html` now
+carries the newest available edition and the shelf of back issues moved to
+`archive.html`, while every `round-NN.html` and `final.html` kept its name and
+its bytes. See [`docs/m10-reading-experience.md`](m10-reading-experience.md);
+the append-only check and the byte-identical-article test above are unchanged
+and still pass, which is how that move was shown to have cost nothing.
+
 ### One engine change this milestone needed
 
 `Paper.archive()` used to publish every round in `engine.rounds`, which includes
@@ -166,6 +173,6 @@ of the subdomain. `tests/test_hosting.py:ServingTest` starts it and fetches over
 real HTTP — "the file is on disk" and "the URL answers" are different claims and
 only the second one is the requirement. It checks that every back issue still
 answers, that the headers are on the 404 as well as the 200, and that `/`,
-`/index.html`, a wrong id, an id missing its last character, `..`, and the
-manifest are all 404. Pointing this at a real domain is a one-line config change
+`/index.html` *without the id in front of it*, a wrong id, an id missing its
+last character, `..`, and the manifest are all 404. Pointing this at a real domain is a one-line config change
 plus an adapter with `available()` and `deploy()`.

@@ -71,6 +71,8 @@ regression testing; it contains no real participant data.
   curated archive, and produces a group-availability notice.
 - Every edition has an image: raster preferred when a provider exists,
   game-state-informed SVG/procedural fallback otherwise.
+- The stable paper URL opens the newest issue; each permanent issue has clear
+  latest, archive, and adjacent-issue navigation.
 
 `config.json` is the single source of tunable game policy.
 
@@ -155,7 +157,9 @@ For the normal group dashboard/publication flow:
 2. Add `noindex,nofollow`.
 3. Tell users that an unguessable URL is publicly reachable by anyone with
    the URL; it is not access control.
-4. Show the exact manifest and obtain explicit confirmation before hosting.
+4. The root `index.html` is the newest issue; `archive.html` is the back-issue
+   shelf, and `round-NN.html`/`final.html` remain permanent issue links.
+5. Show the exact manifest and obtain explicit confirmation before hosting.
 
 Do not publish Workspace inboxes, raw transcripts, private player mappings,
 credentials, or private deployment identifiers.
@@ -168,6 +172,8 @@ credentials, or private deployment identifiers.
 - `content/` — import needs, city gazetteer, questions, newspaper frames.
 - `playtest/` — reproducible separate-agent integration fixture.
 - `docs/` — milestone engineering notes and privacy/policy rationale.
+  `docs/m10-reading-experience.md` documents the front page, archive, and
+  newspaper-layout guarantees.
 
 ## Scope
 

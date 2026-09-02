@@ -37,8 +37,14 @@ from engine.errors import ConfigError
 #: it silently stopped publishing the archive" and "I typo'd the category and it
 #: silently published something else" are both worse than a refusal to build.
 CATEGORIES = {
-    "archive_index": "the archive's front page -- the one URL every mayor holds, "
-                     "listing every edition ever printed (spec #26, #27)",
+    "front_page": "the file the paper's one address answers with: the newest "
+                  "available edition, so a link handed out in round one opens "
+                  "today's paper (spec #26, #30a). The same issue keeps its own "
+                  "permanent page under 'editions' or 'final_edition'; this is a "
+                  "second rendering of it, not its only home (spec #27)",
+    "archive_index": "the shelf -- every edition ever printed, listed at one page "
+                     "that the front door and every issue link back to (spec #27, "
+                     "#30a)",
     "editions": "one page per published round, kept forever and never overwritten "
                 "by a later one (spec #27)",
     "edition_images": "the one generated image each edition carries (spec #29)",

@@ -378,8 +378,9 @@ def _alt_text(scene):
         if scene["winner_indices"]:
             crates += ", %d of them ribboned" % len(scene["winner_indices"])
         parts.append(crates)
+        parts.append("a boat at the mooring")
     else:
-        parts.append("an empty quay")
+        parts.append("an empty quay and no boat")
     if scene["dice"]:
         parts.append(
             "dice showing %s" % join_phrases([str(die) for die in scene["dice"]])

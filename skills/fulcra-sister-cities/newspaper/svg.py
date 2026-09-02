@@ -7,6 +7,8 @@ decoration:
 
     the crates on the quay      the number of offers that arrived (Sealed Bids)
     the ribboned crate          the winning offer, labelled with its city
+    the boat at the mooring     that the offers came by sea at all -- drawn when
+                                any arrived, absent from a quiet round
     the dice on the dockside    the actual profit roll, pips and all
     the skyline behind          the live leaderboard, one tower per city
     the fog bank instead        the leaderboard, when config hides it (#22)
@@ -14,6 +16,11 @@ decoration:
                                 per reply, the leading bucket picked out
     the rubber stamp            the open need's category and title
     the cutline                 written by content/newspaper.json, per outcome
+
+Two elements are texture rather than information -- the halftone screen in the
+sky and the gulls -- and both are here on purpose: spec #30's tone bar is part
+of the requirement, and a harbour printed on flat colour with no birds in it
+reads as a diagram of a harbour.
 
 The unlabelled crates matter as much as the labelled one: a losing offer's city
 is never drawn, never counted separately, and never distinguishable from any
@@ -103,6 +110,23 @@ class Canvas:
             % (x, y, fill, family, size, weight, anchor, extra, escape(content))
         )
 
+    def halftone(self, name, spacing, radius, fill, opacity="0.4"):
+        """Declare a dot-screen pattern, for filling a rect with newsprint tooth.
+
+        A ``<pattern>`` and one filled rectangle rather than four hundred
+        ``<circle>`` elements: the same screen, about two hundred bytes instead
+        of twenty thousand, in a file that is committed to a repository twelve
+        times per game. ``url(#name)`` is a reference into this document and
+        reaches no other origin, which is the rule
+        :mod:`hosting.guard` enforces over every published byte (spec #26).
+        """
+        self.parts.append(
+            '<defs><pattern id="%s" width="%s" height="%s" patternUnits="userSpaceOnUse">'
+            '<circle cx="%s" cy="%s" r="%s" fill="%s" opacity="%s"/></pattern></defs>'
+            % (name, spacing, spacing, spacing / 2.0, spacing / 2.0, radius, fill, opacity)
+        )
+        return "url(#%s)" % name
+
     def group(self, transform):
         self.parts.append('<g transform="%s">' % transform)
 
@@ -140,6 +164,10 @@ def render(scene, palette, size, labels):
 
     # -- sky, sun, water, quay --------------------------------------------
     canvas.rect(0, 66, width, horizon - 66, palette["sky"])
+    # The dot screen a newspaper's own presses would have left in the sky. Under
+    # everything else, so the sun, the skyline and the stamp print over it.
+    canvas.rect(0, 66, width, horizon - 66,
+                canvas.halftone("tooth", 14, 1.6, palette["paper"], "0.5"))
     canvas.circle(width * 0.82, 170, 54, palette["accent"], opacity="0.9")
     _skyline(canvas, scene, palette, horizon, labels)
     canvas.rect(0, horizon, width, height - horizon, palette["water"])
@@ -153,6 +181,7 @@ def render(scene, palette, size, labels):
     canvas.rect(0, quay, width, 12, ink)
 
     _bunting(canvas, scene, palette, labels)
+    _boat(canvas, scene, palette, quay)
     _crates(canvas, scene, palette, quay, labels)
     _dice(canvas, scene, palette, quay, labels)
     _crane(canvas, palette, quay)
@@ -298,6 +327,39 @@ def _dice(canvas, scene, palette, quay, labels):
             continue
         for fx, fy in spots:
             canvas.circle(x + size * fx, y + size * fy, 4.4, palette["ink"])
+
+
+def _boat(canvas, scene, palette, quay):
+    """A hull at the mooring, when anything arrived by sea this round.
+
+    Game state rather than scenery, and the smallest possible amount of it: a
+    quay stacked with crates and no boat anywhere is a still life, and a round
+    where nothing arrived should not print a delivery. It carries no label, no
+    flag and no count -- a boat that said how many crates it brought, or whose
+    they were, would be saying something spec #21 spent this whole game not
+    saying.
+    """
+    if not scene.get("offers"):
+        return
+    x, y = canvas.width * 0.47, quay + 46
+    canvas.poly(
+        [(x - 78, y), (x + 78, y), (x + 56, y + 30), (x - 58, y + 30)], palette["ink"]
+    )
+    canvas.rect(x - 78, y - 7, 156, 7, palette["spot"])
+    canvas.rect(x - 34, y - 34, 62, 27, palette["paper"], rx=2, stroke=palette["ink"],
+                stroke_width=2)
+    canvas.rect(x - 24, y - 28, 14, 13, palette["sky"])
+    canvas.rect(x - 2, y - 28, 14, 13, palette["sky"])
+    canvas.rect(x + 34, y - 46, 15, 39, palette["accent"], rx=2)
+    canvas.line(x - 60, y - 8, x - 60, y - 62, palette["ink"], 3)
+    canvas.path("M %.1f %.1f q 40 22 0 44" % (x - 57, y - 58), palette["ink"], width=2,
+                fill=palette["spot_alt"])
+    # A wake, so the hull sits in the water rather than on it.
+    for offset in (0, 16):
+        canvas.path(
+            "M %.1f %.1f q 22 -8 44 0 t 44 0" % (x - 96, y + 40 + offset),
+            palette["paper"], width=2,
+        )
 
 
 def _crane(canvas, palette, quay):

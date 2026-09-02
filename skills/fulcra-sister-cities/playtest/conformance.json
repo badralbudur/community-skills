@@ -1,7 +1,7 @@
 {
-  "checked": 36,
+  "checked": 37,
   "counts": {
-    "pass": 29,
+    "pass": 30,
     "process": 3,
     "judged": 4
   },
@@ -1331,13 +1331,13 @@
       "spec": "#27",
       "title": "every prior edition still browsable at the same address",
       "status": "pass",
-      "detail": "17 back issues plus the final edition, all reachable from the one index at the one address; rounds published: 1..17"
+      "detail": "17 back issues plus the final edition, each at its own permanent name and all listed on the shelf at archive.html, at the one address; rounds published: 1..17"
     },
     {
       "spec": "#28",
       "title": "mayors named by city and office only",
       "status": "pass",
-      "detail": "48 published files; none contains any of the 8 real handles at the table (config.newspaper.player_identity_style='city_mayor_only')"
+      "detail": "49 published files; none contains any of the 8 real handles at the table (config.newspaper.player_identity_style='city_mayor_only')"
     },
     {
       "spec": "#29",
@@ -1459,6 +1459,19 @@
             "text": "This paper is called The Daily Manifest and publishes once per round. The two facts are only occasionally the same fact."
           }
         ]
+      }
+    },
+    {
+      "spec": "#30a",
+      "title": "the front door opens the newest issue; every issue can be navigated",
+      "status": "pass",
+      "detail": "index.html carries the same issue as final.html, byte for byte, and links it at its permanent name; all 18 issues offer the latest edition and the shelf at archive.html, and each names exactly the neighbours it has",
+      "evidence": {
+        "front_page": "index.html",
+        "carries": "final.html",
+        "shelf": "archive.html",
+        "issues": 18,
+        "judged_separately": "whether these pages read as a newspaper rather than as a plain document is spec #30a's other half, and a judgement for the Evaluator"
       }
     },
     {

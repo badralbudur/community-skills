@@ -35,6 +35,7 @@ snapshot.
 | **M7** — the last edition: the crown, the twist article, a portrait per city ([`newspaper/endgame.py`](newspaper/endgame.py), [`engine/endgame.py`](engine/endgame.py)) | built — see [`docs/m7-endgame.md`](docs/m7-endgame.md) |
 | **M8** — one whole game, played by eight separate agents, with all thirty-five rules checked at once ([`playtest/`](playtest), [`engine/join.py`](engine/join.py)) | built — see [`docs/m8-integration.md`](docs/m8-integration.md) |
 | **M9** — the mayor orders their own import, the orders are actual trade, and a finished round publishes itself ([`engine/trade.py`](engine/trade.py), [`facilitator/`](facilitator)) | built — see [`docs/m9-imports-and-publication.md`](docs/m9-imports-and-publication.md) |
+| **M10** — the reading experience: the address opens the current issue, every page can be navigated, and the paper looks like one ([`hosting/page.py`](hosting/page.py), [`content/site.css`](content/site.css)) | built — see [`docs/m10-reading-experience.md`](docs/m10-reading-experience.md) |
 
 The engine covers the round timer and its lockstep, the city order queue and its
 two rotations, the import/export/winner cycle with every fallback, the import
@@ -74,8 +75,12 @@ the permitted deterministic SVG fallback and records that in its own
 
 [`hosting/`](hosting) publishes those editions as the paper itself: one fixed,
 unguessable, `noindex` address with every back issue still browsable at it
-(spec #26–#27). The built site is committed at [`site/`](site) —
-`site/public/` is exactly what is served and
+(spec #26–#27). That address opens the **current issue** — `index.html` is the
+newest available edition, entire, rather than a contents page — while every
+issue keeps its own permanent `round-NN.html`, the shelf of back issues lives at
+`archive.html`, and every page carries latest / archive / previous / next
+navigation at its head and its foot (spec #30a). The built site is committed at
+[`site/`](site) — `site/public/` is exactly what is served and
 [`site/publication-manifest.json`](site/publication-manifest.json) records why
 each file in it is public. The address is **not** in any of it, and is not in
 this repo: it lives in a `0600`, git-ignored `.site-id`, and the build refuses
@@ -107,9 +112,10 @@ python3 -m playtest.run --check      # the report only; writes nothing
 
 It publishes to its own private address at [`site/playtest/`](site/playtest) —
 spec #27 makes an address an append-only archive, so a second game gets a second
-address rather than overwriting the first — and it checks spec #1–#35 against
-the finished game, its editions and its published bytes in one pass:
-[`playtest/conformance.json`](playtest/conformance.json), 29 passing, 4 handed to
+address rather than overwriting the first — and it checks spec #1–#35, plus the
+lettered sub-rules #13a and #30a, against the finished game, its editions and
+its published bytes in one pass:
+[`playtest/conformance.json`](playtest/conformance.json), 30 passing, 4 handed to
 the Evaluator with the material to judge, 3 that are not decidable from game
 state and say so. Its editions are published by the facilitator's desk as each
 round ends, not by the script afterwards, which is the difference spec #26 turns

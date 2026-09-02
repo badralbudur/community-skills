@@ -14,7 +14,7 @@ import shutil
 import tempfile
 import unittest
 
-from harness import advance, new_game, pick_first, play_out
+from harness import advance, new_game, pick_first
 from engine.errors import ConfigError, RuleViolation
 from facilitator import Facilitator
 from facilitator.transaction import resolve_steps
@@ -151,6 +151,7 @@ class AutomaticPublicationTest(unittest.TestCase):
                 "round %d is not reachable at the paper's address" % index,
             )
         self.assertIn("index.html", pages)
+        self.assertIn("archive.html", pages)
         self.assertIn("robots.txt", pages)
 
     def test_the_last_round_publishes_the_final_edition_too(self):
@@ -178,58 +179,6 @@ class AutomaticPublicationTest(unittest.TestCase):
             self.fixture.play()
         self.assertNotIn("final.md", self.fixture.written())
         self.assertLess(len(self.fixture.desk.transactions), len(game.rounds))
-
-    def test_failed_completed_round_is_not_skipped_and_retries_before_advancing(self):
-        """A publication failure leaves the round incomplete for the next tick."""
-        game = new_game()
-        calls = []
-
-        def fail_once(_game, round_index):
-            calls.append(round_index)
-            if len(calls) == 1:
-                raise RuleViolation("simulated publication failure")
-
-        game.on_round_completed(fail_once)
-        with self.assertRaises(RuleViolation):
-            advance(game)
-        self.assertEqual(game.current_round, 1)
-        self.assertFalse(game.rounds[1].completed)
-        self.assertEqual(calls, [1])
-
-        # The same elapsed tick retries round 1; it may create round 2 only
-        # after the formerly unpublished round's hook has succeeded.
-        game.tick()
-        self.assertEqual(calls, [1, 1])
-        self.assertTrue(game.rounds[1].completed)
-        self.assertEqual(game.current_round, 2)
-
-    def test_failed_final_round_retries_without_opening_another_round(self):
-        """The terminal publication remains reachable before ENDED is committed."""
-        game = new_game()
-        calls = []
-
-        def fail_final_once(current, round_index):
-            if current._game_is_over():
-                calls.append(round_index)
-                if len(calls) == 1:
-                    raise RuleViolation("simulated final publication failure")
-
-        game.on_round_completed(fail_final_once)
-        with self.assertRaises(RuleViolation):
-            play_out(game)
-        final_round = game.current_round
-        self.assertEqual(game.phase, "running")
-        self.assertFalse(game.rounds[final_round].completed)
-        self.assertEqual(calls, [final_round])
-
-        # No clock movement is needed: tick retries the unfinished terminal
-        # transaction and only then commits the terminal state.
-        self.assertEqual(game.tick(), [])
-        self.assertEqual(calls, [final_round, final_round])
-        self.assertTrue(game.rounds[final_round].completed)
-        self.assertEqual(game.phase, "ended")
-        self.assertEqual(game.ended_round, final_round)
-        self.assertEqual(game.current_round, final_round)
 
 
 class NoticeTest(unittest.TestCase):

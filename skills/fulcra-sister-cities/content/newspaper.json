@@ -711,6 +711,8 @@
 
   "site": {
     "_comment": "Spec #26-#27. The words the archive says about itself, as opposed to the words in any one edition. Same reason the rest of this file is content: 'Back issues' versus 'Archive' is a writing decision, and so is how the paper explains to a mayor that this address is private. hosting/page.py is the machinery; the stylesheet next door in content/site.css is the same decision in the other direction. Nothing here may contain the address itself -- the pages link relatively and the build fails if the site id appears in a published byte.",
+    "front_title": "The Daily Manifest — the current issue",
+    "front_flag": "The current issue, at the paper's own front door. It has its own permanent address too; the next round lands beside it, not on top of it.",
     "archive_title": "The Daily Manifest — back issues",
     "archive_heading": "Back issues",
     "archive_blurb": "Every edition this paper has printed, still where it was printed. Nothing here is ever replaced; a new issue lands beside the old ones, not on top of them.",
@@ -719,10 +721,12 @@
     "identity_notice": "Mayors are named by city and office only. No real names appear in this paper, and no losing offer is ever traced back to the city that sent it.",
     "colophon": "The Daily Manifest is printed once per round by the Sister Cities desk, which is one desk.",
     "nav": {
+      "title": "Editions",
       "archive": "All back issues",
       "previous": "Previous edition",
       "next": "Next edition",
       "latest": "Latest edition",
+      "permalink": "This issue's own address",
       "top": "The Daily Manifest",
       "endgame": "The final edition"
     },
@@ -730,7 +734,9 @@
       "editions_count": "editions in the run",
       "image": "the day's picture",
       "round": "Round",
+      "inside": "Inside this issue",
       "endgame": "The final edition — the crown, the consequences, and a portrait of every city",
+      "endgame_kicker": "The last word",
       "portrait": "the city's portrait"
     },
     "robots_preamble": [

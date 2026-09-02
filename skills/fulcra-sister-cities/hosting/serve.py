@@ -101,6 +101,9 @@ def _handler_for(site):
                 return None
             rest = segments[1:]
             if not rest:
+                # The address itself, with or without a trailing slash: the
+                # current issue (spec #30a). `hosting.build` is what decides
+                # which edition that is; this only knows the filename.
                 return site.get(INDEX_FILENAME)
             if len(rest) > 1:
                 # The public tree is flat, so a nested path is not a path.

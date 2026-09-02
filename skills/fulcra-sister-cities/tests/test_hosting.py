@@ -189,12 +189,12 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(self.record["rounds"], sorted(self.game.rounds))
 
     def test_the_archive_index_links_every_edition(self):
-        index = self.read("index.html")
+        shelf = self.read(page.ARCHIVE_PAGE_NAME)
         for round_index in sorted(self.game.rounds):
-            self.assertIn('href="%s"' % page.edition_page_name(round_index), index)
+            self.assertIn('href="%s"' % page.edition_page_name(round_index), shelf)
 
     def test_the_index_order_follows_config(self):
-        newest = self.read("index.html")
+        newest = self.read(page.ARCHIVE_PAGE_NAME)
         first_listed = newest.index('href="round-12.html"')
         last_listed = newest.index('href="round-01.html"')
         self.assertLess(first_listed, last_listed, "newest_first was configured")
@@ -203,7 +203,8 @@ class BuildTest(unittest.TestCase):
             oldest = build_into(
                 tmp, config=make_config(hosting__archive_order="oldest_first"),
             )
-            with open(os.path.join(oldest["public_root"], "index.html"), encoding="utf-8") as fh:
+            with open(os.path.join(oldest["public_root"], page.ARCHIVE_PAGE_NAME),
+                      encoding="utf-8") as fh:
                 text = fh.read()
         self.assertLess(text.index('href="round-01.html"'), text.index('href="round-12.html"'))
 
@@ -214,7 +215,7 @@ class BuildTest(unittest.TestCase):
 
     def test_every_page_carries_the_noindex_instruction(self):
         expected = self.game.config.require_str("hosting.privacy.meta_robots")
-        for name in ("index.html", "round-01.html", "round-12.html"):
+        for name in ("index.html", "archive.html", "round-01.html", "round-12.html"):
             self.assertIn('name="robots" content="%s"' % expected, self.read(name))
 
     def test_robots_txt_disallows_everything(self):
@@ -226,7 +227,10 @@ class BuildTest(unittest.TestCase):
         middle = self.read("round-05.html")
         self.assertIn('href="round-04.html"', middle)
         self.assertIn('href="round-06.html"', middle)
+        # The two fixed destinations spec #30a asks for on every edition: the
+        # current issue at the paper's own address, and the shelf.
         self.assertIn('href="index.html"', middle)
+        self.assertIn('href="archive.html"', middle)
         # The ends have no neighbour on one side, and say nothing rather than
         # linking to a page that is not there.
         self.assertNotIn('href="round-00.html"', self.read("round-01.html"))
@@ -235,7 +239,7 @@ class BuildTest(unittest.TestCase):
     def test_a_page_carries_the_edition_it_is_supposed_to_carry(self):
         page_five = self.read("round-05.html")
         self.assertIn("Vol. I, No. 5", page_five)
-        self.assertIn("<h2>Wanted</h2>", page_five)
+        self.assertIn('<h2 class="dept-title">Wanted</h2>', page_five)
         self.assertIn('<img src="round-05.svg"', page_five)
 
     def test_the_copy_s_inline_marks_are_obeyed_and_not_printed(self):
@@ -343,7 +347,7 @@ class CuratedPublicationTest(unittest.TestCase):
     def test_config_decides_which_categories_are_published(self):
         with tempfile.TemporaryDirectory() as tmp:
             record = build_into(tmp, config=make_config(
-                hosting__publish=["archive_index", "editions", "robots"],
+                hosting__publish=["front_page", "archive_index", "editions", "robots"],
             ))
             names = sorted(entry["path"] for entry in record["files"])
         self.assertNotIn("style.css", names)
@@ -356,7 +360,7 @@ class CuratedPublicationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(ConfigError):
                 build_into(tmp, config=make_config(
-                    hosting__publish=["archive_index", "player_handles"],
+                    hosting__publish=["front_page", "archive_index", "player_handles"],
                 ))
 
     def test_publishing_robots_with_the_exclusion_switched_off_is_refused(self):
@@ -689,8 +693,18 @@ class ServingTest(unittest.TestCase):
         self.assertIn("Vol. I, No. 5", body)
         self.assertEqual(response.headers["Content-Type"], "text/html; charset=utf-8")
 
-    def test_the_one_url_every_mayor_holds_answers_with_the_archive(self):
+    def test_the_one_url_every_mayor_holds_answers_with_the_latest_edition(self):
+        """Spec #30a: the stable URL opens the newest issue, not a contents list."""
         body = self.assert_status("/%s/" % FAKE_ID, 200).read().decode("utf-8")
+        newest = max(self.game.rounds)
+        self.assertIn("Vol. I, No. %d" % newest, body)
+        self.assertIn('href="%s"' % page.edition_page_name(newest), body)
+        self.assertIn('href="%s"' % page.ARCHIVE_PAGE_NAME, body)
+
+    def test_the_shelf_answers_at_its_own_name_and_lists_every_edition(self):
+        body = self.assert_status(
+            "/%s/%s" % (FAKE_ID, page.ARCHIVE_PAGE_NAME), 200
+        ).read().decode("utf-8")
         for round_index in sorted(self.game.rounds):
             self.assertIn('href="%s"' % page.edition_page_name(round_index), body)
 

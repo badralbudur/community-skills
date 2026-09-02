@@ -354,14 +354,21 @@ class NewspaperCopy:
         about the shelf all the days are kept on.
         """
         site = self.data["site"]
-        for field in ("archive_title", "archive_heading", "archive_blurb", "empty_archive",
-                      "privacy_notice", "identity_notice", "colophon", "nav", "labels",
-                      "robots_preamble"):
+        for field in ("front_title", "front_flag", "archive_title", "archive_heading",
+                      "archive_blurb", "empty_archive", "privacy_notice",
+                      "identity_notice", "colophon", "nav", "labels", "robots_preamble"):
             if not site.get(field):
                 raise ContentError("site block is missing %r" % field)
-        for field in ("archive", "previous", "next", "latest", "top"):
+        # Spec #30a's navigation set, in full: a page that could not name one of
+        # these would be a page quietly missing a way out of itself.
+        for field in ("title", "archive", "previous", "next", "latest", "permalink",
+                      "top", "endgame"):
             if not site["nav"].get(field):
                 raise ContentError("site.nav is missing %r" % field)
+        for field in ("editions_count", "image", "round", "inside", "endgame",
+                      "endgame_kicker", "portrait"):
+            if not site["labels"].get(field):
+                raise ContentError("site.labels is missing %r" % field)
         return site
 
     def bulletin(self):

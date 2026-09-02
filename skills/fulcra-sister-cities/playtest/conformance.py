@@ -35,6 +35,7 @@ living in the test suite is a copy that can disagree with the one that matters.
 
 import json
 import os
+import re
 
 from engine import audit
 from engine.config import DEFAULT_CONFIG_FILENAME, repo_root
@@ -42,6 +43,7 @@ from engine.content import normalize_city
 from engine.dice import parse_dice
 from engine.game import LOCKSTEP_OPS, SLOT_EXPORT, SLOT_IMPORT_PICK, SLOT_QUESTION
 from engine.state import EVEN_SPLIT, RAMP_UP, RESOLVED, WINNER_PICK
+from hosting import page
 
 PASS = "pass"
 FAIL = "fail"
@@ -135,7 +137,8 @@ def run(game, journal, artifacts):
         _silent_skip, _ramp_up, _pick_the_round_after, _even_split, _profit_rolls,
         _origin_never_exposed, _exposure_is_configured, _two_slots, _question_framing,
         _aggregate_phrasing, _one_edition_per_round, _archive_browsable,
-        _city_identity_only, _image_per_edition, _tone, _endgame_crown_and_twist,
+        _city_identity_only, _image_per_edition, _tone, _reading_experience,
+        _endgame_crown_and_twist,
         _endgame_cities, _game_content, _separate_agents, _separate_repo,
     ]
     return Report([check(game, journal, artifacts) for check in checks])
@@ -835,15 +838,125 @@ def _archive_browsable(game, journal, artifacts):
     published = artifacts["site"]["rounds"]
     pages = [name for name in artifacts["public_files"] if name.startswith("round-")
              and name.endswith(".html")]
-    index = artifacts["public_files"].get("index.html", "")
-    linked = [name for name in pages if name in index]
-    final_present = "final.html" in artifacts["public_files"]
+    shelf = artifacts["public_files"].get(page.ARCHIVE_PAGE_NAME, "")
+    linked = [name for name in pages if name in shelf]
+    final_present = page.FINAL_PAGE_NAME in artifacts["public_files"]
     return _verdict(
         "#27", "every prior edition still browsable at the same address",
         len(pages) == len(game.rounds) and len(linked) == len(pages) and final_present,
-        "%d back issues plus the final edition, all reachable from the one index at "
-        "the one address; rounds published: %s..%s"
-        % (len(pages), min(published), max(published)),
+        "%d back issues plus the final edition, each at its own permanent name and all "
+        "listed on the shelf at %s, at the one address; rounds published: %s..%s"
+        % (len(pages), page.ARCHIVE_PAGE_NAME, min(published), max(published)),
+    )
+
+
+def _article_of(html):
+    """One page's edition, without the navigation wrapped around it.
+
+    Two pages carry the same issue -- its permanent page and the front door --
+    and what has to be identical is the issue, not the chrome: the front page
+    says which issue it is and links its permanent address, which the permanent
+    page has no reason to.
+    """
+    marker = '<article class="edition">'
+    if marker not in html:
+        return None
+    start = html.index(marker)
+    return html[start:html.index("</article>", start)]
+
+
+def _nav_kinds(html):
+    """Which navigation links one page offers, ``{kind: href}``.
+
+    Read off the rendered page rather than asked of the renderer: what a reader
+    can reach is a property of the published bytes, and asking
+    :mod:`hosting.page` what it meant to emit would be asking the wrong witness.
+    """
+    strip = re.search(r'<nav class="issue-nav head".*?</nav>', html, re.DOTALL)
+    if not strip:
+        return {}
+    return dict(re.findall(r'<a class="nav-([a-z]+)" href="([^"]+)"', strip.group(0)))
+
+
+def _reading_experience(game, journal, artifacts):
+    """Spec #30a's mechanical half: where the front door goes, and the way out.
+
+    The other half of #30a -- whether the rendered pages read as a newspaper
+    rather than as a plain document -- is a judgement about a layout and is the
+    Evaluator's, like #30's tone bar. This checks the part a script can settle:
+
+    * the paper's one address opens the newest available edition, and opens the
+      edition itself rather than a summary of it (the ``<article>`` on the front
+      page must be the ``<article>`` on that issue's permanent page);
+    * that issue is still at its own permanent name, and the front page links it
+      there (spec #27 is not spent to satisfy #30a);
+    * every issue offers the latest edition and the shelf, and names exactly the
+      neighbours it has -- the first has no previous, the last round has no next
+      because the final edition follows it, and nothing invents one.
+    """
+    files = artifacts["public_files"]
+    front = files.get(page.FRONT_PAGE_NAME, "")
+    rounds = sorted(artifacts["site"]["rounds"])
+    round_pages = [page.edition_page_name(index) for index in rounds]
+    final_page = page.FINAL_PAGE_NAME if page.FINAL_PAGE_NAME in files else None
+    newest_name = final_page or (round_pages[-1] if round_pages else None)
+    issues = round_pages + ([final_page] if final_page else [])
+
+    faults = []
+    if newest_name is None or _article_of(front) is None:
+        faults.append({"page": page.FRONT_PAGE_NAME, "fault": "carries no edition"})
+    elif _article_of(front) != _article_of(files.get(newest_name, "")):
+        faults.append({
+            "page": page.FRONT_PAGE_NAME,
+            "fault": "does not carry the newest issue (%s)" % newest_name,
+        })
+    elif _nav_kinds(front).get("permalink") != newest_name:
+        faults.append({
+            "page": page.FRONT_PAGE_NAME,
+            "fault": "does not link the issue it carries at its permanent name",
+        })
+
+    for index, name in enumerate(issues):
+        kinds = _nav_kinds(files[name])
+        # The final edition follows the last round, so the last *round* page has
+        # no next issue -- it hands the reader on to the endgame instead -- and
+        # the final edition itself has neither a next nor a link to itself.
+        # Every other back issue reaches the last edition the way a reader
+        # reaches today's paper: "latest edition", which is what it is.
+        expected = {
+            "latest": page.FRONT_PAGE_NAME,
+            "archive": page.ARCHIVE_PAGE_NAME,
+            "previous": issues[index - 1] if index else None,
+            "next": round_pages[index + 1] if index + 1 < len(round_pages) else None,
+            "endgame": final_page if name == (round_pages[-1] if round_pages else None)
+            else None,
+        }
+        wrong = {
+            kind: {"expected": href, "found": kinds.get(kind)}
+            for kind, href in expected.items() if kinds.get(kind) != href
+        }
+        if wrong:
+            faults.append({"page": name, "fault": "navigation", "links": wrong})
+
+    return _verdict(
+        "#30a", "the front door opens the newest issue; every issue can be navigated",
+        not faults,
+        "%s carries the same issue as %s, byte for byte, and links it at its "
+        "permanent name; all %d issues offer the latest edition and the shelf at "
+        "%s, and each names exactly the neighbours it has"
+        % (page.FRONT_PAGE_NAME, newest_name, len(issues), page.ARCHIVE_PAGE_NAME)
+        if not faults else
+        "%d of %d pages do not route or navigate as spec #30a requires"
+        % (len(faults), len(issues) + 1),
+        faults or {
+            "front_page": page.FRONT_PAGE_NAME,
+            "carries": newest_name,
+            "shelf": page.ARCHIVE_PAGE_NAME,
+            "issues": len(issues),
+            "judged_separately": "whether these pages read as a newspaper rather than "
+                                 "as a plain document is spec #30a's other half, and a "
+                                 "judgement for the Evaluator",
+        },
     )
 
 

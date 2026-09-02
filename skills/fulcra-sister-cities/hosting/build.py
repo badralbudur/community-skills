@@ -51,9 +51,14 @@ from .manifest import (
 #: Name of the audit record, written *beside* the public root and never in it.
 MANIFEST_FILENAME = "publication-manifest.json"
 
-#: The archive index's filename. Fixed rather than configurable: spec #26 says
-#: one URL, and "which file the URL's directory serves" is not a game parameter.
-INDEX_FILENAME = "index.html"
+#: What the paper's one address answers with, and where the shelf lives. Fixed
+#: rather than configurable: spec #26 says one URL and spec #30a says that URL
+#: opens the newest edition, and "which file the URL's directory serves" is not
+#: a game parameter. Both names come from :mod:`hosting.page`, which is the
+#: module that writes the links between them -- a name defined twice is a name
+#: that will eventually disagree with itself.
+INDEX_FILENAME = page.FRONT_PAGE_NAME
+ARCHIVE_FILENAME = page.ARCHIVE_PAGE_NAME
 ARCHIVE_JSON_FILENAME = "archive.json"
 STYLESHEET_FILENAME = "style.css"
 ROBOTS_FILENAME = "robots.txt"
@@ -166,6 +171,7 @@ def curated_edition(edition):
 
 
 def curated_archive(archive, editions, final=None):
+    newest = final if final is not None else (editions[-1] if editions else None)
     return {
         "publication": archive["publication"],
         "game": archive["game"],
@@ -173,7 +179,13 @@ def curated_archive(archive, editions, final=None):
         "cadence": archive["cadence"],
         "archive_prior_editions": archive["archive_prior_editions"],
         "ended": bool(final),
-        "spec": "#26, #27, #31",
+        "spec": "#26, #27, #30a, #31",
+        # Where a reader that is not a browser should look, so it does not have
+        # to know the site's naming convention: the front door, the shelf, and
+        # which issue the front door is currently carrying (spec #30a).
+        "front_page": INDEX_FILENAME,
+        "archive_page": ARCHIVE_FILENAME,
+        "latest": page.page_name_for(newest) if newest is not None else None,
         "editions": [curated_edition(edition) for edition in editions],
         "final": curated_edition(final) if final else None,
     }
@@ -208,6 +220,16 @@ def build_manifest(archive, copy, config, identity, privacy):
     # not there is a broken page rather than a graceful degradation.
     stylesheet = STYLESHEET_FILENAME if "stylesheet" in categories else None
     with_images = "edition_images" in categories
+    with_archive = "archive_index" in categories
+    # The issue pages this build writes, so that nothing links one it did not.
+    # Normally all of them; a publish list without `editions` is the case this
+    # exists for, and a shelf that linked twelve missing files would be a worse
+    # answer than a shelf that lists twelve issues it cannot offer.
+    published_pages = set()
+    if "editions" in categories:
+        published_pages.update(page.edition_page_name(index) for index in rounds)
+    if final is not None:
+        published_pages.add(page.FINAL_PAGE_NAME)
 
     manifest = PublicationManifest(
         archive["publication"], archive["game"], identity, categories,
@@ -215,12 +237,30 @@ def build_manifest(archive, copy, config, identity, privacy):
     )
     rendered = {}
 
-    if "archive_index" in categories:
+    # The front door, first, because it is the only file whose name a mayor
+    # ever types (spec #26) and spec #30a says what it contains: the newest
+    # available edition -- the final one if the game has ended, otherwise the
+    # last round to go to press. Rendered a second time under a second name,
+    # deliberately: the issue keeps its own permanent page (spec #27), so the
+    # front page is a copy of the current issue rather than its only home.
+    newest = final if final is not None else (editions[-1] if editions else None)
+    front = _front_page(
+        archive, newest, listed, site, privacy, stylesheet, with_images, with_archive,
+        rounds, categories, published_pages,
+    )
+    if front is not None:
+        manifest.add(front)
+
+    if with_archive:
         manifest.add(PublicFile(
-            INDEX_FILENAME, "archive_index", "hosting.page.archive_page",
-            "the one address every mayor holds; it has to answer with something "
-            "(spec #26) and that something is the list of every edition (spec #27)",
-            page.archive_page(archive, listed, site, privacy, stylesheet, with_images),
+            ARCHIVE_FILENAME, "archive_index", "hosting.page.archive_page",
+            "the shelf: every edition ever printed, still at its own name, so a link "
+            "handed out in round one still works in the last one (spec #27), and the "
+            "page the front door and every issue link back to (spec #30a)",
+            page.archive_page(
+                archive, listed, site, privacy, stylesheet, with_images,
+                page_names=published_pages,
+            ),
         ))
 
     for index, edition in enumerate(editions):
@@ -229,6 +269,7 @@ def build_manifest(archive, copy, config, identity, privacy):
         html = page.edition_page(
             edition, site, privacy, previous_round, next_round, stylesheet, with_images,
             final_page=final is not None and index == len(editions) - 1,
+            with_archive=with_archive,
         )
         rendered[edition_key(edition)] = [html]
         if "editions" in categories:
@@ -255,8 +296,17 @@ def build_manifest(archive, copy, config, identity, privacy):
     if final is not None:
         _add_final_edition(
             manifest, rendered, final, site, privacy, stylesheet, with_images,
-            categories, rounds,
+            categories, rounds, with_archive,
         )
+
+    if front is not None and newest is not None:
+        # The front page is another rendering of an edition that already has
+        # one, so it is filed with that edition's other renderings rather than
+        # on its own. That is not bookkeeping: hosting.guard re-runs the
+        # redaction audit over every rendering of an edition, and a copy of the
+        # newest issue that nothing had audited would be the least-checked page
+        # on the site and the most-read one.
+        rendered[edition_key(newest)].append(front.content)
 
     if "archive_json" in categories:
         payload = curated_archive(archive, editions, final)
@@ -294,8 +344,73 @@ def build_manifest(archive, copy, config, identity, privacy):
     return manifest, rendered, payload
 
 
+def _front_page(archive, newest, listed, site, privacy, stylesheet, with_images,
+                with_archive, rounds, categories, published_pages):
+    """``index.html``: the newest edition, or an honest empty shelf (spec #30a).
+
+    Two cases, and the second one is why this is a function rather than a line:
+
+    * there is a newest edition, and the front door carries it, with a link to
+      that issue's own permanent address so a reader who wants to keep *this*
+      issue rather than *the current* issue can;
+    * no round has finished yet, so there is no newest edition. The address
+      still has to answer with something (spec #26), and the honest something is
+      the shelf, empty, saying so. A front page that carried round zero would be
+      inventing an edition.
+
+    ``front_page`` is required rather than optional in ``hosting.publish``: the
+    other categories are things a deployment can choose not to serve, and this
+    one is the URL itself.
+    """
+    if "front_page" not in categories:
+        raise ConfigError(
+            "config.hosting.publish must include 'front_page': it is the file the "
+            "paper's one address answers with, and spec #26 (\"reachable by all "
+            "players\") and spec #30a (\"the stable paper URL opens the newest "
+            "available edition by default\") are not satisfied by a 404. Categories "
+            "asked for: %s" % sorted(categories)
+        )
+    if newest is None:
+        return PublicFile(
+            INDEX_FILENAME, "front_page", "hosting.page.archive_page",
+            "the one address every mayor holds, before the first round has closed: "
+            "an empty shelf that says the presses are still warm, rather than an "
+            "invented edition or a 404 (spec #26, #30a)",
+            page.archive_page(
+                archive, listed, site, privacy, stylesheet, with_images, front=True,
+                page_names=published_pages,
+            ),
+        )
+    # What "previous" means on the front page: the issue before the newest one.
+    # For the final edition that is the last round; for a round edition it is the
+    # round before it. Only if that page is one this build writes.
+    if newest.get("endgame"):
+        previous_round = rounds[-1] if rounds else None
+    else:
+        previous_round = rounds[-2] if len(rounds) > 1 else None
+    if previous_round is not None and "editions" not in categories:
+        previous_round = None
+    permalink = page.page_name_for(newest)
+    if permalink not in published_pages:
+        # The front door is carrying an issue whose own page this build does not
+        # publish, so there is no permanent address to offer a reader. Saying
+        # nothing beats linking a file that is not there.
+        permalink = None
+    return PublicFile(
+        INDEX_FILENAME, "front_page", "hosting.page.edition_page(newest)",
+        "the one address every mayor holds, answering with the newest edition so a "
+        "link handed out in round one opens today's paper (spec #26, #30a); the same "
+        "issue keeps its own permanent page, which this one links (spec #27)",
+        page.edition_page(
+            newest, site, privacy, previous_round=previous_round, next_round=None,
+            stylesheet=stylesheet, with_image=with_images, final_page=False,
+            front=True, permalink=permalink, with_archive=with_archive,
+        ),
+    )
+
+
 def _add_final_edition(manifest, rendered, final, site, privacy, stylesheet,
-                       with_images, categories, rounds):
+                       with_images, categories, rounds, with_archive=True):
     """Declare the last edition, its finale picture and its portraits (#31, #32).
 
     The page is filed under its own category rather than under ``editions``,
@@ -307,8 +422,9 @@ def _add_final_edition(manifest, rendered, final, site, privacy, stylesheet,
     """
     html = page.edition_page(
         final, site, privacy,
-        previous_round=rounds[-1] if rounds else None,
+        previous_round=rounds[-1] if rounds and "editions" in categories else None,
         next_round=None, stylesheet=stylesheet, with_image=with_images,
+        with_archive=with_archive,
     )
     rendered[edition_key(final)] = [html]
 
