@@ -189,6 +189,16 @@ class AWinningOfferInTheMayorsOwnWordsTest(unittest.TestCase):
             self.paper._check(edition)
         self.assertIn("#30", str(caught.exception))
 
+    def test_a_matching_editorial_repetition_is_not_mistaken_for_the_quote(self):
+        """Authorship is structural, not a global textual substitution."""
+        edition = copy_module.deepcopy(self.edition)
+        edition["departments"][0]["blocks"].append(
+            {"kind": "para", "text": "The paper repeats editorially: " + BLUNT}
+        )
+        with self.assertRaises(RuleViolation) as caught:
+            self.paper._check(edition)
+        self.assertIn(BLUNT_TERM, str(caught.exception))
+
     def test_the_edition_still_passes_the_identity_audit(self):
         """Publishing a mayor's wording changes nothing about #21 and #28."""
         from newspaper import redact

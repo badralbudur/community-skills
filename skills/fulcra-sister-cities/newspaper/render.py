@@ -123,6 +123,52 @@ def to_markdown(edition):
     return "\n\n".join(parts) + "\n"
 
 
+def editorial_markdown(edition):
+    """The rendered portions whose wording belongs to the newspaper desk.
+
+    Player-voice blocks are deliberately absent rather than removed from a
+    finished edition by matching their text.  The latter loses authorship when
+    a player quotation is also used verbatim in an editorial sentence: only the
+    block carrying ``voice: player`` belongs to the player.  A ``player_spans``
+    declaration remains local to the editorial block that contains it.
+    """
+    masthead = [
+        "# %s" % edition["publication"],
+        "*%s*" % edition["motto"],
+        " · ".join(
+            [
+                "**%s**" % edition["edition_line"],
+                edition["dateline"],
+                edition["price_line"],
+            ]
+        ),
+        edition["weather_line"],
+        "_%s_" % edition["standing_line"],
+    ]
+    image = edition.get("image") or {}
+    if image.get("filename"):
+        masthead.extend(("![%s](%s)" % (image["alt"], image["filename"]),
+                         "*%s*" % image["cutline"]))
+
+    parts = ["\n\n".join(masthead), "---"]
+    for department in edition["departments"]:
+        blocks = ["## %s" % department["title"]]
+        for block in department["blocks"]:
+            if block.get("voice") == voice.PLAYER:
+                continue
+            blocks.append(voice.editorial_only(
+                block_to_markdown(block), block.get("player_spans") or (),
+            ))
+        parts.append("\n\n".join(blocks))
+    parts.append(
+        "---\n\n_%s_" % edition["foot_line"]
+        if edition.get("endgame")
+        else "---\n\n_%s. Round %s. Offers for the current notice close %s._"
+        % (edition["publication"], edition["round"], edition["closes"])
+    )
+    return "\n\n".join(parts) + "\n"
+
+
 def archive_index_to_markdown(archive):
     """A local index of the editions on disk (#27).
 

@@ -296,10 +296,13 @@ class Paper:
     # -- refusal to publish -----------------------------------------------
 
     def _check(self, edition):
-        from .render import to_markdown
+        from .render import editorial_markdown, to_markdown
 
         markdown = to_markdown(edition)
+        # Redaction audits every published word, including player quotations.
+        # Tone, below, receives the structurally selected editorial rendering.
         rendered = [markdown]
+        editorial_rendered = [editorial_markdown(edition)]
         # Every picture the edition publishes, not just its own: the last edition
         # carries a portrait per city (spec #32), each of which prints a cutline,
         # a city name and a pile of crate labels. A picture is as published as the
@@ -307,6 +310,7 @@ class Paper:
         for image in [edition.get("image")] + list(edition.get("city_images") or ()):
             if isinstance(image, dict) and isinstance(image.get("content"), str):
                 rendered.append(image["content"])
+                editorial_rendered.append(image["content"])
 
         # Whose words are whose, before anything grades them. The declared
         # player-voice passages are checked against what players actually typed
@@ -319,7 +323,7 @@ class Paper:
         # Tone next: a snide line is a thing to fix in the copy, and hearing
         # about it before the redaction report is less confusing.
         where = "final edition" if edition.get("endgame") else "edition %s" % edition["round"]
-        self.tone.check("\n".join(rendered), where=where, player_voice=spans)
+        self.tone.check("\n".join(editorial_rendered), where=where)
         redact.assert_edition_is_redacted(self.engine, edition, rendered=rendered)
         return markdown
 
