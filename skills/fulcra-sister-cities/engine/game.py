@@ -387,6 +387,21 @@ class GameEngine:
             return []
         now = ensure_aware(now if now is not None else self.clock.now())
         advanced = []
+        # A final-round publication can fail after its lockstep operations have
+        # made the game otherwise complete.  There is no later timer boundary to
+        # enter _begin_round and retry it, so retry that same terminal round at
+        # the next tick before considering a new round.
+        current = self.rounds.get(self.current_round)
+        if current is not None and not current.completed and self._game_is_over():
+            self.phase = ENDED
+            self.ended_round = self.current_round
+            try:
+                self._complete_round(self.current_round)
+            except Exception:
+                self.phase = RUNNING
+                self.ended_round = None
+                raise
+            return advanced
         while self.phase == RUNNING and self.timer.round_index_at(now) > self.current_round:
             advanced.append(self._begin_round(self.current_round + 1))
         return advanced
@@ -409,12 +424,22 @@ class GameEngine:
 
         self._select_question(record)
         if self._game_is_over():
+            # The final edition needs an ended game to render, but publication is
+            # still part of completing this round.  Make that terminal state
+            # provisional: if its completed-round transaction fails, restore the
+            # running game so the same final round can be retried rather than
+            # becoming an ended, unpublished game.
             self.phase = ENDED
             self.ended_round = index
-            # No round follows this one, so nothing else will complete it -- and
-            # the last round's edition is also the one the endgame is published
-            # with (spec #31), so it must not be skipped.
-            self._complete_round(index)
+            try:
+                # No round follows this one, so nothing else will complete it --
+                # and the last round's edition is also the one the endgame is
+                # published with (spec #31), so it must not be skipped.
+                self._complete_round(index)
+            except Exception:
+                self.phase = RUNNING
+                self.ended_round = None
+                raise
         return record
 
     def on_round_completed(self, hook):
