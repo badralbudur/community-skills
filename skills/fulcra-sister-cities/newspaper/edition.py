@@ -10,7 +10,10 @@ edition does not publish, and it makes that decision three ways:
   raises instead of returning. Spec #21, #22, #25, #28.
 * **Tone** (:mod:`newspaper.tone`) -- the mechanical floor under spec #30, run
   over the finished prose *and* the image's cutline, because the caption is as
-  published as the copy.
+  published as the copy. It grades the paper's own voice: a passage a mayor
+  typed is declared as such (:mod:`newspaper.voice`), printed as typed, and
+  exempt (spec #30b) -- but only after the edition has proved the passage really
+  is a player's.
 * **Filling** (:func:`newspaper.copy.fill`) -- a frame whose placeholders could
   not all be filled is a content error, so a brace never reaches the page.
 
@@ -21,7 +24,7 @@ what a player reads.
 
 from engine import views
 
-from . import imagery, prose, redact
+from . import imagery, prose, redact, voice
 from .copy import Chooser, NewspaperCopy
 from .departments import Departments, deadline_stamp, long_date
 from .endgame import EndgameDepartments, EndgamePolicy
@@ -132,7 +135,7 @@ class Paper:
                 "identity_style": {"value": self.identity_style, **self.identity_rules},
                 "tone_policy": self.tone.describe(),
                 "lockstep": briefing["lockstep"],
-                "spec": "#25, #26, #28, #29, #30",
+                "spec": "#25, #26, #28, #29, #30, #30b",
             },
         }
 
@@ -305,10 +308,18 @@ class Paper:
             if isinstance(image, dict) and isinstance(image.get("content"), str):
                 rendered.append(image["content"])
 
-        # Tone first: a snide line is a thing to fix in the copy, and hearing
+        # Whose words are whose, before anything grades them. The declared
+        # player-voice passages are checked against what players actually typed
+        # first, because they are about to be exempted from the tone gate and an
+        # unverified exemption is a hole in spec #30 rather than a rule under
+        # #30b.
+        spans = voice.spans_in(edition)
+        voice.assert_spans_are_player_text(self.engine, edition, spans)
+
+        # Tone next: a snide line is a thing to fix in the copy, and hearing
         # about it before the redaction report is less confusing.
         where = "final edition" if edition.get("endgame") else "edition %s" % edition["round"]
-        self.tone.check("\n".join(rendered), where=where)
+        self.tone.check("\n".join(rendered), where=where, player_voice=spans)
         redact.assert_edition_is_redacted(self.engine, edition, rendered=rendered)
         return markdown
 

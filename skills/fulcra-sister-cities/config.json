@@ -99,9 +99,11 @@
       "funny": true,
       "colorful": true,
       "allow_pointed_humor": true,
-      "disallow_snide_or_mean": true
+      "disallow_snide_or_mean": true,
+      "forbidden_register_scope": "newspaper_voice"
     },
-    "_note": "spec #26-#30; player_identity_style may later support more anonymity per decisions Q26. The four tone flags are load-bearing, not decorative: `funny` false drops the editorial asides and leaves the paper reporting facts, `colorful` false switches the edition image to the monochrome palette, `allow_pointed_humor` false filters out every frame content marks `pointed`, and `disallow_snide_or_mean` runs content/newspaper.json's forbidden register over the finished prose and refuses to publish an edition that trips it."
+    "_note": "spec #26-#30; player_identity_style may later support more anonymity per decisions Q26. The four tone flags are load-bearing, not decorative: `funny` false drops the editorial asides and leaves the paper reporting facts, `colorful` false switches the edition image to the monochrome palette, `allow_pointed_humor` false filters out every frame content marks `pointed`, and `disallow_snide_or_mean` runs content/newspaper.json's forbidden register over the finished prose and refuses to publish an edition that trips it.",
+    "_tone_scope_note": "spec #30b. forbidden_register_scope says whose prose that register grades, and `newspaper_voice` is the only value this paper implements: the desk is answerable for its own copy, while a passage a mayor typed -- a free-form export (spec #15), an answer to a mayoral question -- is printed exactly as typed, marked as that mayor's words by content/newspaper.json's player_voice lines, and subtracted from the scan (newspaper/voice.py). The key is stated here rather than assumed in code because scope is a policy, and refused rather than defaulted if it says anything else, because the alternative -- grading players by the desk's register -- means an adjective in one mayor's offer stops the whole table's round."
   },
 
   "facilitator": {

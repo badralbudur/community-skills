@@ -1,634 +1,1061 @@
 {
-  "schema_version": 2,
-  "_comment": "Seeded import-need list for Sister Cities (spec #13, #13a, #14, #33). Each round, one city's import need opens; every other city may submit ONE freeform export in response (spec #15). A need is a PURCHASE ORDER: the importing city names goods or services it wants delivered, and an export is an offer to supply them. Needs are written city-agnostic and rendered by substituting placeholders (see placeholders below). Repetition is governed by config.json -> imports (a category may repeat across different cities but not for the same city twice, unless config says otherwise). Which of these a city receives is the importing mayor's own choice (spec #13): the facilitator's agent offers a slate of eligible seeds and accepts a freeform request instead, and both are checked against trade_policy below. Player-suggested needs are appended to this same list at runtime with \"source\": \"player\".",
-
-  "_schema_2_note": "Schema 1 wrote every need as a civic PROBLEM and asked exporters what the city should do about it. The user decision of 2026-08-31 (spec #13a) retired that: an import need must describe an actual tradable import -- food or candy, materials, equipment, living things, cultural works, or specialist services -- and may not reduce to a request for generic advice or civic problem solving. Every seed kept its id, its category and its subject matter and changed its framing: the humming city is now buying hydrophones rather than asking for an explanation, and the seafront that lost its trees is buying rooted stock by the crate. Ids are stable on purpose -- playtest/transcript.json records a played game by need id, and a recorded game must go on meaning what it meant.",
-
+  "_comment": "Seeded import-need list for Sister Cities (spec #13, #13a, #14, #33). Each round, one city's import need opens; every other city may submit ONE freeform export in response (spec #15). A need is an ORDER for something ordinary: the importing city names everyday tradable things it would like delivered -- candy, soft drinks, snacks, books, music, games, clothes, plants, pets, small comforts -- and an export is an offer to supply them. Needs are written city-agnostic and rendered by substituting placeholders (see placeholders below). Repetition is governed by config.json -> imports (a category may repeat across different cities but not for the same city twice, unless config says otherwise). Which of these a city receives is the importing mayor's own choice (spec #13): the facilitator's agent offers a slate of eligible seeds and accepts a freeform request instead, and both are checked against trade_policy below. Player-suggested needs are appended to this same list at runtime with \"source\": \"player\".",
+  "_schema_2_note": "Schema 1 wrote every need as a civic PROBLEM and asked exporters what the city should do about it. The user decision of 2026-08-31 retired that: a need had to name an actual tradable import rather than ask for advice. Schema 2 kept every seed's id, category and subject and changed only its framing, so the humming city bought hydrophones instead of asking for an explanation.",
+  "_schema_3_note": "Schema 3 is the user decision of 2026-09-02 (spec #13a as it now reads), and it retires the SUBJECTS as well as the framing. Schema 2 was honest trade and still unplayable for the people at the table: it asked mayors for roof trusses, structural calculations, survey crews and seaweed balers, so a good offer needed civic knowledge nobody signed up to bring. Every category and every seed here is now something a person can picture in a shop, a kitchen or a coat pocket -- candy, fizzy drinks, crisps, bread, coffee, hot sauce, paperbacks, records, board games, kites, coats, window boxes, a bookshop cat, mugs, pens, blankets. The city is still the player's persona and still the unit of scoring, but it is light social-game flavour: a mayor is a person saying what their town would like a crate of, not an official solving a municipal problem. ids changed with the categories (there is no candy seed that used to be a bridge), and the recorded playtest was re-recorded around the new pool rather than patched -- see docs/m11-everyday-imports.md.",
+  "schema_version": 3,
   "placeholders": {
     "_comment": "Declared so rendering is checkable rather than assumed. A need is city-agnostic precisely because it names no city itself.",
-    "{city}": { "renders_to": "the importing city's name", "required_in": ["need_brief", "exporter_prompt"] },
-    "{mayor}": { "renders_to": "the importing city's mayor, styled per NAME.md (always 'Mayor', e.g. 'the Mayor of Reykjavík')", "required_in": [], "_note": "Available but deliberately unused by all 48 seeds -- the notices read better as procurement than as correspondence. Player-suggested and freeform needs may use it." }
+    "{city}": {
+      "renders_to": "the importing city's name",
+      "required_in": [
+        "need_brief",
+        "exporter_prompt"
+      ]
+    },
+    "{mayor}": {
+      "renders_to": "the importing city's mayor, styled per NAME.md (always 'Mayor', e.g. 'the Mayor of Reykjavík')",
+      "required_in": [],
+      "_note": "Available but deliberately unused by all 48 seeds -- the notices read better as a town saying what it wants than as correspondence. Player-suggested and freeform needs may use it."
+    },
+    "_titles_note": "Titles carry no placeholder at all, because engine.content.render_need deliberately does not substitute into them: a title is a headline the paper sets in type, and a headline with a half-rendered placeholder in it is the kind of bug nobody notices until it is printed."
   },
-
   "design_notes": [
-    "Every need is an ORDER, never a riddle. It names the kind of thing the city wants delivered -- crates, livestock, plant, people on secondment, a commissioned object -- and leaves wide open which of those a supplier sends. A shipbuilder, a nursery and a cook can all fill 'a windbreak, delivered before November'; none of them can fill 'what should we do about the wind', which is the request spec #13a forbids.",
-    "Needs are absurd-adjacent but never nonsense: each order has a real municipal grievance behind it, so mayors can quote from actual civic experience and the newspaper has something true to exaggerate. The grievance is the reason for the purchase, not the purchase.",
+    "Every need is an ORDER for an everyday thing. It names what the town would like delivered -- a case of sweets, forty thousand postcards, six hens, two hundred kites -- and leaves wide open which version of that a supplier sends. Any player can fill 'ship us the crisps your city eats without thinking about it'; nobody can fill 'what should we do about the wind', and nobody should have to fill 'send us a stamped structural calculation' either. Those are the two failures spec #13a names, and they are checked separately (trade_policy.advice_markers and trade_policy.civic_markers / specialist_markers).",
+    "The city is flavour, not a job description. Each brief hangs its order on something ordinary and local -- a ferry waiting room, a bus depot canteen, a swimming club that swims in March, one long grey street with four hundred empty window sills -- so a mayor has a scene to write into. None of it requires knowing how a city works. If a brief could only be answered by somebody with civic or professional expertise, it is the wrong brief.",
+    "Quantities are named and small enough to picture: forty cases, two hundred kites, six hens, four hundred mugs, one cat. A number is what turns 'send sweets' into an order somebody can imagine loading, and it is also most of the comedy.",
     "Category is the unit of the repetition rule. 16 categories x 3 needs = 48 seeds, which comfortably covers the maximum game (10 cities x 2 rotations = 20 import needs) without any city ordering from the same category twice.",
-    "'trade_family' says which of spec #13a's six kinds of tradable thing the order is mainly for. It is checked at load, it is what makes 'this is trade, not advice' a property the test suite can read, and it is deliberately the *need's* family and not the export's -- an offer may fill a materials order with a service, and often should.",
-    "'exporter_prompt' is the line shown to exporting mayors. It asks for a consignment and says nothing about which consignment would win, because the importing mayor judges subjectively with no rubric (spec #18).",
+    "'trade_family' says which everyday kind of thing the order is mainly for. It is checked at load, it is what makes 'this is ordinary trade, not procurement' a property the test suite can read, and it is deliberately the *need's* family and not the export's -- an offer may fill a candy order with a song, and often should.",
+    "'exporter_prompt' is the line shown to exporting mayors. It asks for a consignment and says nothing about which consignment would win, because the importing mayor judges subjectively with no rubric (spec #18). Most prompts also ask one small extra question ('say what is on the bag', 'name the loudest colour') -- an invitation to be specific, which is where the fun is, and never a hint at a right answer.",
     "'excess_flavor' is a hint for the endgame: what a NON-chosen offer of this kind piles up as in the exporting city (spec #32). It is never shown during play and never attributed to a losing city."
   ],
-
+  "categories": [
+    {
+      "id": "candy",
+      "label": "Candy & Sweets",
+      "blurb": "Sugar, in whatever shape a place happens to make it."
+    },
+    {
+      "id": "soft_drinks",
+      "label": "Soft Drinks & Fizz",
+      "blurb": "Cold, bottled, faintly too sweet, entirely correct."
+    },
+    {
+      "id": "snacks",
+      "label": "Snacks & Savouries",
+      "blurb": "The food you eat standing up."
+    },
+    {
+      "id": "baked_goods",
+      "label": "Bakery & Baked Goods",
+      "blurb": "Warm things in paper bags."
+    },
+    {
+      "id": "hot_drinks",
+      "label": "Coffee, Tea & Cocoa",
+      "blurb": "The mug the morning actually happens in."
+    },
+    {
+      "id": "condiments",
+      "label": "Sauces, Spices & Condiments",
+      "blurb": "Small jars with strong opinions."
+    },
+    {
+      "id": "books",
+      "label": "Books & Reading",
+      "blurb": "Something to be halfway through."
+    },
+    {
+      "id": "music",
+      "label": "Music & Recordings",
+      "blurb": "Noise, arranged on purpose."
+    },
+    {
+      "id": "games_and_puzzles",
+      "label": "Games & Puzzles",
+      "blurb": "Rules people argue about affectionately."
+    },
+    {
+      "id": "toys_and_novelties",
+      "label": "Toys & Novelties",
+      "blurb": "Objects with no defence except delight."
+    },
+    {
+      "id": "clothes",
+      "label": "Clothes & Outfitting",
+      "blurb": "What a place looks like from the outside, and how warm it is inside."
+    },
+    {
+      "id": "plants",
+      "label": "Plants & Cuttings",
+      "blurb": "Green things, in pots, hopeful."
+    },
+    {
+      "id": "pets",
+      "label": "Pets & Animal Company",
+      "blurb": "Company that does not answer back."
+    },
+    {
+      "id": "homeware",
+      "label": "Kitchen & Homeware",
+      "blurb": "The stuff of a decent kitchen table."
+    },
+    {
+      "id": "stationery",
+      "label": "Stationery & Paper",
+      "blurb": "Pens, cards, and the pleasure of a list."
+    },
+    {
+      "id": "small_comforts",
+      "label": "Small Comforts",
+      "blurb": "The little things that make a wet Tuesday survivable."
+    }
+  ],
+  "needs": [
+    {
+      "id": "need-candy-01",
+      "category": "candy",
+      "trade_family": "sweets_and_drinks",
+      "title": "Nine hundred paper bags, and something to put in them",
+      "need_brief": "{city} has one sweet shop. It has been run by the same family for sixty years and it now sells exactly four things, all of them mints. The children of {city} have organised. Wanted: boiled sweets, toffee, liquorice, chocolate, gum -- anything wrapped, by the jar or by the case -- and nine hundred paper bags to hand it out in.",
+      "exporter_prompt": "Ship {city} sweets by the jar or the case, and say what goes in the first bag.",
+      "excess_flavor": "sweets, unwrapped, going soft in the jar",
+      "tags": [
+        "candy",
+        "everyday",
+        "delight"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-candy-02",
+      "category": "candy",
+      "trade_family": "sweets_and_drinks",
+      "title": "The sweet nobody else has",
+      "need_brief": "Every city at this table has one sweet you cannot buy anywhere else. {city} has been through its own cupboards and found only things available in an airport. Wanted: whatever your grandmother keeps in a tin -- the regional, the faintly medicinal, the frankly alarming -- a case of it, wrapper and all.",
+      "exporter_prompt": "Send {city} a case of the sweet your own city is known for, wrapper and all.",
+      "excess_flavor": "regional specialities, admired and uneaten",
+      "tags": [
+        "candy",
+        "identity",
+        "gift"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-candy-03",
+      "category": "candy",
+      "trade_family": "sweets_and_drinks",
+      "title": "Sugar for a very long night",
+      "need_brief": "{city}'s midwinter street party runs from dusk to breakfast, which at this latitude is most of a day. Last year it ran out of sweets at one in the morning and the mood turned philosophical. Wanted: fifty kilos of anything sweet that survives a coat pocket, plus toffee apples, candy floss, and somebody who can work a sugar drum without setting fire to the bandstand.",
+      "exporter_prompt": "Ship {city} fifty kilos of pocket-proof sugar for an all-night party, and say who works the stall.",
+      "excess_flavor": "sweets, saved for next year, already sticky",
+      "tags": [
+        "candy",
+        "festive",
+        "seasonal"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-soft_drinks-01",
+      "category": "soft_drinks",
+      "trade_family": "sweets_and_drinks",
+      "title": "Something cold, in a glass bottle",
+      "need_brief": "The corner shops in {city} sell three colas, and they are the same three colas sold everywhere else on earth. The town has decided this is a poverty. Wanted: cordials, sodas, tonics, sparkling anything, in glass, by the crate -- the stranger the flavour the better -- and a bottle opener, because nobody ever sends the opener.",
+      "exporter_prompt": "Ship {city} crates of cold bottled drinks, and say what the label claims about them.",
+      "excess_flavor": "crates, warm, stacked in the shade",
+      "tags": [
+        "drinks",
+        "everyday",
+        "delight"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-soft_drinks-02",
+      "category": "soft_drinks",
+      "trade_family": "sweets_and_drinks",
+      "title": "Cordial, for two hundred jugs",
+      "need_brief": "Every summer {city} sets out trestle tables along the water, and every summer it fills the jugs with water and a slice of lemon, which no one has ever once described as a treat. Wanted: cordial, syrup, squash, concentrate -- enough for two hundred jugs -- and the jugs too, if you have jugs going spare.",
+      "exporter_prompt": "Send {city} enough cordial for two hundred jugs, and the jugs as well if you have them.",
+      "excess_flavor": "syrups, undiluted, in a cool cupboard",
+      "tags": [
+        "drinks",
+        "summer",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-soft_drinks-03",
+      "category": "soft_drinks",
+      "trade_family": "sweets_and_drinks",
+      "title": "The drink that goes with the thing you eat",
+      "need_brief": "{city} has adopted a new favourite late-night food and discovered, three weeks in, that nobody at the table agrees on what to drink alongside it. Feeling is strong and evidence is absent. Wanted: a crate of whatever your own city drinks beside its own late food, and the story of why the two belong together.",
+      "exporter_prompt": "Ship {city} a crate of the drink your city puts beside its own late-night food.",
+      "excess_flavor": "pairings, unpoured",
+      "tags": [
+        "drinks",
+        "pairing",
+        "social"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-snacks-01",
+      "category": "snacks",
+      "trade_family": "snacks_and_bakes",
+      "title": "Crisps in a flavour nobody here has met",
+      "need_brief": "The crisp shelf in {city} offers salt, salt and vinegar, and a third bag that has been there since spring. The rest of the world, meanwhile, is out there putting prawn, paprika, seaweed and worse into packets. Wanted: forty cases of the crisps your city eats without thinking about it.",
+      "exporter_prompt": "Ship {city} forty cases of your own city's crisps, and say what is printed on the bag.",
+      "excess_flavor": "crisps, opened, gone soft",
+      "tags": [
+        "snacks",
+        "everyday",
+        "comedy"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-snacks-02",
+      "category": "snacks",
+      "trade_family": "snacks_and_bakes",
+      "title": "Biscuits, by the tin, for a hall with three bookings",
+      "need_brief": "The swimming club, the choir and the allotment society of {city} all meet in the same hall on the same evening, and all three bring the same biscuit. There has been a mood about it since March. Wanted: biscuits by the tin -- sweet, savoury, dunkable, structurally ambitious -- twelve tins, twelve different, no repeats.",
+      "exporter_prompt": "Send {city} a tin of your own city's biscuit, and say whether it survives a dunk.",
+      "excess_flavor": "biscuits, broken, at the bottom of the tin",
+      "tags": [
+        "snacks",
+        "social",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-snacks-03",
+      "category": "snacks",
+      "trade_family": "snacks_and_bakes",
+      "title": "The thing you eat standing up at eleven at night",
+      "need_brief": "{city} closes at ten and gets hungry at eleven, and has been doing so quietly for years without mentioning it to anybody. Wanted: the snack your city eats standing up, late -- frozen, dried, tinned, vacuum-packed, however it travels -- plus whatever it is traditionally eaten out of.",
+      "exporter_prompt": "Ship {city} your city's late-night snack, however it travels, and say what to eat it out of.",
+      "excess_flavor": "late suppers, arriving at the wrong hour",
+      "tags": [
+        "snacks",
+        "late-night",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-baked_goods-01",
+      "category": "baked_goods",
+      "trade_family": "snacks_and_bakes",
+      "title": "One morning's bread, and the tins to bake it in",
+      "need_brief": "{city}'s last bakery shut in March, and the town has been eating supermarket bread with visible resignation ever since. Wanted: flour, tins, a starter, the recipe card, and a baker willing to spend a season teaching two teenagers -- or forty loaves a morning, delivered, if teaching is not on offer.",
+      "exporter_prompt": "Ship {city} the flour, the tins and the starter for one morning's bread, or forty loaves a day.",
+      "excess_flavor": "loaves, cooling, uncollected",
+      "tags": [
+        "bakery",
+        "everyday",
+        "skill"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-baked_goods-02",
+      "category": "baked_goods",
+      "trade_family": "snacks_and_bakes",
+      "title": "Cake for a birthday nobody will admit to",
+      "need_brief": "{city} turns four hundred this year and has decided to mark it with cake and nothing else whatsoever. Wanted: cake -- the tall kind, the flat kind, the kind soaked in something -- plus the boxes to carry it in and enough icing to write four hundred years' worth of nonsense across the top.",
+      "exporter_prompt": "Send {city} the cake, the boxes and the icing for a four-hundredth birthday.",
+      "excess_flavor": "cake, cut, under a tea towel",
+      "tags": [
+        "bakery",
+        "festive",
+        "celebration"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-baked_goods-03",
+      "category": "baked_goods",
+      "trade_family": "snacks_and_bakes",
+      "title": "Pastry for the half-five shift",
+      "need_brief": "The bus depot canteen in {city} opens at half past five and sells one thing, which is toast. The drivers have been extremely polite about this for eleven years. Wanted: pastries -- sweet, savoury, laminated, filled -- frozen and ready to bake, three hundred a morning, and an oven if the toast machine will not stretch.",
+      "exporter_prompt": "Ship {city} three hundred pastries a morning, frozen and ready to bake, and an oven if it needs one.",
+      "excess_flavor": "pastries, reheated once too often",
+      "tags": [
+        "bakery",
+        "everyday",
+        "early-shift"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-hot_drinks-01",
+      "category": "hot_drinks",
+      "trade_family": "sweets_and_drinks",
+      "title": "Coffee that does not taste of the urn",
+      "need_brief": "{city} drinks four thousand cups a day, and every one of them comes out of the same three urns, filled in a spirit of optimism at seven in the morning. Wanted: beans by the sack, a grinder, a machine somebody at your end has actually used, and a fortnight of whoever can teach two volunteers to pour.",
+      "exporter_prompt": "Ship {city} the beans, the grinder or the machine, and whoever travels with it.",
+      "excess_flavor": "beans, unground, losing their nerve",
+      "tags": [
+        "coffee",
+        "everyday",
+        "ritual"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-hot_drinks-02",
+      "category": "hot_drinks",
+      "trade_family": "sweets_and_drinks",
+      "title": "Tea, and the correct amount of ceremony",
+      "need_brief": "In {city}, tea is made in a mug with the bag left in, and a visiting delegation was once visibly upset about it. The town would like options. Wanted: tea by the chest -- leaf, brick, smoked, spiced, whatever your city drinks at four in the afternoon -- plus the pot, the strainer, and the rule about how long to leave it.",
+      "exporter_prompt": "Send {city} a chest of your city's tea, the pot for it, and the rule about how long.",
+      "excess_flavor": "teas, brewed, cooling, undrunk",
+      "tags": [
+        "tea",
+        "ritual",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-hot_drinks-03",
+      "category": "hot_drinks",
+      "trade_family": "sweets_and_drinks",
+      "title": "Cocoa for the coldest six weeks",
+      "need_brief": "For six weeks a year it is dark in {city} by four o'clock and everybody goes straight home. The town would rather they stopped somewhere warm on the way. Wanted: drinking chocolate by the sack, mugs by the hundred, a wheeled urn, marshmallows if you insist, and something to stand the whole operation under when it rains.",
+      "exporter_prompt": "Ship {city} the cocoa, the mugs and the urn for six dark weeks, and say what goes on top.",
+      "excess_flavor": "cocoa, made, gone cold",
+      "tags": [
+        "cocoa",
+        "winter",
+        "comfort"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-condiments-01",
+      "category": "condiments",
+      "trade_family": "snacks_and_bakes",
+      "title": "Hot sauce, in three honest heats",
+      "need_brief": "The hottest thing available in {city} is a pepper sauce sold in a novelty gift shop with a warning label and no actual heat. The town is tired of being lied to. Wanted: hot sauce by the case, in three heats, honestly labelled, plus whatever your own city puts it on.",
+      "exporter_prompt": "Ship {city} hot sauce by the case in three honest heats, and say what to put it on.",
+      "excess_flavor": "sauces, half-used, at the back of a fridge",
+      "tags": [
+        "condiments",
+        "heat",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-condiments-02",
+      "category": "condiments",
+      "trade_family": "snacks_and_bakes",
+      "title": "The jar that rescues a plain dinner",
+      "need_brief": "{city} eats well on Sundays and badly on Tuesdays, and the whole difference is what happens to be in the cupboard. Wanted: the one jar your city keeps for a plain dinner -- pickle, paste, chilli oil, preserved lemon, fermented anything -- a case of it, and the two dishes it rescues.",
+      "exporter_prompt": "Send {city} a case of your city's one indispensable jar, and name the two dishes it rescues.",
+      "excess_flavor": "jars, opened, still hopeful",
+      "tags": [
+        "condiments",
+        "everyday",
+        "comfort"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-condiments-03",
+      "category": "condiments",
+      "trade_family": "snacks_and_bakes",
+      "title": "Spice for a kitchen that has salt and pepper",
+      "need_brief": "The rack in {city}'s community kitchen holds salt, pepper and a jar of mixed herbs from 2019, and two hundred people eat out of that kitchen every week. Wanted: whole spices by the kilo, a grinder, blends with their proportions written down by hand, and enough of all of it to last a winter.",
+      "exporter_prompt": "Ship {city} the whole spices, the blends and the grinder for a kitchen feeding two hundred a week.",
+      "excess_flavor": "spices, ground, losing their smell",
+      "tags": [
+        "spice",
+        "community",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-books-01",
+      "category": "books",
+      "trade_family": "reading_and_listening",
+      "title": "Something for the shelf by the door",
+      "need_brief": "{city} put a bookcase in the ferry waiting room under an honesty rule -- take one, leave one -- and it is now four shelves of the same thriller. Wanted: paperbacks by the box, read, creased, annotated, anything but pristine. Two hundred of them, no two the same.",
+      "exporter_prompt": "Ship {city} two hundred second-hand paperbacks, no two alike, and say which one you nearly kept.",
+      "excess_flavor": "paperbacks, unread, spines uncracked",
+      "tags": [
+        "books",
+        "everyday",
+        "generous"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-books-02",
+      "category": "books",
+      "trade_family": "reading_and_listening",
+      "title": "The book everyone here should have read",
+      "need_brief": "{city}'s reading group has met every fortnight for nine years and has finally run out of anything anybody feels strongly about. Wanted: forty copies of the one book your city presses on visitors -- in the language it was written in, and in translation if there is one -- plus the argument that comes with it.",
+      "exporter_prompt": "Send {city} forty copies of the book your city presses on visitors, and the argument it starts.",
+      "excess_flavor": "unread copies, forty of them, in a stack",
+      "tags": [
+        "books",
+        "identity",
+        "culture"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-books-03",
+      "category": "books",
+      "trade_family": "reading_and_listening",
+      "title": "Picture books for a very small audience",
+      "need_brief": "The children's corner of {city}'s library holds eleven picture books, and one of them is about tax. Wanted: picture books by the crate, board books that survive being chewed, comics, an atlas with the countries in the wrong colours, and anything at all with a flap to lift.",
+      "exporter_prompt": "Ship {city} a crate of picture books, comics and board books, and say which one gets chewed first.",
+      "excess_flavor": "picture books, outgrown, kept anyway",
+      "tags": [
+        "books",
+        "children",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-music-01",
+      "category": "music",
+      "trade_family": "reading_and_listening",
+      "title": "Records, and something to play them on",
+      "need_brief": "{city}'s community hall has a beautiful room, appalling acoustics, and a music collection consisting of one cassette. Wanted: records, tapes and discs by the crate, plus a deck, an amp and two speakers that have already survived at least one wedding.",
+      "exporter_prompt": "Ship {city} the records and the deck to play them on, and say what to put on first.",
+      "excess_flavor": "records, filed, unplayed",
+      "tags": [
+        "music",
+        "everyday",
+        "social"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-music-02",
+      "category": "music",
+      "trade_family": "reading_and_listening",
+      "title": "A band with its own van",
+      "need_brief": "{city} has a bandstand, a bank holiday and no band. The last group booked cancelled by postcard, which everybody agreed was at least stylish. Wanted: musicians who travel -- brass, strings, a choir, three people and a drum machine -- with their own van, their own set list, and ninety minutes in them.",
+      "exporter_prompt": "Send {city} the musicians, the van and the set list for ninety minutes on a bandstand.",
+      "excess_flavor": "encores, unplayed",
+      "tags": [
+        "music",
+        "live",
+        "festive"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-music-03",
+      "category": "music",
+      "trade_family": "reading_and_listening",
+      "title": "Ninety minutes of your city, on tape",
+      "need_brief": "{city} broadcasts an hour of music every evening to roughly four hundred listeners, most of them in the bath, and it has now played everything it owns twice. Wanted: a ninety-minute mix of what your city actually listens to -- recorded, cleared, sleeve notes included -- and the one track that has to close it.",
+      "exporter_prompt": "Ship {city} ninety minutes of your own city's music, sleeve notes and all, and name the closing track.",
+      "excess_flavor": "mixtapes, made with great care, unlabelled",
+      "tags": [
+        "music",
+        "radio",
+        "identity"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-games_and_puzzles-01",
+      "category": "games_and_puzzles",
+      "trade_family": "play_and_pastimes",
+      "title": "Board games for a wet fortnight",
+      "need_brief": "It rains in {city} for a fortnight every autumn and the entire town goes indoors at once. The cupboard in the community hall holds one chess set with two black bishops. Wanted: board games by the crate -- playable in an hour, playable by six, playable by somebody who has not read the rules and is not going to.",
+      "exporter_prompt": "Ship {city} a crate of board games for a wet fortnight, and say which box to open first.",
+      "excess_flavor": "board games, boxed, one piece short",
+      "tags": [
+        "games",
+        "everyday",
+        "social"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-games_and_puzzles-02",
+      "category": "games_and_puzzles",
+      "trade_family": "play_and_pastimes",
+      "title": "A jigsaw big enough to be a commitment",
+      "need_brief": "{city} keeps a table in the library window with a jigsaw on it, and strangers finish it together over weeks without ever once speaking. It has been the same jigsaw since February. Wanted: jigsaws -- a thousand pieces and up, ugly, beautiful, deliberately cruel -- and a mat to roll them up in when the library needs the table back.",
+      "exporter_prompt": "Send {city} the jigsaws and the roll-up mat for a table in a library window.",
+      "excess_flavor": "jigsaws, complete, and one piece under the radiator",
+      "tags": [
+        "puzzles",
+        "quiet",
+        "social"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-games_and_puzzles-03",
+      "category": "games_and_puzzles",
+      "trade_family": "play_and_pastimes",
+      "title": "The game your city plays in the street",
+      "need_brief": "Children in {city} play two games and both of them involve a wall. Wanted: the equipment for whatever your own city plays outdoors -- bats, boards, boules, hoops, chalk, a net that goes across an alley -- thirty sets of it, and somebody willing to stand in a car park and demonstrate for an afternoon.",
+      "exporter_prompt": "Ship {city} thirty sets of your city's own street game, and whoever comes to demonstrate it.",
+      "excess_flavor": "rule sheets, for games nobody learned",
+      "tags": [
+        "games",
+        "outdoors",
+        "children"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-toys_and_novelties-01",
+      "category": "toys_and_novelties",
+      "trade_family": "play_and_pastimes",
+      "title": "Kites, for a town with more wind than it needs",
+      "need_brief": "The wind comes down {city}'s main street at a speed that has taken four awnings and one election poster, and in all that time nobody has thought to fly anything in it. Wanted: kites -- two hundred, cheap and repairable -- line, tails, and one enormous one for the end of the pier.",
+      "exporter_prompt": "Ship {city} two hundred kites, the line and one enormous one, and say who gets to fly the big one.",
+      "excess_flavor": "kites, tangled, in a shed",
+      "tags": [
+        "toys",
+        "wind",
+        "delight"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-toys_and_novelties-02",
+      "category": "toys_and_novelties",
+      "trade_family": "play_and_pastimes",
+      "title": "Prizes for a fête, and nothing sensible",
+      "need_brief": "{city}'s summer fête has eleven stalls and a prize table currently holding a tin of peaches. Wanted: prizes -- plastic, gaudy, faintly baffling -- five hundred of them, plus one single prize so good that grown adults will queue in the rain for a raffle ticket.",
+      "exporter_prompt": "Send {city} five hundred small gaudy prizes and one absurdly good one, and say which is which.",
+      "excess_flavor": "prizes, unclaimed, back in the box",
+      "tags": [
+        "novelties",
+        "fete",
+        "comedy"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-toys_and_novelties-03",
+      "category": "toys_and_novelties",
+      "trade_family": "play_and_pastimes",
+      "title": "Something for nine shop windows in January",
+      "need_brief": "Nine windows on {city}'s high street stand empty from January to March, and the street looks like it has given up on itself. Wanted: whatever fills a window and stops a person walking -- models, mechanical toys, a train set, a thing that moves when a coin goes in -- nine windows' worth, and the timers to run it all.",
+      "exporter_prompt": "Ship {city} nine windows' worth of things that stop a passer-by, and the timers to run them.",
+      "excess_flavor": "window displays, in storage, facing the wall",
+      "tags": [
+        "novelties",
+        "winter",
+        "delight"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-clothes-01",
+      "category": "clothes",
+      "trade_family": "wear_and_comfort",
+      "title": "A coat that survives a winter here",
+      "need_brief": "{city} has a wind that finds the gap between a collar and a scarf and stays there from November to March. Everything sold locally is fashionable and no help at all. Wanted: coats -- two hundred, unbeautiful, genuinely waterproof -- with hoods that stay up and pockets that hold a thermos.",
+      "exporter_prompt": "Ship {city} two hundred coats that actually work, and say what the hood does in a gale.",
+      "excess_flavor": "coats, on hangers, too warm for here",
+      "tags": [
+        "clothes",
+        "weather",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-clothes-02",
+      "category": "clothes",
+      "trade_family": "wear_and_comfort",
+      "title": "Socks in colours the town will discuss",
+      "need_brief": "{city}'s football team plays in grey, its choir wears grey, and a visiting photographer once described the place as tonally consistent. Wanted: socks -- a thousand pairs, loud, warm, in colours that will start an argument on a bus -- and a second thousand in something quieter, for the people who lose those arguments.",
+      "exporter_prompt": "Send {city} a thousand pairs of loud socks and a thousand quiet ones, and name the loudest colour.",
+      "excess_flavor": "socks, loud, unworn, still paired",
+      "tags": [
+        "clothes",
+        "comedy",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-clothes-03",
+      "category": "clothes",
+      "trade_family": "wear_and_comfort",
+      "title": "Outfitting for a swimming club that swims in March",
+      "need_brief": "Forty-one people swim off {city}'s beach every week of the year, including the weeks when that is a medically interesting decision. They currently share three towels. Wanted: robes, towels, neoprene, hats, gloves, and a bag that dries out between one Tuesday and the next.",
+      "exporter_prompt": "Ship {city} the robes, the towels and the neoprene for forty-one all-year swimmers.",
+      "excess_flavor": "swimming kit, dry, folded, unused",
+      "tags": [
+        "clothes",
+        "swimming",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-plants-01",
+      "category": "plants",
+      "trade_family": "plants_and_pets",
+      "title": "Window boxes for one long grey street",
+      "need_brief": "{city}'s longest street is nine hundred metres of grey render and four hundred window sills, every one of them empty. The residents have agreed in principle and have nothing whatsoever to put in them. Wanted: four hundred window boxes, the compost to fill them, and plants that forgive an owner who forgets.",
+      "exporter_prompt": "Ship {city} four hundred window boxes with something forgiving in them, and say what it forgives.",
+      "excess_flavor": "window boxes, planted, unwatered",
+      "tags": [
+        "plants",
+        "street",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-plants-02",
+      "category": "plants",
+      "trade_family": "plants_and_pets",
+      "title": "Cuttings from your own windowsill",
+      "need_brief": "Everybody in {city} owns a descendant of the same spider plant, which arrived in 1994 and has been passed around ever since. The gene pool is a matter of local comedy. Wanted: cuttings -- rooted, wrapped in wet newspaper, labelled by hand -- a hundred of them, and the name your city calls the plant rather than the one on the label.",
+      "exporter_prompt": "Send {city} a hundred rooted cuttings in wet newspaper, and the name your city calls them by.",
+      "excess_flavor": "cuttings, potted on, and on, and on",
+      "tags": [
+        "plants",
+        "gift",
+        "community"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-plants-03",
+      "category": "plants",
+      "trade_family": "plants_and_pets",
+      "title": "Something to eat off a balcony",
+      "need_brief": "{city} is four storeys high, has three hundred balconies, and nothing edible on any of them. Wanted: herbs, tomatoes in pots, dwarf fruit trees, seed by the packet, grow bags -- enough for three hundred balconies -- and the two things that actually survive a balcony.",
+      "exporter_prompt": "Ship {city} enough pots, seed and cuttings for three hundred balconies, and name the two that survive.",
+      "excess_flavor": "seedlings, hardened off, unplanted",
+      "tags": [
+        "plants",
+        "food",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-pets-01",
+      "category": "pets",
+      "trade_family": "plants_and_pets",
+      "title": "A cat for the bookshop, with references",
+      "need_brief": "The second-hand bookshop in {city} has mice, a bowl, a cushion in the window and no cat. Three separate customers have now asked about the cushion. Wanted: one cat of documented temperament, plus the basket, the paperwork, the food it will accept and nothing else, and a fortnight of somebody keeping an eye on it.",
+      "exporter_prompt": "Ship {city} one bookshop cat with its paperwork, and say what it will and will not eat.",
+      "excess_flavor": "cushions, warmed by nobody",
+      "tags": [
+        "pets",
+        "everyday",
+        "charm"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-pets-02",
+      "category": "pets",
+      "trade_family": "plants_and_pets",
+      "title": "Company for a very quiet corridor",
+      "need_brief": "The residents' lounge in {city}'s sheltered housing has excellent light, eleven armchairs and a silence you could lean on. Wanted: an aquarium and the fish for it, or a pair of budgerigars with a cage worth looking at, or a dog with a temperament that has been tested on a whole corridor at once -- and everything it eats.",
+      "exporter_prompt": "Send {city} the fish, the birds or the dog for a very quiet corridor, and everything it eats.",
+      "excess_flavor": "bowls, filled, waiting",
+      "tags": [
+        "pets",
+        "care",
+        "warmth"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-pets-03",
+      "category": "pets",
+      "trade_family": "plants_and_pets",
+      "title": "Hens, and something to keep them in",
+      "need_brief": "{city} has an allotment with a nine-year waiting list and one corner of it that nobody has ever made anything of. The allotment society has voted, twice, for hens. Wanted: six hens of a breed that lays through a bad winter, a coop a fox has already failed at, feed, grit, and the two pages of instructions that actually matter.",
+      "exporter_prompt": "Ship {city} six hens, a fox-proof coop, and the two pages of instructions that matter.",
+      "excess_flavor": "coops, built, unoccupied",
+      "tags": [
+        "pets",
+        "food",
+        "community"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-homeware-01",
+      "category": "homeware",
+      "trade_family": "wear_and_comfort",
+      "title": "Mugs, four hundred of them, none matching",
+      "need_brief": "{city}'s hall serves tea to four hundred people a week out of eighty mugs, of which sixty are chipped and eleven are political. Wanted: mugs -- four hundred, thick-walled, none of them matching, all of them honest about the dishwasher -- and a rack to stack them on.",
+      "exporter_prompt": "Ship {city} four hundred mismatched mugs and the rack for them, and say which one you kept.",
+      "excess_flavor": "mugs, stacked, chipped",
+      "tags": [
+        "homeware",
+        "everyday",
+        "social"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-homeware-02",
+      "category": "homeware",
+      "trade_family": "wear_and_comfort",
+      "title": "One good pan, and the knife that goes with it",
+      "need_brief": "The kitchen in {city}'s community centre has fourteen pans, all of them slightly wrong, and one knife that everybody hides from everybody else. Wanted: the pan your city cooks its own dinner in, the knife it cuts with, a board, and the one odd utensil visitors always pick up and ask about.",
+      "exporter_prompt": "Send {city} the pan, the knife and the board your city actually cooks with, and name the odd utensil.",
+      "excess_flavor": "pans, hung up, never reached for",
+      "tags": [
+        "homeware",
+        "kitchen",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-homeware-03",
+      "category": "homeware",
+      "trade_family": "wear_and_comfort",
+      "title": "Lamps for a room lit like a car park",
+      "need_brief": "The reading room in {city}'s library is lit by nine tubes at four thousand kelvin, and everybody leaves by half past four. Wanted: lamps -- table, floor, wall -- warm bulbs, shades, extension leads, and two armchairs of the kind that keep a person there until closing.",
+      "exporter_prompt": "Ship {city} the lamps, the shades and the armchairs for a room people currently leave early.",
+      "excess_flavor": "lampshades, boxed, in the wrong size",
+      "tags": [
+        "homeware",
+        "comfort",
+        "light"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-stationery-01",
+      "category": "stationery",
+      "trade_family": "reading_and_listening",
+      "title": "Pens that work, in bulk",
+      "need_brief": "The pen on a string at {city}'s post office counter has not worked since Easter, and the queue has started bringing its own. Wanted: pens by the box, pencils, sharpeners, and one pen good enough that a person will sign a birthday card with it and mean it.",
+      "exporter_prompt": "Ship {city} pens by the box, and one pen worth signing a card with.",
+      "excess_flavor": "pens, capped, unclicked",
+      "tags": [
+        "stationery",
+        "everyday",
+        "comedy"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-stationery-02",
+      "category": "stationery",
+      "trade_family": "reading_and_listening",
+      "title": "Postcards of somewhere else entirely",
+      "need_brief": "{city}'s postcard rack shows the same view from the same hill, six times, and the shopkeeper has begun apologising for it unprompted. Wanted: postcards of your city -- forty thousand of them, printed, stamps not included -- and the one image on them that your own residents would argue about.",
+      "exporter_prompt": "Send {city} forty thousand postcards of your own city, and name the image that starts the argument.",
+      "excess_flavor": "postcards, written, never posted",
+      "tags": [
+        "stationery",
+        "paper",
+        "identity"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-stationery-03",
+      "category": "stationery",
+      "trade_family": "reading_and_listening",
+      "title": "Paper for a school that draws on both sides",
+      "need_brief": "The art room in {city}'s school has one working colour, brown, and a rule about using both sides of everything. Wanted: paper by the ream, card, sugar paper, paint, brushes that have not splayed, a guillotine that still cuts, and enough of all of it to get to July.",
+      "exporter_prompt": "Ship {city} the paper, the paint and the brushes to get an art room through to July.",
+      "excess_flavor": "sugar paper, in colours nobody chose",
+      "tags": [
+        "stationery",
+        "school",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-small_comforts-01",
+      "category": "small_comforts",
+      "trade_family": "wear_and_comfort",
+      "title": "Blankets for the back row",
+      "need_brief": "{city} shows films on a wall by the water every Friday from May, and everybody is cold by the second reel and too proud to mention it. Wanted: blankets -- two hundred, washable, heavy enough to feel like a decision -- plus a bin to keep them in and somebody's rule about who folds them.",
+      "exporter_prompt": "Ship {city} two hundred washable blankets and the bin to keep them in, and say who folds them.",
+      "excess_flavor": "blankets, folded, in a stack",
+      "tags": [
+        "comfort",
+        "cinema",
+        "everyday"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-small_comforts-02",
+      "category": "small_comforts",
+      "trade_family": "wear_and_comfort",
+      "title": "Slippers, hot water bottles, and one good chair",
+      "need_brief": "The waiting room at {city}'s clinic has eleven plastic chairs, a poster about feet, and an average wait of fifty minutes. Wanted: the small comforts -- hot water bottles, slippers, cushions, a blanket, and one chair a person can be properly unwell in -- eleven of everything.",
+      "exporter_prompt": "Send {city} eleven of every small comfort a fifty-minute wait deserves, and name the chair.",
+      "excess_flavor": "comforts, unwrapped, and nobody sitting down",
+      "tags": [
+        "comfort",
+        "care",
+        "tender"
+      ],
+      "source": "seed"
+    },
+    {
+      "id": "need-small_comforts-03",
+      "category": "small_comforts",
+      "trade_family": "wear_and_comfort",
+      "title": "Whatever your city does about a wet Tuesday",
+      "need_brief": "{city} has established, by a show of hands, that the worst thing about living in {city} is a wet Tuesday in February. Wanted: the box your own city reaches for on a day like that -- the tin, the bottle, the blanket, the tape, the biscuit, the ridiculous small object -- one box, packed properly, nothing in it costing more than a bus fare.",
+      "exporter_prompt": "Ship {city} the box your city reaches for on a wet Tuesday, and list what is in it.",
+      "excess_flavor": "parcels, packed with great care, unopened",
+      "tags": [
+        "comfort",
+        "everyday",
+        "gift"
+      ],
+      "source": "seed"
+    }
+  ],
   "trade_policy": {
-    "_comment": "Spec #13a, made checkable. engine.trade reads this block and applies it to all three ways a need can enter a game: the seeds below (at load), a player-suggested addition to the pool, and an importing mayor's freeform request (spec #13). One rule, three doors -- so a game cannot acquire an advice prompt through the door nobody was watching.",
+    "_comment": "Spec #13a, made checkable. engine.trade reads this block and applies it to all three ways a need can enter a game: the seeds above (at load), a player-suggested addition to the pool, and an importing mayor's freeform request (spec #13). One rule, three doors -- so a game cannot acquire an unplayable prompt through the door nobody was watching. There are three refusals here, not one: a need may not ask for ADVICE (advice_markers), may not be CIVIC PROCUREMENT (civic_markers), and may not be SPECIALIST PROBLEM SOLVING (specialist_markers). The affirmative half is the declared trade_family: the families below enumerate the everyday kinds of thing this game trades in, so naming one is a claim that can be inspected rather than a blank.",
     "families": {
-      "foodstuffs": { "label": "Food, drink and candy", "examples": ["a season's fruit", "cooks and their pans", "sacks of coffee", "a night canteen's stock"] },
-      "materials": { "label": "Materials", "examples": ["timber", "stone", "cable", "canvas", "line paint", "rooted cuttings by the crate"] },
-      "equipment": { "label": "Equipment and plant", "examples": ["pumps", "freezers", "hydrophones", "rolling stock", "a funicular in kit form"] },
-      "living_things": { "label": "Living things", "examples": ["hives", "seedlings", "a pair of trained hawks", "oyster spat"] },
-      "cultural_works": { "label": "Cultural works", "examples": ["a commissioned verse", "a cast monument", "sheet music", "a trophy", "a print run"] },
-      "specialist_services": { "label": "Specialist services", "examples": ["a surveyor for a fortnight", "interpreters", "carers on secondment", "a stamped structural calculation"] }
+      "sweets_and_drinks": {
+        "label": "Candy, soft drinks and things to sip",
+        "examples": [
+          "boiled sweets by the jar",
+          "candy floss and somebody to work the drum",
+          "soft drinks in glass bottles, by the crate",
+          "cordial for two hundred jugs",
+          "coffee beans by the sack",
+          "a chest of tea and the rule about how long"
+        ]
+      },
+      "snacks_and_bakes": {
+        "label": "Snacks, bakes and everyday food",
+        "examples": [
+          "crisps in a flavour nobody here has met",
+          "biscuits by the tin",
+          "three hundred pastries a morning, frozen",
+          "one morning's bread and the tins for it",
+          "hot sauce in three honest heats",
+          "whole spices by the kilo"
+        ]
+      },
+      "reading_and_listening": {
+        "label": "Books, music, paper and recordings",
+        "examples": [
+          "two hundred second-hand paperbacks",
+          "forty copies of the book your city presses on visitors",
+          "records, and a deck to play them on",
+          "ninety minutes of your city's own music, on tape",
+          "forty thousand postcards",
+          "pens by the box"
+        ]
+      },
+      "play_and_pastimes": {
+        "label": "Games, toys and puzzles",
+        "examples": [
+          "board games by the crate",
+          "a thousand-piece jigsaw and a mat to roll it in",
+          "two hundred kites and one enormous one",
+          "five hundred gaudy fête prizes",
+          "thirty sets of your city's own street game"
+        ]
+      },
+      "wear_and_comfort": {
+        "label": "Clothes, comforts and homely things",
+        "examples": [
+          "two hundred coats that actually work",
+          "a thousand pairs of loud socks",
+          "four hundred mismatched mugs",
+          "lamps, shades and two good armchairs",
+          "two hundred washable blankets",
+          "hot water bottles and slippers"
+        ]
+      },
+      "plants_and_pets": {
+        "label": "Plants, pets and living company",
+        "examples": [
+          "four hundred window boxes with something forgiving in them",
+          "a hundred rooted cuttings in wet newspaper",
+          "one bookshop cat, with references",
+          "an aquarium and the fish for it",
+          "six hens and a fox-proof coop"
+        ]
+      }
     },
     "rules": [
-      "A need names goods or services the city is buying. It may be strange, it may be funny, and it must be procurable: somebody could put it on a lorry, in a hold, or on a plane with a person inside it.",
-      "A need may not reduce to a request for advice, opinions, ideas, plans or civic problem solving. 'Send us pumps' is an order; 'what should we do about the water' is not.",
-      "The grievance behind the order may be described at any length. It is context for the buyer's mood, not the thing being bought.",
-      "An exporter's offer stays free-form (spec #15) and may fill an order with something nobody expected -- including a service where goods were asked for. The policy binds the order, never the offer."
+      "A need names ordinary things the city would like sent to it. Candy, soft drinks, snacks, books, music, games, clothes, plants, pets, small comforts -- the sort of thing anybody at the table can picture, has an opinion about, and would enjoy putting in a crate.",
+      "A need must be procurable and it must be relatable. Somebody could put it on a lorry, in a hold, or in a padded envelope, and any player could write a good offer for it without knowing anything in particular.",
+      "A need may not reduce to a request for advice, opinions, ideas, plans or problem solving. 'Send us sweets' is an order; 'what should we do about the sweet shop' is not.",
+      "A need may not be civic procurement. The city is the player's persona and their scoring unit, not their job: no purchase orders, tenders, budget lines, permits, public works or council business. A mayor here is a person saying what their town would like, not an official filling a requisition.",
+      "A need may not require specialist problem solving. Nothing that only a structural engineer, a surveyor, a consultant or somebody with a professional certificate could answer well. If the good offer depends on expertise, the need is out of scope even when it is genuinely goods.",
+      "The scene behind the order may be described at any length -- a ferry waiting room, a bus depot canteen, a library window. It is flavour for the buyer's mood, not a problem the exporter is being asked to fix.",
+      "An exporter's offer stays free-form (spec #15) and may fill an order with something nobody expected -- a song where sweets were asked for, a person where a pan was. The policy binds the order, never the offer."
     ],
-    "supply_verbs": ["ship", "send", "supply", "deliver", "consign", "freight", "load", "crate", "stock", "quote", "fill", "put"],
+    "supply_verbs": [
+      "ship",
+      "send",
+      "supply",
+      "deliver",
+      "consign",
+      "freight",
+      "load",
+      "crate",
+      "stock",
+      "quote",
+      "fill",
+      "put"
+    ],
     "_supply_verbs_note": "Every exporter_prompt must use at least one of these, because a prompt that asks for a consignment reads differently from one that asks for a suggestion, and the difference is checkable. Matched on word boundaries, case-insensitively.",
     "advice_markers": [
-      "what should", "how should", "what to do", "tell {city} what", "come up with",
-      "advice", "advise", "ideas for", "idea for", "suggestions for", "suggestion for",
-      "solve", "solution to", "figure out", "work out what", "explain", "explanation for",
-      "invent", "brainstorm", "recommend", "recommendation", "opinions on", "thoughts on",
-      "fix {city}", "help {city} decide", "decide what {city}"
+      "what should",
+      "how should",
+      "what to do",
+      "tell {city} what",
+      "come up with",
+      "advice",
+      "advise",
+      "ideas for",
+      "idea for",
+      "suggestions for",
+      "suggestion for",
+      "solve",
+      "solution to",
+      "figure out",
+      "work out what",
+      "explain",
+      "explanation for",
+      "invent",
+      "brainstorm",
+      "recommend",
+      "recommendation",
+      "opinions on",
+      "thoughts on",
+      "fix {city}",
+      "help {city} decide",
+      "decide what {city}"
     ],
     "_advice_markers_note": "Substrings that mark a request for advice rather than a consignment, checked case-insensitively over a need's title, brief and exporter prompt. Refused rather than rewritten: a marker in a seed is a content bug, and a marker in a mayor's freeform request is a request the facilitator's agent should ask them to re-file as an order (engine.trade.TradeRefused carries the reason and the failing phrase).",
+    "civic_markers": [
+      "procurement",
+      "procure",
+      "purchase order",
+      "requisition",
+      "put out to tender",
+      "invitation to tender",
+      "tender process",
+      "request for proposal",
+      "framework agreement",
+      "service level agreement",
+      "budget line",
+      "capital budget",
+      "budget must be spent",
+      "public works",
+      "works department",
+      "ratepayer",
+      "taxpayer",
+      "statutory",
+      "planning permission",
+      "building permit",
+      "temporary permit",
+      "zoning",
+      "by-law",
+      "bylaw",
+      "ordinance",
+      "subcommittee",
+      "council resolution",
+      "council motion",
+      "council has convened",
+      "public consultation",
+      "public inquiry",
+      "compulsory purchase",
+      "infrastructure",
+      "storm drain",
+      "sewer",
+      "wastewater",
+      "load-bearing",
+      "right-of-way",
+      "civic guilt",
+      "municipal problem"
+    ],
+    "_civic_markers_note": "Spec #13a's second refusal, from the user decision of 2026-09-02. Schema 2's seeds were legitimate trade and still asked mayors to behave like officials: purchase orders for pumps, expiring permits, budget lines that had to be spent by November. That framing is what made the game feel like homework, and it is refused at the same three doors as advice. These phrases are ones that can only be doing one job in a notice -- running a procurement -- so 'the allotment society has voted, twice, for hens' passes and 'purchase order: pumps, hose, pipe' does not. The city is still in the fiction everywhere else in the game (the paper still calls everyone Mayor); this list constrains the ORDER, which is the one place the framing decides whether a player can play.",
+    "specialist_markers": [
+      "structural engineer",
+      "structural calculation",
+      "stamped calculation",
+      "load calculation",
+      "chartered engineer",
+      "certified engineer",
+      "professional indemnity",
+      "somebody insured",
+      "survey crew",
+      "surveyor",
+      "ground radar",
+      "geotechnical",
+      "hydrological",
+      "feasibility study",
+      "risk assessment",
+      "environmental impact",
+      "regulatory compliance",
+      "code compliance",
+      "technical specification",
+      "remediation",
+      "specialist consultant",
+      "consultancy",
+      "qualified expert",
+      "expert report",
+      "epidemiolog",
+      "actuarial"
+    ],
+    "_specialist_markers_note": "Spec #13a's third refusal. A need can be honest goods, free of every procurement word, and still be answerable only by somebody with a professional qualification -- 'trusses, ties, fixings, and a stamped calculation from somebody insured' was a real schema 2 seed. Those orders quietly require civic or technical expertise to answer well, which is precisely what the 2026-09-02 decision removed. Skilled people are still tradable: a baker teaching two teenagers, a cook, a falconer, somebody who can work a sugar drum. The line is whether an ordinary player at this table could write a good offer.",
     "freeform": {
       "_comment": "Spec #13's other half: a mayor who wants something the slate does not offer writes their own order. These are the defaults the facilitator's agent fills in around whatever they actually said, so a freeform request arrives in the same shape as a seed and is judged by the same policy.",
       "id_prefix": "need-freeform",
-      "default_exporter_prompt": "Ship {city} what it has asked for, in whatever form your city can actually supply it.",
-      "default_excess_flavor": "consignments, unshipped, still labelled",
-      "required_fields": ["category", "trade_family", "title", "need_brief"],
-      "note_to_mayor": "Name what your city is buying and roughly how much of it. You are placing an order, not asking a question -- the other mayors will decide for themselves what to put in the crate."
+      "default_exporter_prompt": "Ship {city} what it has asked for, in whatever form your own city can actually supply it.",
+      "default_excess_flavor": "parcels, unshipped, still labelled",
+      "required_fields": [
+        "category",
+        "trade_family",
+        "title",
+        "need_brief"
+      ],
+      "note_to_mayor": "Name something ordinary your town would genuinely like a crate of, and roughly how much of it. Candy, soft drinks and books are the easiest three to picture; snacks, music, games, clothes, plants, pets and any small comfort all work just as well. You are placing an order, not asking a question, and you are not solving a municipal problem -- the other mayors will decide for themselves what to put in the crate."
     }
   },
-
-  "categories": [
-    { "id": "infrastructure", "label": "Infrastructure & Public Works", "blurb": "Things that are load-bearing, literally or otherwise." },
-    { "id": "water_and_waste", "label": "Water & Waste", "blurb": "What comes in wet and what refuses to leave." },
-    { "id": "food_and_drink", "label": "Food & Drink", "blurb": "Municipal appetite, municipal surplus." },
-    { "id": "culture_and_arts", "label": "Culture & the Arts", "blurb": "Statues, anthems, and unresolved committee opinions about both." },
-    { "id": "civic_ritual", "label": "Civic Ritual", "blurb": "Ceremonies, festivals, and the correct way to cut a ribbon." },
-    { "id": "wildlife_and_nature", "label": "Wildlife & Nature", "blurb": "Neighbours who did not fill out the forms." },
-    { "id": "weather_and_climate", "label": "Weather & Climate", "blurb": "The sky, treated as a procurement problem." },
-    { "id": "labor_and_expertise", "label": "Labour & Expertise", "blurb": "Someone who knows how the thing actually works." },
-    { "id": "transport_and_logistics", "label": "Transport & Logistics", "blurb": "Getting from here to there, ideally on purpose." },
-    { "id": "energy_and_utilities", "label": "Energy & Utilities", "blurb": "Heat, light, and the bill for both." },
-    { "id": "tourism_and_reputation", "label": "Tourism & Reputation", "blurb": "What outsiders say about us when we leave the room." },
-    { "id": "bureaucracy_and_paperwork", "label": "Bureaucracy & Paperwork", "blurb": "The city's true native industry." },
-    { "id": "sport_and_recreation", "label": "Sport & Recreation", "blurb": "Organised municipal sweating." },
-    { "id": "education_and_knowledge", "label": "Education & Knowledge", "blurb": "Teaching the place to remember itself." },
-    { "id": "health_and_wellness", "label": "Health & Wellness", "blurb": "The body politic, and also the bodies." },
-    { "id": "mysteries_and_anomalies", "label": "Mysteries & Anomalies", "blurb": "Items the city clerk has stopped minuting." }
-  ],
-
-  "needs": [
-    {
-      "id": "need-infrastructure-01",
-      "category": "infrastructure",
-      "trade_family": "equipment",
-      "title": "The far side of a bridge, delivered",
-      "need_brief": "{city} has a magnificent bridge. It was completed in the spring, under budget, and it lands in the overflow car park of a closed appliance showroom. The bridge is not for sale. {city} is buying what goes on the end of it: a building's worth of fittings, market stalls, plant, stock, a whole going concern if one will fit on a lorry.",
-      "exporter_prompt": "Ship {city} something worth crossing a bridge for, and say what comes off the lorry.",
-      "excess_flavor": "far sides, unattached, stacked by the water",
-      "tags": ["absurd", "civic", "physical"],
-      "source": "seed"
-    },
-    {
-      "id": "need-infrastructure-02",
-      "category": "infrastructure",
-      "trade_family": "materials",
-      "title": "Twenty metres of clear span, and a signature",
-      "need_brief": "The roof of {city}'s town hall is held up by scaffolding, three generations of temporary permits and the shared belief that it will hold. Two of those three expire in October. Wanted: trusses, beams, ties, fixings — timber, steel or stone, {city} is not fussy — and a stamped calculation from somebody insured.",
-      "exporter_prompt": "Send {city} the structure that will hold up a civic roof, and whatever crew or certificate travels with it.",
-      "excess_flavor": "unused support, propped against every wall in town",
-      "tags": ["absurd", "civic", "physical"],
-      "source": "seed"
-    },
-    {
-      "id": "need-infrastructure-03",
-      "category": "infrastructure",
-      "trade_family": "equipment",
-      "title": "One junction, in kit form",
-      "need_brief": "At the Fifth and Harbour crossing, {city}'s drivers use an unwritten protocol involving eye contact, headlight flashes and one particular hand gesture. Visitors do not know the protocol. Visitors are not doing well. {city} will buy signals, posts, signage, kerbstones, a roundabout in flat pack — anything that can be bolted down by March.",
-      "exporter_prompt": "Ship {city} the hardware that settles who goes first, in crates it can lift.",
-      "excess_flavor": "right-of-way conventions, mutually incompatible",
-      "tags": ["everyday", "civic", "social"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-water_and_waste-01",
-      "category": "water_and_waste",
-      "trade_family": "equipment",
-      "title": "Pumps, pipe and four days of standing water",
-      "need_brief": "{city}'s storm drains were built for a climate that has since resigned. Every heavy rain, the water arrives at the low end of Market Street and waits there, in public, for four days. Purchase order: pumps, hose, pipe, gravel, tanks, decking, and hands that have laid any of it before.",
-      "exporter_prompt": "Ship {city} the plant, pipework or people that will move the water at the low end of Market Street — or make it welcome there.",
-      "excess_flavor": "drainage kit, pooling on the quay",
-      "tags": ["climate", "civic", "physical"],
-      "source": "seed"
-    },
-    {
-      "id": "need-water_and_waste-02",
-      "category": "water_and_waste",
-      "trade_family": "equipment",
-      "title": "Plant for four hundred tonnes of seaweed",
-      "need_brief": "The tide brings {city} four hundred tonnes of seaweed a season. Burning it is illegal, burying it is unpopular, and the phrase 'municipal seaweed' now appears in eleven separate complaint letters. {city} is buying the machinery that turns it into a product: balers, dryers, presses, tanks — or a standing order from somebody who wants the stuff.",
-      "exporter_prompt": "Ship {city} the plant that makes seaweed into something, or the contract that takes it away by the tonne.",
-      "excess_flavor": "second, third and fourth uses for seaweed, unclaimed",
-      "tags": ["surplus", "coastal", "physical"],
-      "source": "seed"
-    },
-    {
-      "id": "need-water_and_waste-03",
-      "category": "water_and_waste",
-      "trade_family": "materials",
-      "title": "Pipe that does not taste of 1978",
-      "need_brief": "{city}'s tap water is perfectly safe and tastes strongly of the decade in which the pipes were laid. Residents have stopped noticing. Their guests have not. Wanted: pipe, liner, filter media, fittings by the pallet, and a re-lining crew who work nights.",
-      "exporter_prompt": "Supply {city} the pipe, lining or filtration that changes what comes out of the tap — and the crew who install it.",
-      "excess_flavor": "flavour corrections, decanted",
-      "tags": ["everyday", "infrastructure-adjacent", "sensory"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-food_and_drink-01",
-      "category": "food_and_drink",
-      "trade_family": "specialist_services",
-      "title": "A signature dish, cooks included",
-      "need_brief": "A travel magazine has listed {city} as 'a city best experienced between meals.' The council has convened, and has money for one thing only: a dish. {city} is buying cooks on secondment, the pans and griddles they insist on, the recipe under licence, and enough of the ingredients to get through the first month.",
-      "exporter_prompt": "Send {city} a cook, a recipe and the kit to make it — and say what is in the first crate.",
-      "excess_flavor": "candidate national dishes, going cold",
-      "tags": ["identity", "culinary", "reputation"],
-      "source": "seed"
-    },
-    {
-      "id": "need-food_and_drink-02",
-      "category": "food_and_drink",
-      "trade_family": "equipment",
-      "title": "Preservation, for ninety thousand plums",
-      "need_brief": "A clerical error in {city}'s orchard subsidy has produced a plum harvest roughly nine times the town's historical plum appetite. They are ripening on schedule and entirely without mercy. {city} will buy freezers, presses, drying racks, salt, sugar, casks, reefer containers, jars — and the hands to run them — delivered inside nine days.",
-      "exporter_prompt": "Ship {city} what keeps ninety thousand plums, and say how fast it can be on the quay.",
-      "excess_flavor": "plum schemes, fermenting quietly",
-      "tags": ["surplus", "culinary", "deadline"],
-      "source": "seed"
-    },
-    {
-      "id": "need-food_and_drink-03",
-      "category": "food_and_drink",
-      "trade_family": "foodstuffs",
-      "title": "A night canteen, four till eight",
-      "need_brief": "{city} runs on people finishing work at 5am — the port, the bakery, the hospital, the fish market. Nothing is open for them, and what is open is designed for people who slept. {city} is buying the canteen entire: urns, pots, a counter, the food to fill it, and cooks willing to work the wrong end of the night.",
-      "exporter_prompt": "Send {city} the kit, the stock and the cooks for a counter that opens at four in the morning.",
-      "excess_flavor": "breakfasts, served at the wrong hour",
-      "tags": ["everyday", "culinary", "labour"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-culture_and_arts-01",
-      "category": "culture_and_arts",
-      "trade_family": "cultural_works",
-      "title": "An object for an empty plinth",
-      "need_brief": "The plinth in {city}'s central square has been empty for two years. The previous occupant turned out to have opinions. The plinth is a good plinth, it is rated to eleven tonnes, and the square feels the absence. {city} is commissioning and buying the thing that stands on it — cast, carved, welded or grown, crated and shipped.",
-      "exporter_prompt": "Ship {city} something to put on an eleven-tonne plinth, and name the material.",
-      "excess_flavor": "rejected monuments, in storage, facing the wall",
-      "tags": ["identity", "civic", "public-art"],
-      "source": "seed"
-    },
-    {
-      "id": "need-culture_and_arts-02",
-      "category": "culture_and_arts",
-      "trade_family": "cultural_works",
-      "title": "A second verse, with performance rights",
-      "need_brief": "{city}'s anthem has exactly one verse. At every civic occasion the band reaches the end, hesitates, and plays it again, slightly louder, while everyone stares straight ahead. Wanted: a second verse — words and score, parts for a municipal band of nineteen, rights assigned in perpetuity, and someone to conduct the first performance.",
-      "exporter_prompt": "Supply {city} a second verse: the sheet music, the rights, and whoever comes to play it.",
-      "excess_flavor": "unsung verses, filed alphabetically",
-      "tags": ["identity", "music", "ceremony"],
-      "source": "seed"
-    },
-    {
-      "id": "need-culture_and_arts-03",
-      "category": "culture_and_arts",
-      "trade_family": "cultural_works",
-      "title": "An ensemble that fits in a stairwell",
-      "need_brief": "{city}'s concert hall is closed for repairs until the year after next. The only municipal space with acceptable acoustics is the east stairwell of the parking structure, which seats nine and echoes gloriously. {city} is buying instruments that fit, players who will travel, and a programme written for a room with a landing in it.",
-      "exporter_prompt": "Send {city} the instruments and the players for a room that seats nine.",
-      "excess_flavor": "ensembles, too large for the venue",
-      "tags": ["constraint", "music", "make-do"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-civic_ritual-01",
-      "category": "civic_ritual",
-      "trade_family": "cultural_works",
-      "title": "Everything a midwinter festival needs, in crates",
-      "need_brief": "{city} gets six usable hours of daylight in December and has never done anything about it. Neighbouring towns have festivals. {city} has a note in the minutes reading 'discuss lights?' and a budget line that must be spent by November. Wanted: lamps, braziers, lanterns, costume, fireworks, a touring act with its own van.",
-      "exporter_prompt": "Ship {city} the makings of a festival for the darkest day of the year, packed for December weather.",
-      "excess_flavor": "unheld festivals, dated and unattended",
-      "tags": ["seasonal", "ceremony", "identity"],
-      "source": "seed"
-    },
-    {
-      "id": "need-civic_ritual-02",
-      "category": "civic_ritual",
-      "trade_family": "specialist_services",
-      "title": "A crowd, hired honestly",
-      "need_brief": "{city} opened a new footbridge, a new clinic and a new recycling depot this year. Combined public attendance at the three ceremonies was eleven, four of whom were the mayor's family. {city} is buying the apparatus of an occasion: a brass band under contract, bunting by the kilometre, catering for four hundred, and a name people would leave the house for.",
-      "exporter_prompt": "Send {city} the band, the bunting, the food or the famous person — priced per ribbon.",
-      "excess_flavor": "ceremonies, uncut ribbons still on the spool",
-      "tags": ["ceremony", "civic", "attendance"],
-      "source": "seed"
-    },
-    {
-      "id": "need-civic_ritual-03",
-      "category": "civic_ritual",
-      "trade_family": "cultural_works",
-      "title": "Regalia for a mayor with none",
-      "need_brief": "In {city}, the mayor takes office by signing a form in a side office with two witnesses and a stapler. It is legally impeccable and emotionally insufficient. Wanted, in time for the spring installation: a chain of office, a staff or a seal, a book heavy enough to swear on, and robes that survive rain.",
-      "exporter_prompt": "Ship {city} the regalia its next mayor takes office in, and say what it is made of.",
-      "excess_flavor": "oaths of office, unspoken",
-      "tags": ["ceremony", "office", "identity"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-wildlife_and_nature-01",
-      "category": "wildlife_and_nature",
-      "trade_family": "living_things",
-      "title": "Something that outranks a pigeon",
-      "need_brief": "{city} imported hawks. The hawks were worse. {city} then imported a plan to manage the hawks, and that plan is the third item on this list of things {city} manages. The council is now buying stock and hardware only: birds with paperwork, netting, spikes, feed that pigeons dislike, and a falconer who will stay a season.",
-      "exporter_prompt": "Ship {city} the creature or the kit, with its paperwork, and say what it eats.",
-      "excess_flavor": "introduced species, awaiting introduction",
-      "tags": ["ecology", "escalation", "urban"],
-      "source": "seed"
-    },
-    {
-      "id": "need-wildlife_and_nature-02",
-      "category": "wildlife_and_nature",
-      "trade_family": "living_things",
-      "title": "Pollinators willing to work at altitude",
-      "need_brief": "{city}'s rooftop farms are eleven storeys up and produce almost nothing, because the bees — reasonably — stay near the ground where the flowers already are. {city} is buying colonies, queens, hives, mason bee tubes, or any other living thing that will do the work at sixty metres, delivered with instructions.",
-      "exporter_prompt": "Send {city} the colonies, hives or hardware that pollinate an eleventh floor.",
-      "excess_flavor": "pollination schemes, grounded",
-      "tags": ["ecology", "vertical", "agriculture"],
-      "source": "seed"
-    },
-    {
-      "id": "need-wildlife_and_nature-03",
-      "category": "wildlife_and_nature",
-      "trade_family": "living_things",
-      "title": "Planting stock that stands in salt",
-      "need_brief": "Every tree {city} has planted along the seafront promenade has died within two winters, politely and in order, west to east. The promenade is now a row of very well-maintained stakes. {city} is buying stock by the crate: rooted cuttings, whips, seedlings, pups, sets — anything that has already lived somewhere the spray reaches.",
-      "exporter_prompt": "Ship {city} rooted stock that grows where the salt is, and say where yours has been standing.",
-      "excess_flavor": "saplings, unplanted, still in their pots",
-      "tags": ["ecology", "coastal", "persistence"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-weather_and_climate-01",
-      "category": "weather_and_climate",
-      "trade_family": "materials",
-      "title": "Shade, on a pallet, before August",
-      "need_brief": "For five weeks a year {city}'s main square reaches temperatures that the local paper describes with a single exclamation mark. Trees take twenty years. The square has five weeks. Wanted: sails, canopies, awnings, poles, anchors, semi-mature trees in rootballs — anything that casts shade and arrives ready to install.",
-      "exporter_prompt": "Ship {city} shade it can put up before August, with the fixings.",
-      "excess_flavor": "shade, cast on nothing",
-      "tags": ["climate", "urgent", "physical"],
-      "source": "seed"
-    },
-    {
-      "id": "need-weather_and_climate-02",
-      "category": "weather_and_climate",
-      "trade_family": "equipment",
-      "title": "Two hundred days of fog, bought wholesale",
-      "need_brief": "{city} is fogged in two hundred days a year. It has been treated as a defect since the town was founded, and a subcommittee has quietly suggested this may have been an error. {city} is buying the equipment that makes fog into a product: mesh, collectors, condensers, tanks, lenses, whatever a foggy town can be fitted with.",
-      "exporter_prompt": "Ship {city} the equipment that harvests, uses or sells two hundred days of fog.",
-      "excess_flavor": "unrealised uses for fog, drifting",
-      "tags": ["climate", "reframe", "identity"],
-      "source": "seed"
-    },
-    {
-      "id": "need-weather_and_climate-03",
-      "category": "weather_and_climate",
-      "trade_family": "materials",
-      "title": "Windbreak for one avenue, bolted down",
-      "need_brief": "The wind comes down {city}'s main avenue at a speed that has removed four awnings, one election banner and the dignity of most residents between November and March. Purchase order: screens, baffles, slats, canvas, rope, planters heavy enough to stay put, and a crew to bolt it all down before the first gale.",
-      "exporter_prompt": "Ship {city} the windbreak for a four-kilometre avenue, and the crew who fix it in place.",
-      "excess_flavor": "windbreaks, blown over",
-      "tags": ["climate", "physical", "seasonal"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-labor_and_expertise-01",
-      "category": "labor_and_expertise",
-      "trade_family": "specialist_services",
-      "title": "A survey crew, and the gear to do it with",
-      "need_brief": "One person in {city} knew where all the pipes go. He retired in March. He left a map, the map is a napkin, it is honestly quite beautiful, and it is not sufficient. {city} is buying survey time: ground radar and the people who read it, tracers, a draughtsman, and a drawing set the water department can hang on a wall.",
-      "exporter_prompt": "Send {city} the survey crew and the gear, and say what they hand over at the end.",
-      "excess_flavor": "expertise, offered to no one",
-      "tags": ["knowledge-loss", "infrastructure-adjacent", "people"],
-      "source": "seed"
-    },
-    {
-      "id": "need-labor_and_expertise-02",
-      "category": "labor_and_expertise",
-      "trade_family": "specialist_services",
-      "title": "Night care, ten till seven",
-      "need_brief": "{city}'s biggest employers run around the clock. {city}'s childcare runs 8 to 6. The gap is currently covered by grandmothers, goodwill and a rota taped inside a locker door. {city} is buying the night shift: carers on secondment, cots, blackout blinds, a licensed rota it can copy, and relief staff for the weeks somebody has flu.",
-      "exporter_prompt": "Send {city} the carers, the cots and the paperwork for a room that opens at ten at night.",
-      "excess_flavor": "care arrangements, unrostered",
-      "tags": ["labour", "care", "everyday"],
-      "source": "seed"
-    },
-    {
-      "id": "need-labor_and_expertise-03",
-      "category": "labor_and_expertise",
-      "trade_family": "specialist_services",
-      "title": "Nine languages, before the market opens",
-      "need_brief": "Nine languages pass through {city}'s harbour market every morning and business is conducted almost entirely through pointing, tone of voice and an agreed set of noises. It works about 80% of the time. {city} is buying interpreters by the morning, printed signage, phrasebooks by the box, and a scale of weights everybody can read.",
-      "exporter_prompt": "Ship {city} the interpreters, signage or printed matter its market trades through.",
-      "excess_flavor": "phrasebooks, for languages nobody brought",
-      "tags": ["language", "commerce", "people"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-transport_and_logistics-01",
-      "category": "transport_and_logistics",
-      "trade_family": "equipment",
-      "title": "Haulage for a nineteen per cent gradient",
-      "need_brief": "Deliveries to {city}'s upper town stop at the bottom of a 19% gradient. From there everything — furniture, groceries, one piano — proceeds by arrangement, on foot, badly. {city} will buy winches, hoists, cargo bikes, a funicular in kit form, mules with their tack, or the crew that already does this somewhere steeper.",
-      "exporter_prompt": "Ship {city} the machinery or the animals that get a piano up a nineteen per cent hill.",
-      "excess_flavor": "conveyances, parked at the bottom of the hill",
-      "tags": ["terrain", "logistics", "physical"],
-      "source": "seed"
-    },
-    {
-      "id": "need-transport_and_logistics-02",
-      "category": "transport_and_logistics",
-      "trade_family": "equipment",
-      "title": "One bus, worth riding on a day off",
-      "need_brief": "{city}'s buses are punctual, clean and used exclusively by people with no alternative. Ridership studies have concluded, at some expense, that the buses are 'fine.' {city} is buying rolling stock and everything that goes inside it: a vehicle with a history, seats worth sitting in, a livery, a driver on loan for the first season.",
-      "exporter_prompt": "Ship {city} the vehicle, the fittings or the crew that make a bus route worth riding for its own sake.",
-      "excess_flavor": "routes, unrun, timetabled anyway",
-      "tags": ["transit", "delight", "civic"],
-      "source": "seed"
-    },
-    {
-      "id": "need-transport_and_logistics-03",
-      "category": "transport_and_logistics",
-      "trade_family": "equipment",
-      "title": "Kerbside equipment, and people to work it",
-      "need_brief": "{city} has adequate parking. Every study confirms it. Every resident disputes it. The gap between the studies and the residents is {city}'s single most reliable source of public feeling, and the council has stopped buying studies. Wanted instead: line paint, stencils, counters, boards, barriers, ticket machines, attendants in vests, or the lift that makes the whole question moot.",
-      "exporter_prompt": "Ship {city} the kerbside equipment or the people who work it, priced per street.",
-      "excess_flavor": "parking solutions, double-parked",
-      "tags": ["civic", "perception", "conflict"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-energy_and_utilities-01",
-      "category": "energy_and_utilities",
-      "trade_family": "equipment",
-      "title": "Four weeks of margin, in hardware",
-      "need_brief": "{city}'s grid is comfortable for forty-eight weeks of the year and holds its breath for the other four. Every January it makes a sound, and engineers have described the sound as 'not ideal.' {city} is buying capacity it can wheel in: generators, batteries, fuel, cable, heaters, a load-shedding controller with a manual.",
-      "exporter_prompt": "Ship {city} the plant, fuel or cable that carries a grid through four cold weeks.",
-      "excess_flavor": "reserve capacity, unspent",
-      "tags": ["seasonal", "grid", "risk"],
-      "source": "seed"
-    },
-    {
-      "id": "need-energy_and_utilities-02",
-      "category": "energy_and_utilities",
-      "trade_family": "equipment",
-      "title": "Buyers, or plant, for a field of warm air",
-      "need_brief": "The data centre on {city}'s eastern edge produces enough waste heat to warm a small district and currently uses it to make one particular field extremely comfortable for foxes. {city} is buying the plant that catches it — exchangers, insulated pipe, glasshouses, tanks — or a tenant who will take the heat by the megawatt and pay for it.",
-      "exporter_prompt": "Ship {city} the plant that moves waste heat somewhere useful, or the business that will buy it.",
-      "excess_flavor": "heat, radiating into the evening",
-      "tags": ["surplus", "energy", "reuse"],
-      "source": "seed"
-    },
-    {
-      "id": "need-energy_and_utilities-03",
-      "category": "energy_and_utilities",
-      "trade_family": "equipment",
-      "title": "Lanterns that leave the stars alone",
-      "need_brief": "{city} upgraded its streetlights and gained excellent visibility, a 40% energy saving, and the loss of every star its residents had grown up looking at. The petition has 3,000 signatures and a very good title. Wanted: warm lamps, shields, hoods, lanterns, dimmers and the columns to hang them on — eleven hundred of them.",
-      "exporter_prompt": "Supply {city} eleven hundred lanterns, shields or lamps, and say what the sky looks like under yours.",
-      "excess_flavor": "lighting proposals, switched off",
-      "tags": ["tradeoff", "night", "civic"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-tourism_and_reputation-01",
-      "category": "tourism_and_reputation",
-      "trade_family": "cultural_works",
-      "title": "An evening, bought outright",
-      "need_brief": "Visitors to {city} arrive at four, see the thing, eat somewhere adequate and leave before eleven the next morning. Three separate guidebooks call it 'a good stop.' {city} is buying an evening: a touring show with its own rigging, a late kitchen, bedding for forty rooms, a boat that runs after dark — delivered, not described.",
-      "exporter_prompt": "Ship {city} the show, the kit or the stock that keeps a visitor for a second night.",
-      "excess_flavor": "attractions, unvisited, open late",
-      "tags": ["reputation", "economy", "identity"],
-      "source": "seed"
-    },
-    {
-      "id": "need-tourism_and_reputation-02",
-      "category": "tourism_and_reputation",
-      "trade_family": "equipment",
-      "title": "Something for Northgate, worth the bus fare",
-      "need_brief": "Everyone in {city} agrees the Northgate district is the worst part of town. Nobody who says this has been to Northgate since 2009. Northgate, meanwhile, has quietly become quite good. {city} has a building, a budget and no stock: it is buying plant, fittings, equipment or the staff to run one thing in Northgate that people from the other side of town would travel for.",
-      "exporter_prompt": "Ship {city} the plant, fittings or people for one thing in Northgate worth the bus fare.",
-      "excess_flavor": "rebrands, unadopted, still in draft",
-      "tags": ["reputation", "neighbourhood", "perception"],
-      "source": "seed"
-    },
-    {
-      "id": "need-tourism_and_reputation-03",
-      "category": "tourism_and_reputation",
-      "trade_family": "cultural_works",
-      "title": "A print run that isn't the bridge",
-      "need_brief": "Every image of {city} ever printed shows the same view from the same hill. The hill is lovely. {city} would like to be more than one photograph, and has ordered forty thousand postcards it cannot yet fill. Wanted: photographers and their negatives, prints, plates, a poster series, the rights to all of it.",
-      "exporter_prompt": "Ship {city} the photographs, prints or plates for forty thousand postcards, and say who took them.",
-      "excess_flavor": "views, unphotographed",
-      "tags": ["reputation", "image", "identity"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-bureaucracy_and_paperwork-01",
-      "category": "bureaucracy_and_paperwork",
-      "trade_family": "specialist_services",
-      "title": "A form, redrawn and printed",
-      "need_brief": "{city}'s residency form is four pages, requires two documents that no longer exist, and is completed correctly on the first attempt by roughly one applicant in nine. {city} is buying the work and the paper: a draughtsman or typesetter for a month, the plates, and sixty thousand copies of whatever they hand over.",
-      "exporter_prompt": "Supply {city} the people, the plates and the paper for a form its residents can finish standing up.",
-      "excess_flavor": "simplified forms, unfiled",
-      "tags": ["bureaucracy", "everyday", "design"],
-      "source": "seed"
-    },
-    {
-      "id": "need-bureaucracy_and_paperwork-02",
-      "category": "bureaucracy_and_paperwork",
-      "trade_family": "equipment",
-      "title": "Twelve kilometres of minutes, and the gear to read them",
-      "need_brief": "{city}'s archive holds twelve linear kilometres of council minutes going back to 1804. Somewhere in there is the decision that explains the pipes. Nobody has ever read past 1861. {city} is buying scanners, book cradles, acid-free boxes, shelving by the run, and archivists who will come for a season and stay in the basement.",
-      "exporter_prompt": "Ship {city} the scanning gear, the boxes or the archivists for twelve kilometres of paper.",
-      "excess_flavor": "indexing schemes, themselves unindexed",
-      "tags": ["archive", "memory", "scale"],
-      "source": "seed"
-    },
-    {
-      "id": "need-bureaucracy_and_paperwork-03",
-      "category": "bureaucracy_and_paperwork",
-      "trade_family": "equipment",
-      "title": "Fittings for a queue that forms at six",
-      "need_brief": "{city}'s permit office opens at nine. The queue forms at six. The queue has developed its own customs, its own coffee arrangement and, as of last spring, a newsletter. {city} is buying the queue better furniture: a shelter, benches, ticket machines, an awning, heaters, and a coffee cart with somebody in it.",
-      "exporter_prompt": "Ship {city} the shelter, the seating or the machinery for three hundred people waiting outdoors at six in the morning.",
-      "excess_flavor": "queueing systems, waiting their turn",
-      "tags": ["bureaucracy", "social", "everyday"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-sport_and_recreation-01",
-      "category": "sport_and_recreation",
-      "trade_family": "equipment",
-      "title": "Sporting equipment rated for a crosswind",
-      "need_brief": "{city} has three excellent pitches and a prevailing crosswind that has turned every ball sport ever attempted here into a lottery with injuries. {city} is buying kit that ignores weather: heavy balls, stakes, nets, boots, weighted markers, the equipment for a game that already works somewhere windy — two hundred sets, plus a coach for the first season.",
-      "exporter_prompt": "Ship {city} two hundred sets of equipment for a game that works in a gale, and a coach who has played it.",
-      "excess_flavor": "unplayable sports, equipment included",
-      "tags": ["sport", "constraint", "kit"],
-      "source": "seed"
-    },
-    {
-      "id": "need-sport_and_recreation-02",
-      "category": "sport_and_recreation",
-      "trade_family": "cultural_works",
-      "title": "A rivalry, in kind",
-      "need_brief": "{city}'s team has no traditional rival. Matches are cordial. Attendance is stable. Something essential is missing and everyone is too polite to name it. {city} is buying the whole apparatus: a trophy heavy enough to be a nuisance to carry, a signed fixture in perpetuity, an away support that travels, drums, banners, and a grievance with a date on it.",
-      "exporter_prompt": "Ship {city} the trophy, the fixture or the travelling support — and say who is expected to carry it home.",
-      "excess_flavor": "grudges, unreciprocated",
-      "tags": ["sport", "social", "identity"],
-      "source": "seed"
-    },
-    {
-      "id": "need-sport_and_recreation-03",
-      "category": "sport_and_recreation",
-      "trade_family": "equipment",
-      "title": "Forty-one weeks of empty pool, filled",
-      "need_brief": "{city}'s outdoor municipal pool is magnificent for eleven weeks and a large blue rectangle of civic guilt for the remaining forty-one. Wanted: decking, a chiller and rink boards, a marquee, planters, market stalls, a stage — anything that drops into a twenty-five metre tank in October and comes out again in May.",
-      "exporter_prompt": "Ship {city} whatever goes into a drained twenty-five metre pool for the winter, in pieces two people can lift.",
-      "excess_flavor": "off-season uses, drained",
-      "tags": ["seasonal", "reuse", "civic"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-education_and_knowledge-01",
-      "category": "education_and_knowledge",
-      "trade_family": "cultural_works",
-      "title": "Stock a library card is worth having for",
-      "need_brief": "{city}'s library is free, excellent, and holds active cards for 8% of residents. The librarians have tried posters. The posters were not the issue. {city} is buying stock and hardware: books nobody else lends, instruments, tools, seeds, a van with shelves in it — anything a card can be used to take home.",
-      "exporter_prompt": "Ship {city} the stock its library lends out, and say what a borrower carries away.",
-      "excess_flavor": "membership drives, unenrolled",
-      "tags": ["civic", "culture", "persuasion"],
-      "source": "seed"
-    },
-    {
-      "id": "need-education_and_knowledge-02",
-      "category": "education_and_knowledge",
-      "trade_family": "specialist_services",
-      "title": "One free period, equipped",
-      "need_brief": "{city}'s schools have one free period on the timetable and a standing instruction to teach something useful in it. So far it has been used for supervised silence. {city} is buying the subject in a box: a curriculum under licence, the tools or kits for thirty pupils at a time, and a teacher on loan for a year to start it off.",
-      "exporter_prompt": "Ship {city} the kits, the materials and the teacher for one period a week, thirty at a time.",
-      "excess_flavor": "curricula, untaught",
-      "tags": ["education", "future", "civic"],
-      "source": "seed"
-    },
-    {
-      "id": "need-education_and_knowledge-03",
-      "category": "education_and_knowledge",
-      "trade_family": "cultural_works",
-      "title": "Eight hundred years of river, in objects",
-      "need_brief": "{city}'s river has eight hundred years of documented history and a heritage plaque that begins 'In 1214, following the settlement of a dispute regarding weirs.' Nobody has ever reached the second sentence. {city} is buying exhibits: a boat, a dredged object with a story, a print run, a film, models, anything a fourteen-year-old would stop walking for.",
-      "exporter_prompt": "Ship {city} the objects, prints or films that put eight hundred years of river in a room.",
-      "excess_flavor": "histories, unread past the first line",
-      "tags": ["heritage", "storytelling", "civic"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-health_and_wellness-01",
-      "category": "health_and_wellness",
-      "trade_family": "foodstuffs",
-      "title": "Something to eat at ten to four",
-      "need_brief": "Between 3:40 and 4:20 every weekday, productivity across {city} collapses in a way visible on the traffic sensors, the power draw and the tone of every phone call made in that window. {city} is buying the afternoon: coffee and tea by the sack, biscuits, candy, fruit, a trolley per floor, and the crockery to serve it in.",
-      "exporter_prompt": "Ship {city} what it should be eating and drinking at ten to four, by the sack and by the crate.",
-      "excess_flavor": "remedies, past their moment",
-      "tags": ["everyday", "rhythm", "wellbeing"],
-      "source": "seed"
-    },
-    {
-      "id": "need-health_and_wellness-02",
-      "category": "health_and_wellness",
-      "trade_family": "materials",
-      "title": "A shelter for a bad afternoon",
-      "need_brief": "{city} has benches for waiting, benches for eating and benches for supervising children. It has nowhere a person can sit and feel awful for twenty minutes without somebody asking if they are all right. Wanted: a shelter, seating that faces away from the path, planting, a roof, stone or timber — six of each, for six parks.",
-      "exporter_prompt": "Ship {city} the shelter, the seating or the planting for somewhere a person can sit badly in peace.",
-      "excess_flavor": "quiet corners, unoccupied",
-      "tags": ["wellbeing", "public-space", "tender"],
-      "source": "seed"
-    },
-    {
-      "id": "need-health_and_wellness-03",
-      "category": "health_and_wellness",
-      "trade_family": "equipment",
-      "title": "Stock and fittings for the 11:40 ferry",
-      "need_brief": "The last ferry reaches {city} at 11:40pm. Everything on the island shuts at ten. Whatever the passengers need — medicine, dinner, a plaster, a phone charger — they need it tomorrow. {city} is buying a small shop's worth of fittings and stock, or the machines that stand in for one, sited forty metres from the ramp.",
-      "exporter_prompt": "Ship {city} the fittings, the machines or the stock for the last hour of the day, forty metres from a ferry ramp.",
-      "excess_flavor": "late-night services, closed",
-      "tags": ["access", "timing", "everyday"],
-      "source": "seed"
-    },
-
-    {
-      "id": "need-mysteries_and_anomalies-01",
-      "category": "mysteries_and_anomalies",
-      "trade_family": "equipment",
-      "title": "Listening equipment, and ears to go with it",
-      "need_brief": "Since February, {city} has hummed. Two residents in five can hear it. The utility says it is not theirs, the geologists say it is not the ground, and the council has begun describing it in writing as 'the ambience.' {city} is buying instruments and time: hydrophones, geophones, meters, recorders — and people who have found a noise before, for a fortnight, with a bicycle each.",
-      "exporter_prompt": "Ship {city} the listening equipment, the people or the instruments the hum turns out to need.",
-      "excess_flavor": "explanations, unconvincing, filed under 'ambience'",
-      "tags": ["mystery", "civic", "comedy"],
-      "source": "seed"
-    },
-    {
-      "id": "need-mysteries_and_anomalies-02",
-      "category": "mysteries_and_anomalies",
-      "trade_family": "materials",
-      "title": "Material for a hole that comes back",
-      "need_brief": "{city}'s works department has filled the hole on Fifth Street eleven times. It has reappeared eleven times, always the same diameter, never in quite the same place. Budget line 44-C is now titled 'Fifth Street (ongoing).' {city} will buy fill, plate, kerbing, a cast cover, a bollard, a railing — twelve of everything, and something to put on top of the twelfth.",
-      "exporter_prompt": "Ship {city} the material for a hole that has come back eleven times, and say how much to keep in the yard.",
-      "excess_flavor": "hole-fillings, surplus to requirement",
-      "tags": ["mystery", "recurring", "comedy"],
-      "source": "seed"
-    },
-    {
-      "id": "need-mysteries_and_anomalies-03",
-      "category": "mysteries_and_anomalies",
-      "trade_family": "equipment",
-      "title": "A signal lamp and somebody who reads one",
-      "need_brief": "{city}'s lighthouse was decommissioned in 1997 and disconnected in 1998. Three times this year it has signalled, at night, in a rhythm the harbourmaster describes as 'polite.' The harbour office has nothing to signal back with. {city} is buying a lamp, fuel, a log book, and a keeper who can read lamp-rhythm, for three clear nights.",
-      "exporter_prompt": "Ship {city} the lamp, the fuel and the keeper for three nights on a headland.",
-      "excess_flavor": "protocols, never invoked",
-      "tags": ["mystery", "coastal", "eerie"],
-      "source": "seed"
-    }
-  ],
-
   "player_extensions": {
     "_comment": "Spec #13, #33 -- players may suggest additional import needs during play, and an importing mayor may file a freeform request instead of taking one from the slate. Both are appended to this same list at runtime with the same schema and are checked against trade_policy above.",
-    "required_fields": ["id", "category", "trade_family", "title", "need_brief", "exporter_prompt", "source"],
+    "required_fields": [
+      "id",
+      "category",
+      "trade_family",
+      "title",
+      "need_brief",
+      "exporter_prompt",
+      "source"
+    ],
     "rules": [
       "source must be \"player\", plus a proposed_by_city field naming the suggesting city.",
       "category must be one of the ids in categories[], so the repetition rule in config.json -> imports still applies. If no category fits, add the category here first rather than leaving it blank.",
       "trade_family must be one of trade_policy.families, because spec #13a is a rule about what is being bought and an unfamilied need is one nobody has checked.",
-      "need_brief must use the {city} placeholder rather than naming a specific city, so the need can be taken by whichever city files it.",
-      "The need must be an order for goods or services, not a request for advice, ideas or civic problem solving (spec #13a). engine.trade refuses one that reads as the latter and says which phrase did it.",
+      "need_brief must use the {city} placeholder rather than naming a specific city, so the need can be taken by whichever city files it. Titles carry no placeholder at all.",
+      "The need must be an order for ordinary, relatable goods -- not advice, not civic procurement, not specialist problem solving (spec #13a). engine.trade refuses one that reads as any of the three and says which phrase did it.",
       "A suggested need may not name a specific exporting city or a specific export, to keep the export phase open-ended and blind judging fair."
     ]
   }

@@ -44,6 +44,10 @@ from engine.dice import parse_dice
 from engine.game import LOCKSTEP_OPS, SLOT_EXPORT, SLOT_IMPORT_PICK, SLOT_QUESTION
 from engine.state import EVEN_SPLIT, RAMP_UP, RESOLVED, WINNER_PICK
 from hosting import page
+from newspaper import voice
+from newspaper.copy import NewspaperCopy
+from newspaper.redact import DECLINED_ROLE, comparable_export
+from newspaper.tone import TonePolicy
 
 PASS = "pass"
 FAIL = "fail"
@@ -137,8 +141,8 @@ def run(game, journal, artifacts):
         _silent_skip, _ramp_up, _pick_the_round_after, _even_split, _profit_rolls,
         _origin_never_exposed, _exposure_is_configured, _two_slots, _question_framing,
         _aggregate_phrasing, _one_edition_per_round, _archive_browsable,
-        _city_identity_only, _image_per_edition, _tone, _reading_experience,
-        _endgame_crown_and_twist,
+        _city_identity_only, _image_per_edition, _tone, _player_voice,
+        _reading_experience, _endgame_crown_and_twist,
         _endgame_cities, _game_content, _separate_agents, _separate_repo,
     ]
     return Report([check(game, journal, artifacts) for check in checks])
@@ -401,7 +405,14 @@ def _importer_chooses(game, journal, artifacts):
 
 
 def _needs_are_trade(game, journal, artifacts):
-    """#13a: what is ordered is goods or services, never advice."""
+    """#13a: what is ordered is everyday, relatable and orderable.
+
+    Three refusals, checked over two populations. The **pool** goes through the
+    policy itself, which is where a stale seed would be caught. The **rendered
+    prompts this game actually put in front of mayors** go through the marker
+    lists directly, because a prompt is what a player reads, and the 2026-09-02
+    decision is a rule about whether a player can play.
+    """
     policy = game.content.trade
     refused = []
     for need in game.content.needs:
@@ -412,17 +423,27 @@ def _needs_are_trade(game, journal, artifacts):
     families = sorted({need["trade_family"] for need in game.content.needs
                        if need.get("trade_family")})
     opened = sorted({n.order.get("trade_family") for n in game.needs.values()})
-    prompts = [n.rendered["exporter_prompt"] for n in game.needs.values()]
-    advice = [p for p in prompts if policy.advice_marker_in(p)]
+    unplayable = []
+    for need in game.needs.values():
+        wording = " ".join([
+            need.rendered["title"], need.rendered["need_brief"],
+            need.rendered["exporter_prompt"],
+        ])
+        kind, phrase = policy.refusal_marker_in(wording)
+        if kind:
+            unplayable.append({"need": need.content_need_id, "kind": kind,
+                               "phrase": phrase})
     return _verdict(
-        "#13a", "import needs are orders for actual tradable things",
-        not refused and not advice,
-        "all %d needs in the pool declare one of spec #13a's kinds of tradable "
-        "thing (%s) and none of them, or of the %d prompts this game put in front "
-        "of exporting mayors, reads as a request for advice or civic problem "
-        "solving; this game's own orders covered %s"
-        % (len(game.content.needs), families, len(prompts), opened),
-        {"refused": refused or None, "advice_prompts": advice or None},
+        "#13a", "import needs are orders for everyday, relatable things",
+        not refused and not unplayable,
+        "all %d needs in the pool declare one of spec #13a's everyday kinds of "
+        "tradable thing (%s), and none of them -- nor any of the %d notices this "
+        "game actually opened -- reads as a request for advice, as civic "
+        "procurement, or as a job for a specialist; this game's own orders "
+        "covered %s across %s"
+        % (len(game.content.needs), families, len(game.needs), opened,
+           sorted({n.category for n in game.needs.values()})),
+        {"refused": refused or None, "unplayable_notices": unplayable or None},
     )
 
 
@@ -1034,6 +1055,94 @@ def _tone(game, journal, artifacts):
 
 
 # --- endgame --------------------------------------------------------------
+
+def _player_voice(game, journal, artifacts):
+    """Spec #30b: the mayors' own words, printed as typed and marked as theirs.
+
+    Four things, checked over every edition this game published and its last:
+
+    * every passage the paper marks as player voice is byte-identical to
+      something a player actually typed -- an export or an answer. A passage
+      that had drifted would mean the paper rewrote a mayor, and one that no
+      player wrote would mean the paper had claimed #30b's exemption for its own
+      copy;
+    * every one of them carries a cite, so a reader is never handed a mayor's
+      wording in the paper's voice;
+    * the cite over a *declined* offer names no city, because #21 outranks the
+      wish to give credit;
+    * whether the exemption was needed at all in this game, reported either way.
+      A recording in which no mayor happened to write a register term does not
+      demonstrate #30b, and saying so is the honest finding -- the case is
+      exercised in ``newspaper/sample.py``'s committed run and proved in
+      ``tests/test_player_voice.py``, where a game can be built to order.
+    """
+    tone = TonePolicy(game.config, NewspaperCopy.load(game.config))
+    written = voice.player_texts(game)
+    cities = sorted(player.city for player in game.players.values())
+
+    editions = list(artifacts["archive"]["editions"])
+    final = artifacts["archive"].get("final")
+    if final:
+        editions.append(final)
+
+    faults, passages, register_hits = [], 0, []
+    for edition in editions:
+        where = "final" if edition.get("endgame") else edition["round"]
+        for block in _voice_blocks(edition):
+            texts = [block["text"]] if isinstance(block.get("text"), str) else list(
+                block.get("items") or ()
+            )
+            declined = block.get("role") == DECLINED_ROLE
+            for text in texts:
+                passages += 1
+                if comparable_export(text) not in written:
+                    faults.append({"edition": where, "why": "not a player's text",
+                                   "text": text, "spec": "#30b"})
+                if tone.findings(text):
+                    register_hits.append({"edition": where, "declined": declined})
+            if not block.get("cite"):
+                faults.append({"edition": where, "why": "quoted without a cite",
+                               "spec": "#30b"})
+            if declined:
+                named = [city for city in cities if city in (block.get("cite") or "")]
+                if named:
+                    faults.append({"edition": where, "why": "a declined cite names a city",
+                                   "cities": named, "spec": "#21"})
+
+    exercised = (
+        "%d of them contain a term from the paper's own forbidden register, so the "
+        "exemption was load-bearing in this game" % len(register_hits)
+        if register_hits else
+        "none of them contains a term from the paper's own forbidden register, so "
+        "this recording did not need the exemption; the committed sample run "
+        "(newspaper/sample.py) carries an offer that does, and "
+        "tests/test_player_voice.py proves the publish-anyway, no-rewrite and "
+        "no-blocking behaviour directly"
+    )
+    return _verdict(
+        "#30b", "a mayor's own words are printed as typed and marked as theirs",
+        not faults,
+        "%d quoted passages across %d editions, every one byte-identical to what a "
+        "player typed and every one cited (config.newspaper.tone."
+        "forbidden_register_scope=%r, so the register grades the paper's copy and "
+        "not a mayor's). %s"
+        % (passages, len(editions), tone.scope, exercised),
+        faults or {
+            "passages": passages,
+            "register_terms_in_player_passages": len(register_hits),
+            "declined_passages_cited_without_a_city": True,
+        },
+    )
+
+
+def _voice_blocks(edition):
+    return [
+        block
+        for department in edition["departments"]
+        for block in department.get("blocks", [])
+        if block.get("voice") == voice.PLAYER
+    ]
+
 
 def _endgame_crown_and_twist(game, journal, artifacts):
     final = artifacts["archive"].get("final")

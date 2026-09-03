@@ -343,6 +343,51 @@ blockquote {
 
 blockquote p { margin: 0.25rem 0; }
 
+/* Spec #30b: the mayors' own words, set apart from the desk's. The figure
+   carries a quotation and the line that says whose it is -- for a winning offer
+   the mayor's office, for a declined one a plain statement that the paper is not
+   saying (spec #21). The left rule is the accent rather than the ink so that a
+   reader can see at a glance which passages the paper did not write; the caption
+   is set like the portraits' captions, because it is doing the same job. */
+figure.player-voice {
+  margin: 0.9rem 0 1.1rem;
+  padding: 0;
+  break-inside: avoid;
+}
+
+figure.player-voice blockquote,
+figure.player-voice ul {
+  margin: 0;
+}
+
+figure.player-voice ul {
+  padding: 0.6rem 0.9rem 0.6rem 2rem;
+  border-left: 3px solid var(--accent-soft);
+  background: var(--tint);
+}
+
+figure.player-voice figcaption {
+  margin-top: 0.4rem;
+  padding-left: 0.2rem;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+figure.player-voice figcaption::before {
+  content: "— ";
+}
+
+/* A paragraph of the paper's that quotes a mayor inside itself. The sentence is
+   the desk's; only the quotation within it is not, so it is marked rather than
+   set apart. */
+p.quotes-player em {
+  font-style: normal;
+  background: var(--tint);
+  padding: 0 0.15rem;
+}
+
 .aside, .note {
   margin-top: 0.9rem;
   padding-top: 0.6rem;

@@ -15,7 +15,8 @@
     "the_crown": ["{city}", "{mayor}", "{profit}", "{city_list}", "{n_winners}", "{runner_up}", "{margin}", "{n_cities}", "{n_others}", "{n_needs}", "{rounds}", "{wins}", "{wins_word}"],
     "consequences": ["{city}", "{to_city}", "{from_city}", "{export}", "{title}", "{category_label}", "{n_cities}", "{n_arrivals}", "{excess}", "{excess_word}", "{flavours}"],
     "the_excess": ["{city}", "{mayor}", "{profit}", "{rank}", "{rank_word}", "{to_city}", "{export}", "{title}", "{titles}", "{category_label}", "{count}", "{count_word}", "{counted}", "{flavour}", "{question}", "{answer}", "{n_imports}", "{n_imports_word}", "{n_cities}"],
-    "endgame_imagery": ["{city}", "{count}", "{profit}", "{excess}", "{n_cities}"]
+    "endgame_imagery": ["{city}", "{count}", "{profit}", "{excess}", "{n_cities}"],
+    "player_voice": ["{mayor}"]
   },
 
   "_pointed_note": "A frame may be written either as a plain string or as {\"line\": \"...\", \"pointed\": true}. Spec #30 allows humour that is pointed rather than uniformly laudatory, and config.newspaper.tone.allow_pointed_humor decides whether this particular game wants it; frames marked pointed are dropped when it is false, and every family keeps at least one unpointed frame so nothing can be left with nothing to say. 'Pointed' here means the joke has a target -- an institution, a decision, the paper itself. A joke whose target is a person is not pointed, it is mean, and it does not belong in this file at any setting (see tone.forbidden_register).",
@@ -31,7 +32,7 @@
       "final_standing_line": "The last edition of this paper. Mayors are named by city and office only, and no unchosen offer is traced to its sender, today or ever.",
       "final_foot": "{publication}. The final edition. There is no notice open, no window closing, and nothing further to send.",
       "price_lines": [
-        "Price: one civic favour, redeemable at inconvenience",
+        "Price: one biscuit, or the firm promise of one",
         "Price: free to city halls, exorbitant to everyone else",
         "Price: whatever you have in the coat you wore yesterday",
         "Price: unchanged since the first edition, which was also this week",
@@ -61,7 +62,7 @@
         "**PUBLIC NOTICE**, lodged at this paper's counter by the office of {mayor}, who declined to elaborate.",
         "**PUBLIC NOTICE**. {mayor} has taken out an advertisement. This paper has read it three times and remains impressed.",
         "**PUBLIC NOTICE**, filed by {mayor} under {category_label}, which is where {city} files most things.",
-        "**PUBLIC NOTICE** from {city}, paid for in municipal goodwill and printed here at length because the paper had the room."
+        "**PUBLIC NOTICE** from {city}, paid for in goodwill and one packet of biscuits, and printed here at length because the paper had the room."
       ],
       "prompt_frames": [
         "The office asks, and the paper repeats verbatim: *{prompt}*",
@@ -92,22 +93,22 @@
           { "line": "Readers are reminded that the last time this column offered advice, a fountain was involved.", "pointed": true }
         ],
         "by_category": {
-          "infrastructure": ["This paper has no opinion on load-bearing matters and would like that on record before anything settles."],
-          "water_and_waste": ["The paper's own plumbing was mentioned in an early edition and has not forgiven us."],
-          "food_and_drink": ["The paper's staff have volunteered, unanimously and immediately, to assess any samples."],
-          "culture_and_arts": ["The arts desk is one person and they are not answering their door."],
-          "civic_ritual": ["The correct number of ribbons to cut is one. The paper will die on this hill."],
-          "wildlife_and_nature": ["The paper reminds readers that the birds were here first and have said so."],
-          "weather_and_climate": ["Treating the sky as a procurement problem has never once worked, and city halls keep trying."],
-          "labor_and_expertise": ["Somewhere there is a person who knows how this works. They are on holiday."],
-          "transport_and_logistics": ["The paper arrived late to its own deadline and has chosen not to explain how."],
-          "energy_and_utilities": ["The bill for this edition's lighting is being contested internally."],
-          "tourism_and_reputation": ["What outsiders say about us when we leave the room is, unfortunately, printable."],
-          "bureaucracy_and_paperwork": ["This is the city's true native industry and the paper says so with affection and a small shudder."],
-          "sport_and_recreation": ["The paper fielded a team once. The paper does not wish to discuss the team."],
-          "education_and_knowledge": ["Teaching a place to remember itself is slow work and the paper is, at best, a set of notes."],
-          "health_and_wellness": ["The body politic has been advised to sit down for a moment."],
-          "mysteries_and_anomalies": ["The city clerk stopped minuting this category some time ago, which the paper regards as an admission."]
+          "candy": ["The paper's staff have volunteered, unanimously and immediately, to assess any samples."],
+          "soft_drinks": ["This desk holds that a drink is only cold if the bottle sweats, and has held that position loudly."],
+          "snacks": ["Two members of staff eat standing at the window every evening and consider themselves the experts of record."],
+          "baked_goods": ["The smell reaches this office at twenty past six and nothing has been filed on time since."],
+          "hot_drinks": ["The paper drinks eleven cups a day and has begun referring to itself in the third person about it."],
+          "condiments": ["One jar in this kitchen has outlived two editors. Nobody will open it and nobody will throw it away."],
+          "books": ["The literary desk is one person, they are halfway through something, and they are not answering their door."],
+          "music": ["The paper owns one cassette and a strong sense of grievance about it."],
+          "games_and_puzzles": ["This office once played a game to settle an editorial dispute. The dispute is now about the game."],
+          "toys_and_novelties": ["Nothing in this column is sensible, and the paper considers that the entire point."],
+          "clothes": ["The paper has been wet since November and would like that noted somewhere permanent."],
+          "plants": ["There is a plant on this desk that arrived as a gift in the first edition. It is doing better than the desk."],
+          "pets": ["The paper reminds readers that the animals were here first and have said so."],
+          "homeware": ["Four hundred mugs is a number this office recognises and declines to be surprised by."],
+          "stationery": ["This entire edition was written with a pen borrowed from the front counter and never returned."],
+          "small_comforts": ["The paper's position on a wet Tuesday is that somebody should be sent for biscuits, and it will not be the paper."]
         }
       }
     },
@@ -419,27 +420,27 @@
           "{to_city} filed the arrival from {from_city} under {category_label} and has been unable to file anything else there since."
         ],
         "by_category": {
-          "infrastructure": ["Two things in {to_city} are now load-bearing that were never asked whether they wanted to be."],
-          "water_and_waste": ["{to_city} reports that the water now goes where it was told to go. {to_city} has not previously been able to report this."],
-          "food_and_drink": ["{to_city} has eaten it, formally, at a ceremony, and has put in a written request for more."],
-          "culture_and_arts": ["There is a plaque about it in {to_city} now. The plaque is longer than the thing it commemorates."],
-          "civic_ritual": ["{to_city} has folded it into the annual calendar, where it occupies a full weekend and one contested Thursday."],
-          "wildlife_and_nature": ["Something in {to_city} has moved into it. Nothing in {to_city} has been able to move it out."],
-          "weather_and_climate": ["The sky over {to_city} was not consulted, and has responded in the only way the sky ever responds."],
-          "labor_and_expertise": ["Four people in {to_city} now know how it works. Three of them are on the same rota."],
-          "transport_and_logistics": ["It arrives in {to_city} twice a day and is late in a way that has become a local unit of time."],
-          "energy_and_utilities": ["{to_city}'s lights are noticeably on this year. So, in a different sense, is the bill."],
-          "tourism_and_reputation": ["Visitors to {to_city} are now shown it first. Residents of {to_city} are shown it constantly."],
-          "bureaucracy_and_paperwork": ["It has generated a form. The form has generated a second form. {to_city} has stopped counting."],
-          "sport_and_recreation": ["There is a league in {to_city} now. There is also, already, a disputed result."],
-          "education_and_knowledge": ["Children in {to_city} are being taught about it and have started asking the follow-up questions."],
-          "health_and_wellness": ["{to_city} feels better and cannot fully explain why, which its own physicians describe as the goal."],
-          "mysteries_and_anomalies": ["{to_city}'s clerk has stopped minuting it. This paper regards that as the most complete report available."]
+          "candy": ["Dentists in {to_city} have written to this paper. Not to complain, they stress. Merely to note."],
+          "soft_drinks": ["Every fridge in {to_city} is now one crate fuller than it was designed to be, and three doors no longer shut."],
+          "snacks": ["{to_city} has eaten it, formally, at a ceremony, and has put in a written request for more."],
+          "baked_goods": ["A queue forms in {to_city} at twenty past six now. Nobody has ever queued in {to_city} before."],
+          "hot_drinks": ["Nothing in {to_city} starts before the second cup any more, and the town has quietly rescheduled itself around it."],
+          "condiments": ["One jar of it sits in every kitchen in {to_city}, and in most of them it has become the subject of a house rule."],
+          "books": ["Somebody in {to_city} has read it and will now be raising it in unrelated conversations until the end of time."],
+          "music": ["{to_city} has played it eleven hundred times. Two streets have asked, politely, for a rota."],
+          "games_and_puzzles": ["There is a league in {to_city} now. There is also, already, a disputed result."],
+          "toys_and_novelties": ["It was bought for the children of {to_city}. The children of {to_city} have seen it twice."],
+          "clothes": ["Everybody in {to_city} is warm, visible from a distance, and has entirely stopped mentioning the weather."],
+          "plants": ["It has taken to {to_city} magnificently, in every direction, and through one wall."],
+          "pets": ["Something in {to_city} has moved in and settled. Nothing in {to_city} has been able to move it out."],
+          "homeware": ["Four hundred of them entered {to_city} and three hundred and eighty can be accounted for."],
+          "stationery": ["{to_city} has written to everybody it has ever met. Several of them have written back, which was not the plan."],
+          "small_comforts": ["{to_city} feels better and cannot fully account for why, which its own doctors describe as the goal."]
         }
       },
       "ramped_up": [
         "The industry {city} ramped up when nobody answered its notice has not been ramped back down. It has a logo, a rota and an opinion about the harbour.",
-        "{city} solved its own problem that round and has been solving it ever since, at a scale nobody authorised."
+        "{city} made its own that round, and has gone on making it ever since, at a scale nobody suggested."
       ],
       "even_split": [
         "In {city}'s harbour, {n_cities} offers were declared correct simultaneously. All {n_cities} cities involved now describe themselves, separately, as the one that settled it.",
@@ -481,7 +482,7 @@
       "imports_line": [
         "{city} came to the world {n_imports_word} times, over {titles}.",
         "What {city} asked for, in order: {titles}.",
-        "{city}'s notices this game: {titles}. {n_imports_word} in total, each one a problem it could not solve alone."
+        "{city}'s notices this game: {titles}. {n_imports_word} in total, each one a thing it wanted and could not get at home."
       ],
       "imports_none": [
         "{city} never got to open a notice of its own: the rotation ended before its turn came round.",
@@ -649,24 +650,24 @@
       "accent": "#5c5a56", "spot": "#3a3936", "spot_alt": "#79776f"
     },
     "palettes": {
-      "infrastructure":          { "paper": "#f7f2e6", "ink": "#221d18", "sky": "#f2c14e", "water": "#3d6b7d", "accent": "#e2571e", "spot": "#8c4a2f", "spot_alt": "#d9a441" },
-      "water_and_waste":         { "paper": "#f1f7f6", "ink": "#12262b", "sky": "#9fd8d5", "water": "#1f6f78", "accent": "#f26d3d", "spot": "#2e8b83", "spot_alt": "#7ec4bd" },
-      "food_and_drink":          { "paper": "#fdf3e3", "ink": "#2b1a12", "sky": "#ffd08a", "water": "#a8573b", "accent": "#c5283d", "spot": "#e08e45", "spot_alt": "#7d9b3f" },
-      "culture_and_arts":        { "paper": "#f6f0f8", "ink": "#211a2b", "sky": "#c9b6e4", "water": "#4b3b78", "accent": "#eab543", "spot": "#8e5fb8", "spot_alt": "#d38ab5" },
-      "civic_ritual":            { "paper": "#fbf4ee", "ink": "#2a1c1c", "sky": "#f5b7b1", "water": "#7d3c4a", "accent": "#c9a227", "spot": "#b0435a", "spot_alt": "#e79e8f" },
-      "wildlife_and_nature":     { "paper": "#f3f7ec", "ink": "#1a2415", "sky": "#bfe08a", "water": "#3f6b3a", "accent": "#e4772e", "spot": "#6a9a3c", "spot_alt": "#a8c96a" },
-      "weather_and_climate":     { "paper": "#eef4f9", "ink": "#182430", "sky": "#a8cbe8", "water": "#2f5675", "accent": "#f2c14e", "spot": "#5b87ad", "spot_alt": "#c9dced" },
-      "labor_and_expertise":     { "paper": "#f8f4ec", "ink": "#231d16", "sky": "#e8cf9a", "water": "#6b5334", "accent": "#c2452d", "spot": "#9a7942", "spot_alt": "#d6b877" },
-      "transport_and_logistics": { "paper": "#f5f5f0", "ink": "#1b1f24", "sky": "#c8d6dd", "water": "#37525e", "accent": "#e8541e", "spot": "#5c7c8a", "spot_alt": "#a3bcc6" },
-      "energy_and_utilities":    { "paper": "#fdf6e0", "ink": "#241f10", "sky": "#ffe08a", "water": "#7a5c1e", "accent": "#e03e2f", "spot": "#c99a1e", "spot_alt": "#f0cf6a" },
-      "tourism_and_reputation":  { "paper": "#f2f8f9", "ink": "#13232a", "sky": "#8fd0e8", "water": "#1c5f77", "accent": "#f4a11d", "spot": "#3d95b3", "spot_alt": "#9fd6e8" },
-      "bureaucracy_and_paperwork": { "paper": "#f7f6f1", "ink": "#22221c", "sky": "#ddd9c4", "water": "#5a5a49", "accent": "#b1462f", "spot": "#8a8a6e", "spot_alt": "#c3c1a8" },
-      "sport_and_recreation":    { "paper": "#f1f7f1", "ink": "#15231a", "sky": "#a9dfb4", "water": "#256b47", "accent": "#e8542e", "spot": "#3f9663", "spot_alt": "#8fcfa4" },
-      "education_and_knowledge": { "paper": "#f6f3ea", "ink": "#1f1b26", "sky": "#cfc3a4", "water": "#453a5e", "accent": "#d1622a", "spot": "#6d5c96", "spot_alt": "#a99ac4" },
-      "health_and_wellness":     { "paper": "#f8f2f4", "ink": "#241a1e", "sky": "#f4c5cf", "water": "#8a3f52", "accent": "#3f8f7a", "spot": "#c26b80", "spot_alt": "#efaebc" },
-      "mysteries_and_anomalies": { "paper": "#f1eff6", "ink": "#171426", "sky": "#b3aede", "water": "#332a5e", "accent": "#f2c14e", "spot": "#6b5fa8", "spot_alt": "#a49ccf" }
+      "candy":              { "paper": "#fdf1f5", "ink": "#2a1420", "sky": "#f9c3d8", "water": "#b03a63", "accent": "#f2c14e", "spot": "#e0578b", "spot_alt": "#ffd4e3" },
+      "soft_drinks":        { "paper": "#f1f7f6", "ink": "#12262b", "sky": "#9fd8d5", "water": "#1f6f78", "accent": "#f26d3d", "spot": "#2e8b83", "spot_alt": "#7ec4bd" },
+      "snacks":             { "paper": "#fdf3e3", "ink": "#2b1a12", "sky": "#ffd08a", "water": "#a8573b", "accent": "#c5283d", "spot": "#e08e45", "spot_alt": "#7d9b3f" },
+      "baked_goods":        { "paper": "#f8f4ec", "ink": "#231d16", "sky": "#e8cf9a", "water": "#6b5334", "accent": "#c2452d", "spot": "#9a7942", "spot_alt": "#d6b877" },
+      "hot_drinks":         { "paper": "#f6f3ea", "ink": "#1f1b26", "sky": "#cfc3a4", "water": "#453a5e", "accent": "#d1622a", "spot": "#6d5c96", "spot_alt": "#a99ac4" },
+      "condiments":         { "paper": "#fbf4ee", "ink": "#2a1c1c", "sky": "#f5b7b1", "water": "#7d3c4a", "accent": "#c9a227", "spot": "#b0435a", "spot_alt": "#e79e8f" },
+      "books":              { "paper": "#f6f0f8", "ink": "#211a2b", "sky": "#c9b6e4", "water": "#4b3b78", "accent": "#eab543", "spot": "#8e5fb8", "spot_alt": "#d38ab5" },
+      "music":              { "paper": "#f1eff6", "ink": "#171426", "sky": "#b3aede", "water": "#332a5e", "accent": "#f2c14e", "spot": "#6b5fa8", "spot_alt": "#a49ccf" },
+      "games_and_puzzles":  { "paper": "#f1f7f1", "ink": "#15231a", "sky": "#a9dfb4", "water": "#256b47", "accent": "#e8542e", "spot": "#3f9663", "spot_alt": "#8fcfa4" },
+      "toys_and_novelties": { "paper": "#fdf6e0", "ink": "#241f10", "sky": "#ffe08a", "water": "#7a5c1e", "accent": "#e03e2f", "spot": "#c99a1e", "spot_alt": "#f0cf6a" },
+      "clothes":            { "paper": "#eef4f9", "ink": "#182430", "sky": "#a8cbe8", "water": "#2f5675", "accent": "#f2c14e", "spot": "#5b87ad", "spot_alt": "#c9dced" },
+      "plants":             { "paper": "#f3f7ec", "ink": "#1a2415", "sky": "#bfe08a", "water": "#3f6b3a", "accent": "#e4772e", "spot": "#6a9a3c", "spot_alt": "#a8c96a" },
+      "pets":               { "paper": "#f7f2e6", "ink": "#221d18", "sky": "#f2c14e", "water": "#3d6b7d", "accent": "#e2571e", "spot": "#8c4a2f", "spot_alt": "#d9a441" },
+      "homeware":           { "paper": "#f7f6f1", "ink": "#22221c", "sky": "#ddd9c4", "water": "#5a5a49", "accent": "#b1462f", "spot": "#8a8a6e", "spot_alt": "#c3c1a8" },
+      "stationery":         { "paper": "#f2f8f9", "ink": "#13232a", "sky": "#8fd0e8", "water": "#1c5f77", "accent": "#f4a11d", "spot": "#3d95b3", "spot_alt": "#9fd6e8" },
+      "small_comforts":     { "paper": "#f5f5f0", "ink": "#1b1f24", "sky": "#c8d6dd", "water": "#37525e", "accent": "#e8541e", "spot": "#5c7c8a", "spot_alt": "#a3bcc6" }
     },
-    "default_palette": "bureaucracy_and_paperwork",
+    "default_palette": "homeware",
     "labels": {
       "no_leaderboard": "figures withheld",
       "offers": "offers received",
@@ -780,8 +781,30 @@
     ]
   },
 
+  "player_voice": {
+    "_comment": "Spec #30b. Two voices print in this paper. The desk's own is held to the tone rules below; the mayors' is reprinted exactly as it was typed, because an export is free-form (spec #15) and the paper's job is to carry it, not to improve it. These are the lines that tell a reader which is which, and they are content rather than code for the usual reason: how a paper says 'these are not our words' is a writing decision. A winning offer is quoted under its mayor's office, since winning makes the sender nameable; a declined offer is quoted under a line that says plainly the paper is not naming anybody, which is spec #21 and outranks any wish to give credit. The declined families take no substitutions at all -- not even {mayor} -- which is the cheapest possible way to make a slip impossible.",
+    "winner_quote": [
+      "In {mayor}'s own words, printed exactly as they arrived at this desk.",
+      "That is {mayor} writing, not this paper: a winning offer is reprinted word for word, spelling, temper and all.",
+      "{mayor} wrote that, and the paper has changed nothing in it, as it never does."
+    ],
+    "declined_quote": [
+      "Offers in their senders' own words. Whose words they are stays in the envelope, permanently.",
+      "Printed as written and attributed to nobody. The paper knows; the paper is not saying.",
+      "Those are mayors writing, word for word. Which mayors is not this paper's news to print."
+    ],
+    "twist_quote": [
+      "The offer as {mayor} wrote it, which is how it was read and how it is printed here.",
+      "{mayor}'s own words, unaltered. What they did after arriving is a separate matter, below."
+    ],
+    "excess_quote": [
+      "Offers this city turned down, in the words they came in. No senders named, this year or any year.",
+      "The unchosen, printed as written and signed by nobody at all."
+    ]
+  },
+
   "tone": {
-    "_comment": "Spec #30: funny, fun, colorful, allowed to be pointed, never snide or mean. The first three are judged by a human or a judging role; this block is the mechanical half. forbidden_register is run over every rendered edition when config.newspaper.tone.disallow_snide_or_mean is true, and an edition that trips it does not publish. It is deliberately a list of words that can only be doing one job in a sentence: attacking somebody. It is a floor, not a ceiling -- passing it is not the same as being kind.",
+    "_comment": "Spec #30: funny, fun, colorful, allowed to be pointed, never snide or mean. The first three are judged by a human or a judging role; this block is the mechanical half. forbidden_register is run over every rendered edition when config.newspaper.tone.disallow_snide_or_mean is true, and an edition that trips it does not publish. It runs over the paper's own voice: config.newspaper.tone.forbidden_register_scope is newspaper_voice, and the passages player_voice above marks as a mayor's are subtracted before the scan, so a mayor's word choice never blocks an edition or gets rewritten (spec #30b). It is deliberately a list of words that can only be doing one job in a sentence: attacking somebody. It is a floor, not a ceiling -- passing it is not the same as being kind.",
     "forbidden_register": [
       "idiot", "idiotic", "stupid", "stupidity", "moron", "cretin", "imbecile",
       "pathetic", "useless", "worthless", "incompetent", "clueless", "hopeless case",

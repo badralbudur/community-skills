@@ -58,6 +58,8 @@ that ever stops being true.
 import re
 from html import escape
 
+from newspaper.voice import PLAYER
+
 #: The paper's copy uses two inline marks and no others: ``**PUBLIC NOTICE**``
 #: for a lede in small caps and ``*a quoted brief*`` for emphasis. That is a
 #: convention of the *payload*, not of Markdown -- ``newspaper.render`` happens
@@ -103,14 +105,16 @@ def block_to_html(block, extra_class=None, with_city_images=True):
     if kind == "standfirst":
         return '<p class="standfirst">%s</p>' % inline(block["text"])
     if kind == "para":
-        if extra_class:
-            return '<p class="%s">%s</p>' % (escape(extra_class), inline(block["text"]))
+        classes = [name for name in (extra_class, _player_voice_class(block)) if name]
+        if classes:
+            return '<p class="%s">%s</p>' % (escape(" ".join(classes)), inline(block["text"]))
         return "<p>%s</p>" % inline(block["text"])
     if kind == "quote":
         lines = block["text"].splitlines() or [""]
-        return "<blockquote>%s</blockquote>" % "".join(
+        quote = "<blockquote>%s</blockquote>" % "".join(
             "<p>%s</p>" % inline(line) for line in lines
         )
+        return _in_player_voice(quote, block)
     if kind in ("aside", "note"):
         # Same on the page, different in kind -- an aside is an editorial joke
         # that config can switch off, a note is a factual footnote that always
@@ -130,7 +134,10 @@ def block_to_html(block, extra_class=None, with_city_images=True):
             % (escape(block["image"]), escape(block["alt"]), inline(block["caption"]))
         )
     if kind == "list":
-        return "<ul>%s</ul>" % "".join("<li>%s</li>" % inline(item) for item in block["items"])
+        items = "<ul>%s</ul>" % "".join(
+            "<li>%s</li>" % inline(item) for item in block["items"]
+        )
+        return _in_player_voice(items, block)
     if kind == "table":
         head = "".join("<th>%s</th>" % inline(str(column)) for column in block["columns"])
         body = "".join(
@@ -139,6 +146,35 @@ def block_to_html(block, extra_class=None, with_city_images=True):
         )
         return "<table><thead><tr>%s</tr></thead><tbody>%s</tbody></table>" % (head, body)
     raise ValueError("no HTML renderer for block kind %r" % kind)
+
+
+#: The class the stylesheet sets the mayors' own writing in, and the class on a
+#: paper sentence that quotes some inside itself. Two classes rather than one
+#: because they are different things on the page: a figure whose contents are
+#: entirely somebody else's words, and a paragraph of the paper's that contains
+#: a quotation (spec #30b).
+PLAYER_VOICE_CLASS = "player-voice"
+QUOTES_PLAYER_CLASS = "quotes-player"
+
+
+def _player_voice_class(block):
+    return QUOTES_PLAYER_CLASS if block.get("player_spans") else None
+
+
+def _in_player_voice(html, block):
+    """Wrap a quotation in the attribution that says whose words it is (#30b).
+
+    A ``figure``/``figcaption`` pair, which is what HTML has for "this content
+    and the line that credits it" -- the same structure the city portraits use.
+    Blocks the payload does not mark as player voice are returned untouched:
+    the paper's own copy needs no byline, being the paper's.
+    """
+    if block.get("voice") != PLAYER:
+        return html
+    return (
+        '<figure class="%s">\n%s\n<figcaption>%s</figcaption>\n</figure>'
+        % (PLAYER_VOICE_CLASS, html, inline(block["cite"]))
+    )
 
 
 def department_to_html(department, lead=False, with_city_images=True):

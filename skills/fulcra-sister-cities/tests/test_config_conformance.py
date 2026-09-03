@@ -88,6 +88,9 @@ NEWSPAPER_READS = {
     "newspaper.tone.colorful",
     "newspaper.tone.allow_pointed_humor",
     "newspaper.tone.disallow_snide_or_mean",
+    # Whose prose that register grades (spec #30b). The paper implements one
+    # value and refuses any other, which is a read either way.
+    "newspaper.tone.forbidden_register_scope",
     "facilitator_questions.aggregate_phrasing_style",
     # The last edition's own switches (spec #31, #32). They belong in this set
     # rather than a fourth one because the endgame is written by the same

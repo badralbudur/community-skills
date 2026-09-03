@@ -4,7 +4,8 @@ This is the fixture behind ``editions/sample-game/`` and behind the newspaper
 tests. It is deliberately not a happy path: it contains a mayor who joins in
 round 3, a notice nobody answers at all, an importing mayor who lets their
 picking window lapse, mayors whose two game actions crowd the question out of
-their check-in, and an export that names its own city. Those are the rounds where
+their check-in, an export that names its own city, and an export whose own
+wording trips the paper's editorial register. Those are the rounds where
 the paper has to say something careful, and a sample edition that only showed the
 easy round would prove very little.
 
@@ -31,9 +32,12 @@ LATECOMER = ("m-brg", "@eli", "Bergen")
 #: 2026-08-31 decision nothing is drawn: an importing mayor files their city's
 #: next import themselves, so a scripted game scripts that too. These are chosen
 #: to read like a table of mayors ordering for their own towns -- Valparaíso
-#: buying haulage for a hill, Bergen buying seaweed plant -- and to spread across
-#: spec #13a's kinds of tradable thing, because the sample editions are also the
-#: thing a reader looks at to find out what this game is about.
+#: buying board games for a wet fortnight, Bergen buying cordial and then coffee
+#: -- and to spread across spec #13a's everyday kinds of thing, because the
+#: sample editions are also what a reader looks at to find out what this game is
+#: about. Since the 2026-09-02 decision that means candy, drinks, books, games,
+#: clothes and plants rather than trusses and survey crews: nobody should have to
+#: know how a city works to enjoy the sample edition either.
 #:
 #: Reykjavík's second order is a mapping rather than a seed id: that is the other
 #: half of spec #13, a mayor writing their own order when the slate does not have
@@ -41,61 +45,65 @@ LATECOMER = ("m-brg", "@eli", "Bergen")
 #: is visible in published bytes rather than only in the test suite.
 ORDERS = {
     "Reykjavík": (
-        "need-mysteries_and_anomalies-01",
+        "need-plants-01",
         {
-            "category": "energy_and_utilities",
-            "trade_family": "materials",
-            "title": "Ninety kilometres of insulated pipe",
-            "need_brief": "{city} has more hot water underneath it than pipe to put "
-                          "it in, and the district heating main stops four streets "
-                          "short of the new housing in both directions. Wanted: "
-                          "pre-insulated pipe in six-metre lengths, valves, lagging, "
-                          "and welders who have worked in a trench in February.",
-            "exporter_prompt": "Ship {city} the pipe, the fittings or the welders, "
-                               "and say how much of it fits on one lorry.",
-            "excess_flavor": "pipe, stacked and capped against the weather",
+            "category": "small_comforts",
+            "trade_family": "wear_and_comfort",
+            "title": "Four hundred hot water bottles, and the covers for them",
+            "need_brief": "It is dark in {city} by two in the afternoon for most of "
+                          "December, and the flats at the top of the hill are cold in "
+                          "a way that no amount of tea has ever settled. Wanted: hot "
+                          "water bottles -- four hundred, rubber, boring, the kind "
+                          "that outlive their owners -- knitted covers for all of "
+                          "them, and two hundred pairs of thick socks in case the "
+                          "covers run short.",
+            "exporter_prompt": "Ship {city} four hundred hot water bottles and the "
+                               "covers for them, and say what the covers are knitted "
+                               "from.",
+            "excess_flavor": "hot water bottles, cooling, in a cupboard",
         },
     ),
-    "Valparaíso": ("need-transport_and_logistics-01", "need-culture_and_arts-01"),
-    "Hobart": ("need-weather_and_climate-03", "need-food_and_drink-03"),
-    "Kampala": ("need-food_and_drink-02", "need-sport_and_recreation-02"),
-    "Bergen": ("need-water_and_waste-02", "need-education_and_knowledge-01"),
+    "Valparaíso": ("need-games_and_puzzles-01", "need-books-01"),
+    "Hobart": ("need-clothes-03", "need-snacks-03"),
+    "Kampala": ("need-snacks-02", "need-toys_and_novelties-02"),
+    "Bergen": ("need-soft_drinks-02", "need-hot_drinks-01"),
 }
 
 #: Each city answers in a consistent voice, cycling through its own offers as the
-#: game goes on. Written as consignments rather than counsel (spec #13a, #15): a
-#: mayor filling somebody's order sends a thing or a person, and these are the
-#: things and people each of these five cities plausibly has going spare.
+#: game goes on. Written as consignments rather than counsel (spec #13a, #15), and
+#: since the 2026-09-02 decision written as *everyday* consignments: liquorice,
+#: socks, apples, kites, cinnamon buns. A reader of the sample should be able to
+#: tell within one edition that filling somebody's order needs nothing but taste.
 OFFERS = {
     "Reykjavík": (
-        "A retired harbourmaster, on loan, with strong opinions and a thermos.",
-        "Six weeks of the municipal brass band, and the sheet music for one more.",
-        "Geothermal heat, piped, on the understanding that we get the pipes back.",
-        "A committee that has already failed at this and can save you the time.",
+        "Salted liquorice, forty cases, which visitors have twice described as a prank.",
+        "Wool socks in colours our grandmothers chose. A thousand pairs, all slightly wrong.",
+        "Skyr by the pallet, the spoons for it, and a warning that it is not a dessert.",
+        "A crate of paperbacks about weather, read to destruction over one long winter.",
     ),
     "Valparaíso": (
-        "Forty-one working funicular cars and the man who knows which forty are safe.",
-        "A hillside's worth of paint, in colours the council will argue about for years.",
-        "One stray dog with an unimpeachable sense of civic occasion.",
-        "The complete municipal songbook, including the verses nobody sings.",
+        "Four hundred metres of bunting in the colours the hills painted themselves, ladders included.",
+        "Six thousand alfajores, packed in tins that families here reuse for thirty years.",
+        "A brass band with its own van, its own repertoire, and no intention of stopping at ninety minutes.",
+        "Nine hundred rooted bougainvillea cuttings, wrapped in yesterday's newspaper.",
     ),
     "Hobart": (
-        "A ferry timetable that has survived contact with the actual weather.",
-        "Two hundred metres of very good rope and somebody who can splice it.",
-        "The southernmost bakery on the register, boxed, with its opening hours.",
-        "A quiet room with a view of water, available Tuesdays.",
+        "Apples, forty cases, in six varieties nobody off this island has heard of.",
+        "Two hundred waxed cotton raincoats, unbeautiful, tested annually by the actual weather.",
+        "A crate of jam, the recipe, and the woman who will not permit you to alter the recipe.",
+        "Board games for a wet fortnight, forty boxes, every piece counted twice.",
     ),
     "Kampala": (
-        "Eleven boda riders who know every shortcut and will not be told otherwise.",
+        "Roast maize, chapati and a spice mix in unlabelled bags, because labels slow everything down.",
         "A market's worth of Saturday, transplanted whole, noise included.",
-        "The city's best sign-painter and a week of their time.",
-        "A rolling programme of unscheduled municipal celebration.",
+        "Eleven hand-painted shop signs, still wet, and the sign-painter, who travels.",
+        "Three hundred kites of feed sack and split cane, and the children who fly them best.",
     ),
     "Bergen": (
-        "Rain. Enormous quantities of rain, and the civic infrastructure to shrug at it.",
-        "A fish counter with a two-hundred-year opinion about freshness.",
-        "Seven brass instruments and a licensed procession route.",
-        "One extremely load-bearing granite step, spare.",
+        "Rain, in quantity, and the raincoats to shrug at it.",
+        "Fish soup in vacuum packs, and a two-hundred-year opinion about freshness.",
+        "Seven brass instruments, tuned, and a procession route we are prepared to lend.",
+        "Cinnamon buns, three hundred a morning, frozen, ready for an oven you already own.",
     ),
 }
 
@@ -104,7 +112,29 @@ OFFERS = {
 #: without exposing where a losing offer came from.
 SIGNED_OFFER = (
     "m-hbt",
-    "A standing invitation to Hobart, extended in perpetuity and in writing.",
+    "A crate of Hobart apples with the word Hobart stamped into every single one.",
+)
+
+#: The one offer in this game whose own wording the paper would never write, so
+#: the sample exercises spec #30b: a mayor's export is player voice, printed as
+#: typed even when it trips the editorial register, and cited to the mayor who
+#: wrote it rather than absorbed into the paper's voice.
+#:
+#: "Stupid" here is aimed at a book about drainage, which is the case
+#: ``content/newspaper.json``'s own note on the register describes -- a word a
+#: kinder paper might use innocently -- and it is the whole reason the register
+#: cannot be allowed to bind players: the alternative is a round that will not
+#: publish because one mayor was rude about a municipal handbook.
+#:
+#: It is deliberately the longest offer on its ballot, since the scripted mayor
+#: picks by length (see :func:`_pick_winners`), so it wins and is quoted rather
+#: than reprinted anonymously. The declined-offer side of #30b is proved in
+#: ``tests/test_player_voice.py``, where a game can be built to order.
+BLUNT_OFFER = (
+    "m-kmp",
+    "Two hundred paperbacks from the stall by the taxi park, no two alike, and "
+    "the one I nearly kept is a stupid little book about drainage that I have "
+    "now read four times.",
 )
 
 #: The round-by-round deviations. Everything not listed here is a cooperative
@@ -124,6 +154,10 @@ PLAN = {
     6: {"skip_picks": True},
     # One mayor simply does not check in.
     7: {"skip_exports": ("m-vlp",)},
+    # An offer whose own wording trips the paper's editorial register, sent to
+    # Valparaíso's second notice. It wins, and the paper prints it as written
+    # and cites it to the mayor who wrote it (spec #30b).
+    8: {"blunt_offer": True},
 }
 
 #: Questions this seed draws that are deliberately left unanswered, so the paper
@@ -374,6 +408,9 @@ def _submit_exports(game, step, offer_index):
         city = game.players[player_id].city
         if step.get("signed_offer") and player_id == SIGNED_OFFER[0]:
             game.submit_export(player_id, SIGNED_OFFER[1])
+            continue
+        if step.get("blunt_offer") and player_id == BLUNT_OFFER[0]:
+            game.submit_export(player_id, BLUNT_OFFER[1])
             continue
         offers = OFFERS[city]
         index = offer_index.get(city, 0)

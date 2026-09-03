@@ -43,7 +43,7 @@ from engine import views
 from engine.errors import ConfigError
 from engine.state import EVEN_SPLIT, RAMP_UP
 
-from . import imagery, portrait, redact
+from . import imagery, portrait, redact, voice
 from .copy import count_word, counted
 from .departments import deadline_stamp, long_date
 from .redact import DECLINED_ROLE, may_reprint_declined
@@ -204,6 +204,10 @@ class EndgameDepartments:
                 values,
             ),
         }
+
+    def _cite(self, family, key, values=None):
+        """:func:`newspaper.voice.cite`, with this department's copy and chooser."""
+        return voice.cite(self.copy, self.chooser, family, key, values)
 
     def _closer(self, department, name, key, values=None):
         """The editorial sign-off, or nothing when told not to be funny (#30)."""
@@ -368,7 +372,14 @@ class EndgameDepartments:
             key = ("consequences", arrival["need"])
             pool = delivered["by_category"].get(arrival["category"]) or delivered["general"]
             where = "departments.consequences.delivered"
-            blocks.append({"kind": "quote", "text": arrival["export"]})
+            # A winner, so nameable (spec #18, #20) -- and printed as its mayor
+            # typed it, cited to them, and exempt from the editorial register
+            # (spec #30b).
+            blocks.append(voice.quoted(
+                arrival["export"],
+                self._cite("twist_quote", key + ("cite", index),
+                           {"mayor": "the Mayor of %s" % arrival["from_city"]}),
+            ))
             blocks.append({"kind": "para", "text": self._line(
                 delivered["attribution"], key + ("attr", index),
                 where + ".attribution", values)})
@@ -545,10 +556,16 @@ class EndgameDepartments:
                 dict(values, count=len(kept), count_word=count_word(len(kept))))})
         if kept:
             best = max(kept, key=lambda entry: len(entry["export"]))
-            blocks.append({"kind": "para", "text": self._line(
-                department["won_line"], key + ("won",),
-                "departments.the_excess.won_line",
-                dict(values, export=best["export"], to_city=best["to_city"]))})
+            # The sentence is the paper's and the offer quoted inside it is the
+            # mayor's, so only the first of the two is the paper's to police
+            # (spec #30b).
+            blocks.append(voice.within(
+                {"kind": "para", "text": self._line(
+                    department["won_line"], key + ("won",),
+                    "departments.the_excess.won_line",
+                    dict(values, export=best["export"], to_city=best["to_city"]))},
+                best["export"],
+            ))
         else:
             blocks.append({"kind": "para", "text": self._line(
                 department["won_none"], key + ("won_none",),
@@ -611,13 +628,16 @@ class EndgameDepartments:
                     dict(values, count=len(printed), count_word=count_word(len(printed)),
                          counted=counted(len(printed), "offer")))})
                 blocks.append(
-                    {
-                        "kind": "list",
+                    voice.listed(
+                        printed,
+                        # No substitutions in this cite family: an unchosen
+                        # offer is quoted as written and credited to nobody
+                        # (spec #21, #30b).
+                        self._cite("excess_quote", key + ("excess_cite",)),
                         # The role is what redact.assert_edition_is_redacted keys
                         # its check off: every string here must name no city.
-                        "role": DECLINED_ROLE,
-                        "items": printed,
-                    }
+                        role=DECLINED_ROLE,
+                    )
                 )
             for count, family in ((signed, "excess_withheld_signed"),
                                   (matched, "excess_withheld_matched")):
@@ -649,10 +669,15 @@ class EndgameDepartments:
         answers = dossier.get("answers") or []
         blocks = []
         for index, answer in enumerate(answers[: self.policy.quoted_answers]):
-            blocks.append({"kind": "para", "text": self._line(
-                department["answer_line"], key + ("answer", index),
-                "departments.the_excess.answer_line",
-                dict(values, question=answer["question"], answer=answer["answer"]))})
+            blocks.append(voice.within(
+                {"kind": "para", "text": self._line(
+                    department["answer_line"], key + ("answer", index),
+                    "departments.the_excess.answer_line",
+                    dict(values, question=answer["question"], answer=answer["answer"]))},
+                # A mayor's own reply, quoted inside the paper's sentence
+                # (spec #30b).
+                answer["answer"],
+            ))
         return blocks
 
 

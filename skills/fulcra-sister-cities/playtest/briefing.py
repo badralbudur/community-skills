@@ -14,7 +14,11 @@ What a brief contains, therefore:
   their own import notices, the export prompts they may answer, the questions
   they may reply to;
 * nothing whatsoever about anybody else's offers. Not the text, not the count,
-  not who else showed up.
+  not who else showed up;
+* what the paper will do with what they write -- that a winning offer is
+  reprinted verbatim and cited to their office, that their wording is never
+  rewritten or held against the round (spec #30b), and what the paper will not
+  say in its own voice (spec #30). See :func:`_publication_note`.
 
 The pick round is deliberately *not* briefed here. An importing mayor's ballot
 does not exist until the export window closes, and it cannot be assembled from
@@ -24,6 +28,8 @@ pass, from the real ballots of the real replayed game -- see
 """
 
 from engine.game import SLOT_EXPORT, SLOT_QUESTION
+from newspaper.copy import NewspaperCopy
+from newspaper.tone import TonePolicy
 
 from .table import SEATS
 
@@ -77,6 +83,56 @@ def brief_for(game, journal, seat):
         "privacy": (
             "You never learn what any other city offered, and nobody ever learns "
             "what you offered unless it wins (spec #18, #21)."
+        ),
+        "publication": _publication_note(game),
+    }
+
+
+def _publication_note(game):
+    """What the paper will and will not print of what this mayor writes.
+
+    A mayor's offer is free-form (spec #15) and the paper reprints a *winning*
+    offer verbatim, so a briefed agent has to know what happens to its words
+    once they leave its hands.
+
+    What that note says changed with spec #30b. It used to hand every mayor the
+    paper's forbidden register and tell them to stay out of it, because a
+    register term in a winning offer refused the edition -- which is how M11's
+    first recording lost an edition to one adjective. #30b moved the line where
+    it belongs: the register is the *desk's* editorial standard, a mayor's words
+    are printed as typed and cited to them, and no offer can block a round. So
+    the brief now tells a mayor the truth about publication and asks for the
+    better joke rather than handing them a word list to tiptoe around.
+
+    The register is still read out of the content file rather than restated
+    here, and still passed along -- not as a rule binding the player, but as
+    what the paper will not say in its own voice, which is worth knowing if you
+    are writing for it.
+    """
+    tone = TonePolicy(game.config, NewspaperCopy.load(game.config))
+    return {
+        "verbatim": (
+            "If your offer wins, The Daily Manifest prints it exactly as you "
+            "wrote it, under your city's mayor, and changes nothing in it. "
+            "Nothing else you write is ever printed with your city attached."
+        ),
+        "your_words_are_yours": (
+            "Your wording is yours, not the paper's. It is never rewritten, "
+            "never redacted for tone, and it can never stop an edition going "
+            "out (spec #30b) -- so write what your city would actually say."
+        ),
+        "tone": (
+            "The paper is funny, colourful and allowed to be pointed -- about "
+            "institutions, decisions, absurdity and itself. It is never snide "
+            "or mean about a person (spec #30), and neither, please, are you. "
+            "Write the better joke."
+        ),
+        "the_papers_own_register": (
+            list(tone.forbidden) if tone.disallow_snide else []
+        ),
+        "register_binds": (
+            "the paper's own copy, not yours (config.newspaper.tone."
+            "forbidden_register_scope=%r)" % tone.scope
         ),
     }
 

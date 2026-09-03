@@ -25,7 +25,7 @@ def tiny_content(category_count, needs_per_category, questions=6):
                     "category": category["id"],
                     # Orders, not questions: every need in every pool obeys spec
                     # #13a, fixtures included (engine.trade checks them at load).
-                    "trade_family": "materials",
+                    "trade_family": "wear_and_comfort",
                     "title": "need %s %d" % (category["id"], slot),
                     "need_brief": "{city} is buying six crates of %s." % category["id"],
                     "exporter_prompt": "Ship {city} six crates of something.",
@@ -199,11 +199,11 @@ class PlayerSuggestedNeedTest(unittest.TestCase):
             "p2",
             {
                 "id": "need-player-01",
-                "category": "civic_ritual",
-                "trade_family": "materials",
+                "category": "small_comforts",
+                "trade_family": "wear_and_comfort",
                 "title": "Four hundred metres of ribbon",
-                "need_brief": "{city} is buying ribbon by the roll, in a weave that "
-                              "cuts cleanly on the first attempt.",
+                "need_brief": "{city} wraps a great many presents and has run out of "
+                              "ribbon in every colour but brown.",
                 "exporter_prompt": "Ship {city} the ribbon, the scissors or both.",
             },
         )
@@ -220,9 +220,9 @@ class PlayerSuggestedNeedTest(unittest.TestCase):
                 "p2",
                 {
                     "id": "need-player-02",
-                    "category": "civic_ritual",
-                    "trade_family": "cultural_works",
-                    "title": "A better ribbon-cutting",
+                    "category": "small_comforts",
+                    "trade_family": "reading_and_listening",
+                    "title": "A better way to wrap a present",
                     "need_brief": "{city} has a ribbon problem.",
                     "exporter_prompt": "What should {city} do about the ribbon?",
                 },
@@ -233,10 +233,10 @@ class PlayerSuggestedNeedTest(unittest.TestCase):
 
         game = new_game(content__allow_player_suggested_import_needs=False)
         with self.assertRaises(RuleViolation):
-            game.suggest_import_need("p2", {"id": "x", "category": "civic_ritual",
-                                            "trade_family": "materials",
-                                            "need_brief": "{city} is buying rope.",
-                                            "exporter_prompt": "Ship {city} rope."})
+            game.suggest_import_need("p2", {"id": "x", "category": "small_comforts",
+                                            "trade_family": "wear_and_comfort",
+                                            "need_brief": "{city} is buying blankets.",
+                                            "exporter_prompt": "Ship {city} blankets."})
 
 
 if __name__ == "__main__":

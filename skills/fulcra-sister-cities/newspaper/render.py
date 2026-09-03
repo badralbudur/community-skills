@@ -11,7 +11,17 @@ is :mod:`hosting.page`, which renders the same typed blocks for a browser. Both
 render from the payload rather than one from the other, so neither has to parse
 anything -- a Markdown parser standing between an export a mayor wrote and a
 reader's browser is a place that turns text into markup.
+
+Both renderings also have to say *whose* words a passage is. A block marked
+``voice: "player"`` (:mod:`newspaper.voice`) is a mayor's own text, printed as
+typed and exempt from the paper's editorial register under spec #30b, and it
+prints with its cite line underneath -- here as an em-dashed italic, on the page
+as a ``figcaption``. Without that the reader would be handed a mayor's wording
+in the paper's voice, which is the mistake #30b's exemption would otherwise
+create.
 """
+
+from . import voice
 
 _HEADINGS = {1: "#", 2: "##", 3: "###", 4: "####"}
 
@@ -31,7 +41,8 @@ def block_to_markdown(block):
     if kind == "para":
         return block["text"]
     if kind == "quote":
-        return "\n".join("> %s" % line for line in block["text"].splitlines() or [""])
+        quote = "\n".join("> %s" % line for line in block["text"].splitlines() or [""])
+        return quote + _cite_to_markdown(block)
     if kind in ("aside", "note"):
         # An aside is an editorial joke and is dropped when config says the paper
         # is not to be funny; a note is a factual footnote and always prints.
@@ -44,7 +55,7 @@ def block_to_markdown(block):
         # belonging to this article" is not an endgame-specific idea.
         return "![%s](%s)\n\n*%s*" % (block["alt"], block["image"], block["caption"])
     if kind == "list":
-        return "\n".join("- %s" % item for item in block["items"])
+        return "\n".join("- %s" % item for item in block["items"]) + _cite_to_markdown(block)
     if kind == "table":
         columns = block["columns"]
         lines = [
@@ -56,6 +67,19 @@ def block_to_markdown(block):
         )
         return "\n".join(lines)
     raise ValueError("no renderer for block kind %r" % kind)
+
+
+def _cite_to_markdown(block):
+    """The line under a quotation saying whose words those were (spec #30b).
+
+    Only for a block the payload marks as player voice, and every such block
+    carries one: a quotation printed with no cite would read as the paper's own
+    writing, which for an export is both wrong about authorship and the reason
+    the editorial register was allowed to skip it in the first place.
+    """
+    if block.get("voice") != voice.PLAYER:
+        return ""
+    return "\n\n— *%s*" % block["cite"]
 
 
 def department_to_markdown(department):

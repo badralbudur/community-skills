@@ -41,6 +41,8 @@ from engine.aggregate import (
 )
 from engine.errors import RuleViolation
 
+from . import voice
+
 #: Where a chosen phrase came from. Recorded in the item's provenance so a
 #: reviewer can see at a glance whether the sharper wording was earned.
 FROM_PHRASES = "phrases"
@@ -202,8 +204,14 @@ def write(report, style, department, chooser, max_quotes):
         "asked_of": report["asked_of"],
     }
 
-    claim_family, count_family, label_note = _claim_for(outcome, report, style, values, chooser)
-    blocks.append({"kind": "para", "text": claim_family})
+    claim_family, count_family, label_note, quoted_answers = _claim_for(
+        outcome, report, style, values, chooser
+    )
+    # The claim is the paper's sentence; an answer quoted inside it is the
+    # mayor's own words and is exempt from the editorial register (spec #30b).
+    blocks.append(
+        voice.within({"kind": "para", "text": claim_family}, *quoted_answers)
+    )
     if count_family:
         blocks.append({"kind": "para", "text": count_family})
 
@@ -234,13 +242,19 @@ def write(report, style, department, chooser, max_quotes):
 
 
 def _claim_for(outcome, report, style, values, chooser):
-    """The claim sentence and its supporting count sentence.
+    """The claim sentence, its supporting count sentence, labels, and any quotes.
 
     One branch per outcome kind, because the *grammar* of the claim differs: a
     tier has one leading bucket to name, a tie has exactly two, a fragmented
     world has no leader at all, and the floor has too few replies to have a
     shape. Getting this wrong is precisely the failure mode spec #25 is judged
     on, so the branches are explicit rather than one clever template.
+
+    The fourth return value is the answers a branch quoted verbatim inside its
+    own sentence -- only the floor does, and only because too few replies is the
+    one case where the paper prints the replies instead of a shape. They are
+    returned rather than recomputed by the caller because the branch that quotes
+    is the branch that knows it quoted (spec #30b).
     """
     key_base = (report["round"], report["question_id"])
     kind = outcome["kind"]
@@ -265,7 +279,7 @@ def _claim_for(outcome, report, style, values, chooser):
             "wire_styles.count_%s" % ("full" if full else "partial"),
             dict(values, label=label, largest=report["measure"]["largest_bucket_size"]),
         )
-        return claim, count, [label]
+        return claim, count, [label], []
 
     if kind == TIE_CASE:
         headline = _buckets_with_role(report, ROLE_HEADLINE)
@@ -284,7 +298,7 @@ def _claim_for(outcome, report, style, values, chooser):
             style["count_tie"], key_base + ("count",), "wire_styles.count_tie",
             dict(values, largest=report["measure"]["largest_bucket_size"]),
         )
-        return claim, count, labels
+        return claim, count, labels, []
 
     if kind == FRAGMENTED_CASE:
         labels = [row["label"] for row in report["buckets"]]
@@ -297,7 +311,7 @@ def _claim_for(outcome, report, style, values, chooser):
             style["count_fragmented"], key_base + ("count",),
             "wire_styles.count_fragmented", values,
         )
-        return claim, count, labels
+        return claim, count, labels, []
 
     if kind == LOW_RESPONDENT_FLOOR:
         # Too few replies to describe a distribution, so the paper prints the
@@ -315,7 +329,7 @@ def _claim_for(outcome, report, style, values, chooser):
         count = chooser.line(
             style["count_floor"], key_base + ("count",), "wire_styles.count_floor", values,
         )
-        return claim, count, []
+        return claim, count, [], sorted(report["answers_by_city"].values())
 
     raise RuleViolation(
         "unknown aggregate outcome kind %r; the paper will not improvise a claim "
@@ -368,20 +382,26 @@ def _garnishes(report, style, chooser, key_base, max_quotes):
         )
         city = row["cities"][0]
         blocks.append(
-            {
-                "kind": "para",
-                "text": chooser.rotate(
-                    style["outlier"], key_base + ("outlier_frame",),
-                    "wire_styles.outlier", offset,
-                    {
-                        "phrase": phrase,
-                        "Phrase": _capitalized(phrase),
-                        "answer": row["answers"][0],
-                        "quote_city": city,
-                        "quote_mayor": "the Mayor of %s" % city,
-                    },
-                ),
-            }
+            voice.within(
+                {
+                    "kind": "para",
+                    "text": chooser.rotate(
+                        style["outlier"], key_base + ("outlier_frame",),
+                        "wire_styles.outlier", offset,
+                        {
+                            "phrase": phrase,
+                            "Phrase": _capitalized(phrase),
+                            "answer": row["answers"][0],
+                            "quote_city": city,
+                            "quote_mayor": "the Mayor of %s" % city,
+                        },
+                    ),
+                },
+                # The sentence is the paper's, the quotation inside it is the
+                # mayor's, and only one of the two is the paper's to police
+                # (spec #30b).
+                row["answers"][0],
+            )
         )
         quoted += 1
 

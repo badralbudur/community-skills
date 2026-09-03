@@ -239,26 +239,34 @@ def assert_edition_is_redacted(engine, edition, rendered=None):
 
 
 def _all_strings(node):
-    for value in _walk(node):
+    for value in walk(node):
         if isinstance(value, str):
             yield value
 
 
-def _walk(node):
+def walk(node):
+    """Every node in an edition payload, keys included.
+
+    Public because it is the traversal both payload-wide rules use: this module
+    asks which *strings* are in the paper (spec #21, #28), and
+    :mod:`newspaper.voice` asks which *blocks* declare a player's words in it
+    (spec #30b). Two checks walking two different hand-written traversals is how
+    one of them ends up not seeing a department the other does.
+    """
     yield node
     if isinstance(node, dict):
         for key, value in node.items():
             yield key
-            yield from _walk(value)
+            yield from walk(value)
     elif isinstance(node, (list, tuple)):
         for value in node:
-            yield from _walk(value)
+            yield from walk(value)
 
 
 def _declined_items(edition):
     """Every reprinted losing export in the edition, by its block role."""
     out = []
-    for value in _walk(edition):
+    for value in walk(edition):
         if isinstance(value, dict) and value.get("role") == DECLINED_ROLE:
             out.extend(item for item in value.get("items", []) if isinstance(item, str))
     return out

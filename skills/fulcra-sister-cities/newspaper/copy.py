@@ -389,3 +389,22 @@ class NewspaperCopy:
         if not isinstance(tone.get("forbidden_register"), list) or not tone["forbidden_register"]:
             raise ContentError("tone.forbidden_register must be a non-empty list (spec #30)")
         return tone
+
+    def player_voice(self):
+        """The lines that say which words in this paper a mayor wrote (#30b).
+
+        A separate block from :meth:`tone` although the two are one decision
+        read from either end: ``tone`` is the standard the desk holds itself to,
+        and this is how the page tells a reader that a passage is not the desk
+        talking. Every family is required, because a quote whose cite family was
+        missing would print as an unattributed quotation -- which for a declined
+        offer is exactly the leak spec #21 forbids, and for a winning one is the
+        paper taking credit for a mayor's writing.
+        """
+        block = self.data["player_voice"]
+        for field in ("winner_quote", "declined_quote", "twist_quote", "excess_quote"):
+            if not isinstance(block.get(field), list) or not block[field]:
+                raise ContentError(
+                    "player_voice.%s must be a non-empty list (spec #30b)" % field
+                )
+        return block

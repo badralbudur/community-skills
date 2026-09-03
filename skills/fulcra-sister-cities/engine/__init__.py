@@ -25,10 +25,10 @@ Typical use::
     game.join("p2", "@bo", "Valparaíso")      # -> reassigned if it collides
     game.join("p3", "@cy", "Hobart")
     game.import_choice_offer("p1")            # what Reykjavík may order
-    game.choose_import("p1", need_id="need-mysteries_and_anomalies-01")
+    game.choose_import("p1", need_id="need-candy-01")
     game.start()                              # ... and that is what round 1 opens
     game.checkin("p2")                        # -> two slots
-    game.submit_export("p2", "A far side, pre-assembled.")
+    game.submit_export("p2", "Salted liquorice, forty cases, wrappers and all.")
     game.tick(later)                          # the one timer moves the game
 """
 

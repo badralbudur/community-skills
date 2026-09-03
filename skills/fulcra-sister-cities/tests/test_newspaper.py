@@ -15,7 +15,7 @@ from harness import make_config, new_game
 from engine import views
 from engine.errors import ContentError, RuleViolation
 from newspaper import build_archive, build_edition, to_markdown
-from newspaper import imagery, redact, wire
+from newspaper import imagery, redact, voice, wire
 from newspaper.copy import Chooser, NewspaperCopy, count_word, fill, sentence_case
 from newspaper.edition import Paper
 from newspaper.sample import ANSWERS, DELIBERATELY_UNSCRIPTED, sample_game
@@ -490,16 +490,27 @@ class LedgerExposureTest(unittest.TestCase):
 
 
 class TonePolicyTest(unittest.TestCase):
-    """Spec #30's four flags, each doing something."""
+    """Spec #30's flags, each doing something."""
 
-    def test_the_forbidden_register_is_absent_from_every_edition(self):
+    def test_the_forbidden_register_is_absent_from_the_papers_own_voice(self):
+        """Every edition, with the mayors' own wording taken out first (#30b).
+
+        This test used to scan the whole edition, including the offers the paper
+        reprints. Spec #30b moved that line: an offer is player voice, printed
+        as typed, and the register is the desk's standard for its own copy. So
+        the scan is over the edition minus its player-voice passages -- and that
+        those passages really are exempt, really do publish and really are
+        marked as somebody's own words is ``tests/test_player_voice.py``, over
+        the same sample game, one of whose offers trips the register on purpose.
+        """
         game = sample_game()
         paper = Paper(game)
         for index in sorted(game.rounds):
             edition = paper.edition(index)
-            self.assertEqual(
-                paper.tone.findings(to_markdown(edition)), [], "round %s" % index
+            editorial = voice.editorial_only(
+                to_markdown(edition), voice.spans_in(edition)
             )
+            self.assertEqual(paper.tone.findings(editorial), [], "round %s" % index)
 
     def test_an_edition_that_tripped_the_register_would_not_publish(self):
         game = sample_game()

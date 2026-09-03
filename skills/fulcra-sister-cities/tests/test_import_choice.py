@@ -1,13 +1,15 @@
-"""Spec #13, #13a: the importing mayor orders, and orders actual goods.
+"""Spec #13, #13a: the importing mayor orders, and orders everyday things.
 
-Two rules from the user decision of 2026-08-31, and they are separate rules:
+Two rules, and they are separate rules:
 
-* **#13 -- agency.** A city's import need is the one its mayor filed, chosen
-  from a slate of eligible seeds or written freehand. The engine draws nothing,
-  and a turn nobody filed for is held and then lost rather than filled.
-* **#13a -- trade.** What is filed is an order for food, materials, equipment,
-  living things, cultural works or a specialist service. Not a request for
-  advice, and not a civic problem handed over for solving.
+* **#13 -- agency** (2026-08-31). A city's import need is the one its mayor
+  filed, chosen from a slate of eligible seeds or written freehand. The engine
+  draws nothing, and a turn nobody filed for is held and then lost rather than
+  filled.
+* **#13a -- everyday trade** (2026-09-02). What is filed is an order for
+  something ordinary: candy, soft drinks, books, snacks, music, games, clothes,
+  plants, pets, small comforts. Not a request for advice; not civic procurement;
+  not a job for a specialist.
 
 The first is about who decides; the second is about what may be decided. A game
 can satisfy either one and fail the other, so they are tested apart.
@@ -31,14 +33,96 @@ from engine.game import SLOT_IMPORT_CHOICE, SLOT_QUESTION
 from engine.trade import TradePolicy
 
 FREEFORM = {
-    "category": "energy_and_utilities",
-    "trade_family": "materials",
-    "title": "Ninety kilometres of insulated pipe",
-    "need_brief": "{city} has more hot water under it than pipe to put it in. "
-                  "Wanted: pre-insulated pipe in six-metre lengths, valves, "
-                  "lagging, and welders who have worked in a trench in February.",
-    "exporter_prompt": "Ship {city} the pipe, the fittings or the welders.",
+    "category": "small_comforts",
+    "trade_family": "wear_and_comfort",
+    "title": "Four hundred hot water bottles",
+    "need_brief": "{city} is dark by two in the afternoon all December and the "
+                  "flats at the top of the hill have never once been warm. "
+                  "Wanted: four hundred hot water bottles, the covers for them, "
+                  "and two hundred pairs of thick socks.",
+    "exporter_prompt": "Ship {city} the bottles, the covers or the socks.",
 }
+
+#: One order per thing spec #13a names, in the plainest possible form. These are
+#: the *acceptance* half of the 2026-09-02 decision: the policy has three
+#: refusals, and a policy with three refusals and no worked examples of what it
+#: lets through is one bad marker away from refusing the whole game.
+EVERYDAY_ORDERS = (
+    ("candy", "sweets_and_drinks", "A jar of boiled sweets",
+     "{city} has one sweet shop and it sells four things, all of them mints.",
+     "Ship {city} sweets by the jar, and say what goes in the first bag."),
+    ("soft_drinks", "sweets_and_drinks", "Cola in glass bottles",
+     "{city} has three colas and they are the same three colas as everywhere else.",
+     "Ship {city} a crate of cold bottled drinks."),
+    ("books", "reading_and_listening", "Two hundred paperbacks",
+     "{city}'s book swap is now four shelves of the same thriller.",
+     "Send {city} two hundred second-hand paperbacks, no two the same."),
+    ("snacks", "snacks_and_bakes", "Crisps in an unfamiliar flavour",
+     "The crisp shelf in {city} offers salt, and salt and vinegar.",
+     "Ship {city} forty cases of your own city's crisps."),
+    ("music", "reading_and_listening", "Records, and a deck",
+     "{city}'s hall owns one cassette.",
+     "Ship {city} the records and the deck to play them on."),
+    ("games_and_puzzles", "play_and_pastimes", "Board games for a wet fortnight",
+     "The cupboard in {city}'s hall holds one chess set with two black bishops.",
+     "Ship {city} a crate of board games."),
+    ("clothes", "wear_and_comfort", "Two hundred coats that work",
+     "Everything sold in {city} is fashionable and no help at all in a gale.",
+     "Ship {city} two hundred waterproof coats."),
+    ("plants", "plants_and_pets", "Four hundred window boxes",
+     "{city}'s longest street has four hundred empty window sills.",
+     "Ship {city} four hundred window boxes and something forgiving to put in them."),
+    ("pets", "plants_and_pets", "A cat for the bookshop",
+     "The second-hand bookshop in {city} has mice, a cushion and no cat.",
+     "Ship {city} one bookshop cat, with its paperwork."),
+    ("small_comforts", "wear_and_comfort", "Blankets for the back row",
+     "{city} shows films by the water and everybody is cold by the second reel.",
+     "Ship {city} two hundred washable blankets."),
+)
+
+#: Orders that are honest goods and still refused, because spec #13a's
+#: 2026-09-02 decision is about *who can play*, not about whether trade is
+#: happening. Each is paired with the marker list that must catch it.
+CIVIC_ORDERS = (
+    ("Pumps, hose and four days of standing water",
+     "{city}'s storm drains were built for a different climate. Purchase order: "
+     "pumps, hose, pipe, gravel, tanks.",
+     "Ship {city} the plant that moves the water off Market Street."),
+    ("Twenty metres of clear span",
+     "The roof of {city}'s hall is held up by three generations of temporary "
+     "permit. Wanted: trusses, beams, ties and fixings.",
+     "Ship {city} the structure that holds up a roof."),
+    ("One junction, in kit form",
+     "{city} needs signals, posts, kerbstones and a roundabout in flat pack, and "
+     "the budget line must be spent by March.",
+     "Ship {city} the hardware that settles who goes first."),
+)
+
+SPECIALIST_ORDERS = (
+    ("A survey crew, and the gear to do it with",
+     "One person in {city} knew where the pipes went and he retired in March. "
+     "Wanted: a survey crew, ground radar, and a drawing set.",
+     "Send {city} the survey crew and the gear."),
+    ("Trusses, and a signature",
+     "{city} wants laminated timber, fixings, and a stamped calculation from "
+     "somebody insured.",
+     "Ship {city} the timber and the calculation."),
+    ("Four weeks of grid margin",
+     "{city} is buying generators, batteries, cable and a load calculation for "
+     "four cold weeks.",
+     "Ship {city} the plant and the cable."),
+)
+
+
+def order(category, family, title, brief, prompt, need_id="need-test-xx"):
+    return {
+        "id": need_id,
+        "category": category,
+        "trade_family": family,
+        "title": title,
+        "need_brief": brief,
+        "exporter_prompt": prompt,
+    }
 
 
 def unstarted(**overrides):
@@ -80,6 +164,46 @@ class ImporterAgencyTest(unittest.TestCase):
         categories = [suggestion["category"] for suggestion in offer["suggestions"]]
         self.assertEqual(len(set(categories)), len(categories))
 
+    def test_the_mayor_facing_offer_names_candy_soft_drinks_and_books(self):
+        """Spec #13a's own examples, in front of the mayor who has to order.
+
+        The milestone's acceptance test, and it is about the *offer*, not the
+        pool: a mayor reads the freeform note and the family examples, and if
+        those still talk about trusses and survey crews then the seed rewrite
+        changed the data and not the game.
+        """
+        game = unstarted()
+        freeform = game.import_choice_offer("p1")["freeform"]
+        note = freeform["note_to_mayor"].lower()
+        for phrase in ("candy", "soft drinks", "books"):
+            self.assertIn(phrase, note, phrase)
+        examples = " ".join(
+            example.lower()
+            for family in freeform["families"].values()
+            for example in family["examples"]
+        ).replace("candy floss", "")
+        for phrase in ("sweets", "soft drinks", "paperbacks"):
+            self.assertIn(phrase, examples, phrase)
+        # And the note says out loud that this is not a municipal problem.
+        self.assertIn("municipal problem", note)
+        self.assertTrue(any("procurement" in rule for rule in freeform["refusals"]))
+
+    def test_the_offer_puts_everyday_notices_in_front_of_the_mayor(self):
+        """Every suggestion on a real slate is playable by an ordinary player."""
+        game = unstarted()
+        policy = game.content.trade
+        for player_id in ("p1", "p2", "p3"):
+            offer = game.import_choice_offer(player_id)
+            for suggestion in offer["suggestions"]:
+                wording = " ".join([
+                    suggestion["title"], suggestion["need_brief"],
+                    suggestion["exporter_prompt"],
+                ])
+                self.assertEqual(
+                    policy.refusal_marker_in(wording), (None, None),
+                    suggestion["need_id"],
+                )
+
     def test_the_need_that_opens_is_the_one_the_mayor_filed(self):
         game = new_game()
         play_out(game)
@@ -118,13 +242,15 @@ class ImporterAgencyTest(unittest.TestCase):
         game.start()
         need = game.collecting_need()
         self.assertEqual(need.order["request_source"], "freeform")
-        self.assertIn("insulated pipe", need.rendered["need_brief"])
+        self.assertIn("hot water bottles", need.rendered["need_brief"])
         self.assertIn(FACILITATOR[2], need.rendered["need_brief"])
 
     def test_filing_a_seed_and_a_freeform_request_at_once_is_refused(self):
         game = unstarted()
         with self.assertRaises(ImportChoiceRejected):
-            game.choose_import("p1", need_id="need-infrastructure-01", request=FREEFORM)
+            # A real, eligible seed: the refusal under test is "both at once",
+            # and naming a retired id would pass this test for the wrong reason.
+            game.choose_import("p1", need_id="need-candy-01", request=FREEFORM)
         with self.assertRaises(ImportChoiceRejected):
             game.choose_import("p1")
 
@@ -333,32 +459,84 @@ class TradePolicyTest(unittest.TestCase):
                 len([n for n in self.content.needs if n["category"] == category]), 2
             )
 
+    def test_every_seeded_need_is_an_everyday_thing_a_player_can_picture(self):
+        """#13a's 2026-09-02 half, over the whole pool at once."""
+        for need in self.content.needs:
+            wording = " ".join(
+                [need["title"], need["need_brief"], need["exporter_prompt"]]
+            )
+            self.assertIsNone(self.policy.civic_marker_in(wording), need["id"])
+            self.assertIsNone(self.policy.specialist_marker_in(wording), need["id"])
+            self.assertEqual(
+                self.policy.refusal_marker_in(wording), (None, None), need["id"]
+            )
+
+    def test_the_pool_covers_the_things_spec_13a_names_by_name(self):
+        """Candy, soft drinks, books, snacks, music, games, clothes, plants, pets."""
+        categories = set(self.content.categories)
+        for named in ("candy", "soft_drinks", "books", "snacks", "music",
+                      "games_and_puzzles", "clothes", "plants", "pets",
+                      "small_comforts"):
+            self.assertIn(named, categories)
+
     def test_an_order_for_advice_is_refused_and_says_which_words_did_it(self):
         with self.assertRaises(TradeRefused) as caught:
             self.policy.check_need(
-                {
-                    "id": "need-test-01",
-                    "category": "civic_ritual",
-                    "trade_family": "cultural_works",
-                    "title": "A better ceremony",
-                    "need_brief": "{city} has a ribbon and no occasion.",
-                    "exporter_prompt": "What should {city} do about the ribbon?",
-                }
+                order("candy", "sweets_and_drinks", "A better sweet shop",
+                      "{city} has a sweet shop and no sweets.",
+                      "What should {city} do about the sweet shop?",
+                      need_id="need-test-01")
             )
         self.assertEqual(caught.exception.phrase, "what should")
         self.assertIn("#13a", str(caught.exception))
 
+    def test_a_civic_procurement_order_is_refused_and_says_which_words_did_it(self):
+        """Real goods, really ordered, and still nobody's idea of a game night."""
+        for title, brief, prompt in CIVIC_ORDERS:
+            with self.assertRaises(TradeRefused, msg=title) as caught:
+                self.policy.check_need(
+                    order("homeware", "wear_and_comfort", title, brief, prompt)
+                )
+            self.assertIn(caught.exception.phrase, self.policy.civic_markers, title)
+            self.assertIn("civic procurement", str(caught.exception))
+
+    def test_a_specialist_order_is_refused_and_says_which_words_did_it(self):
+        for title, brief, prompt in SPECIALIST_ORDERS:
+            with self.assertRaises(TradeRefused, msg=title) as caught:
+                self.policy.check_need(
+                    order("homeware", "wear_and_comfort", title, brief, prompt)
+                )
+            self.assertIn(
+                caught.exception.phrase, self.policy.specialist_markers, title
+            )
+            self.assertIn("specialist", str(caught.exception))
+
+    def test_relatable_everyday_orders_are_accepted(self):
+        """The other half: the ten kinds of thing spec #13a lists all pass."""
+        for index, (category, family, title, brief, prompt) in enumerate(
+            EVERYDAY_ORDERS
+        ):
+            checked = self.policy.check_need(
+                order(category, family, title, brief, prompt,
+                      need_id="need-everyday-%02d" % index)
+            )
+            self.assertEqual(checked["category"], category)
+
+    def test_the_three_refusals_are_content_and_a_policy_without_them_will_not_load(self):
+        from engine.errors import ContentError
+
+        for missing in ("advice_markers", "civic_markers", "specialist_markers"):
+            doc = {k: v for k, v in self.policy.doc.items() if k != missing}
+            with self.assertRaises(ContentError, msg=missing):
+                TradePolicy(doc)
+
     def test_a_prompt_that_asks_for_no_consignment_is_refused(self):
         with self.assertRaises(TradeRefused):
             self.policy.check_need(
-                {
-                    "id": "need-test-02",
-                    "category": "civic_ritual",
-                    "trade_family": "materials",
-                    "title": "Ribbon",
-                    "need_brief": "{city} is buying four hundred metres of ribbon.",
-                    "exporter_prompt": "{city} awaits your thinking on ribbon.",
-                }
+                order("candy", "sweets_and_drinks", "Sweets",
+                      "{city} is buying four hundred bags of sweets.",
+                      "{city} awaits your thinking on sweets.",
+                      need_id="need-test-02")
             )
 
     def test_a_need_with_no_trade_family_is_refused(self):
@@ -366,27 +544,42 @@ class TradePolicyTest(unittest.TestCase):
             self.policy.check_need(
                 {
                     "id": "need-test-03",
-                    "category": "civic_ritual",
-                    "title": "Ribbon",
-                    "need_brief": "{city} is buying ribbon.",
-                    "exporter_prompt": "Ship {city} ribbon.",
+                    "category": "candy",
+                    "title": "Sweets",
+                    "need_brief": "{city} is buying sweets.",
+                    "exporter_prompt": "Ship {city} sweets.",
                 }
             )
+
+    def test_a_need_in_one_of_the_retired_families_is_refused(self):
+        """Schema 2's families are gone, and a stale need must not load quietly."""
+        with self.assertRaises(TradeRefused) as caught:
+            self.policy.check_need(
+                order("homeware", "materials", "Timber",
+                      "{city} is buying timber.", "Ship {city} timber.",
+                      need_id="need-test-05")
+            )
+        self.assertEqual(caught.exception.phrase, "materials")
 
     def test_an_order_that_merely_mentions_fixing_or_explaining_is_fine(self):
         """The check is for requests for advice, not for the words themselves."""
         self.policy.check_need(
-            {
-                "id": "need-test-04",
-                "category": "infrastructure",
-                "trade_family": "materials",
-                "title": "Brackets, and the crew who fix them in place",
-                "need_brief": "{city} is buying brackets, and somewhere in the "
-                              "archive is the minute that explains the pipes.",
-                "exporter_prompt": "Ship {city} the brackets and the crew who fix "
-                                   "them in place.",
-            }
+            order("homeware", "wear_and_comfort",
+                  "Brackets, and the shelf they fix to a wall",
+                  "{city} is buying shelf brackets, and somewhere in the library "
+                  "is the book that explains which way up they go.",
+                  "Ship {city} the brackets and the shelves they fix to.",
+                  need_id="need-test-04")
         )
+
+    def test_words_that_only_look_like_markers_are_let_through(self):
+        """Word boundaries, per the marker matcher's own note."""
+        self.assertIsNone(self.policy.civic_marker_in(
+            "forty thousand postcards, and a poster for the window"
+        ))
+        self.assertIsNone(self.policy.specialist_marker_in(
+            "twelve tins of biscuits, one of them structurally ambitious"
+        ))
 
     def test_a_city_named_in_place_of_the_placeholder_is_still_caught(self):
         self.assertEqual(
@@ -409,11 +602,36 @@ class FreeformTradeTest(unittest.TestCase):
                 "p1",
                 request=dict(
                     FREEFORM,
-                    title="A plan for the pipes",
-                    need_brief="{city} would like ideas for its heating network.",
+                    title="A plan for the sweet shop",
+                    need_brief="{city} would like ideas for its one sweet shop.",
                     exporter_prompt="Send {city} your best thinking.",
                 ),
             )
+        self.assertEqual(game.import_programme_for("p1"), [])
+
+    def test_a_freeform_request_that_is_civic_procurement_is_refused(self):
+        """The freeform door is the one with a human behind it (spec #13)."""
+        game = unstarted()
+        title, brief, prompt = CIVIC_ORDERS[0]
+        with self.assertRaises(TradeRefused) as caught:
+            game.choose_import(
+                "p1",
+                request=dict(FREEFORM, title=title, need_brief=brief,
+                             exporter_prompt=prompt),
+            )
+        self.assertIn(caught.exception.phrase, game.content.trade.civic_markers)
+        self.assertEqual(game.import_programme_for("p1"), [])
+
+    def test_a_freeform_request_that_needs_a_specialist_is_refused(self):
+        game = unstarted()
+        title, brief, prompt = SPECIALIST_ORDERS[0]
+        with self.assertRaises(TradeRefused) as caught:
+            game.choose_import(
+                "p1",
+                request=dict(FREEFORM, title=title, need_brief=brief,
+                             exporter_prompt=prompt),
+            )
+        self.assertIn(caught.exception.phrase, game.content.trade.specialist_markers)
         self.assertEqual(game.import_programme_for("p1"), [])
 
     def test_a_freeform_request_missing_its_family_is_refused(self):

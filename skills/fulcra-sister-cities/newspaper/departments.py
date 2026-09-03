@@ -29,13 +29,19 @@ Three rules run through all of them:
   export whose own text names a city is withheld rather than reprinted, because
   reproducing it would expose the origin as surely as printing a field would
   (spec #21, see :func:`newspaper.redact.may_reprint_declined`).
+* **An offer is printed as the mayor typed it, and cited to them.** Both the
+  winning quotation and the declined reprints are marked as player voice
+  (:mod:`newspaper.voice`), which is what carries them past the editorial
+  register unaltered and what puts a line on the page saying whose words they
+  are -- or, for a declined offer, saying that the paper is not telling
+  (spec #30b, #21).
 """
 
 from datetime import datetime
 
 from engine.state import EVEN_SPLIT, RAMP_UP, WINNER_PICK
 
-from . import wire
+from . import voice, wire
 from .copy import count_word, counted
 from .redact import DECLINED_ROLE, attributed_export_texts, may_reprint_declined
 from .wire import join_phrases
@@ -69,6 +75,10 @@ class Departments:
 
     def _line(self, frames, key, where, values=None):
         return self.chooser.line(frames, key, where, values)
+
+    def _cite(self, family, key, values=None):
+        """:func:`newspaper.voice.cite`, with this department's copy and chooser."""
+        return voice.cite(self.copy, self.chooser, family, key, values)
 
     def _standfirst(self, department, name, key, values=None):
         """The department's opening line, filled from the same table as its body.
@@ -350,7 +360,14 @@ class Departments:
                 frames["headlines"], key + ("head",), "arrivals.winner_pick.headlines", values)},
             {"kind": "para", "text": self._line(
                 frames["lead"], key + ("lead",), "arrivals.winner_pick.lead", values)},
-            {"kind": "quote", "text": winner["export"]},
+            # The one string in the paper that is not the paper's: a winning
+            # offer as its mayor typed it, cited to them and exempt from the
+            # editorial register (spec #30b, #18).
+            voice.quoted(
+                winner["export"],
+                self._cite("winner_quote", key + ("cite",),
+                           {"mayor": values["winner_mayor"]}),
+            ),
             {"kind": "para", "text": self._line(
                 frames["attribution"], key + ("attr",),
                 "arrivals.winner_pick.attribution", values)},
@@ -396,13 +413,15 @@ class Departments:
                     "arrivals.winner_pick.declined_intro", values)}
             )
             blocks.append(
-                {
-                    "kind": "list",
+                voice.listed(
+                    printed,
+                    # No substitutions: the cite for a declined offer must not be
+                    # able to name anybody (spec #21, #30b).
+                    self._cite("declined_quote", key + ("declined_cite",)),
                     # The role is what :func:`newspaper.redact.assert_edition_is_redacted`
                     # keys its check off: every string in this block must name no city.
-                    "role": DECLINED_ROLE,
-                    "items": printed,
-                }
+                    role=DECLINED_ROLE,
+                )
             )
             blocks.append(
                 {"kind": "para", "text": self._line(

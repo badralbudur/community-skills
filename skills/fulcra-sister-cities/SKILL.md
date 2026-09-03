@@ -1,6 +1,6 @@
 ---
 name: fulcra-sister-cities
-description: "Run or facilitate Sister Cities, an asynchronous city-trade social game for 3–10 players. Mayors choose actual goods/services to import from suggestions or freeform orders; includes automatic redacted round editions, a tested local engine, and reproducible multi-agent playtest."
+description: "Run or facilitate Sister Cities, an asynchronous city-trade social game for 3–10 players. Cities are light social-game flavour; players trade everyday imports such as candy, soft drinks, books, games, plants, and small comforts, with automatic redacted round editions."
 homepage: "https://github.com/fulcradynamics/community-skills"
 license: "MIT"
 user-invocable: true
@@ -54,14 +54,20 @@ regression testing; it contains no real participant data.
 - One shared round timer (24 hours by default, configurable).
 - Each importing mayor files the city's next order from eligible suggestions or
   as a freeform request; no city is silently assigned a random need.
-- Imports and exports are actual goods, materials, food, equipment, cultural
-  works, living things, or specialist services -- not generic advice prompts.
+- Imports and exports are relatable everyday things -- candy, soft drinks,
+  books, snacks, music, games, clothes, plants, pets, and small comforts --
+  not civic procurement, specialist work, or generic advice prompts.
+- Cities are social-game flavour, not a demand that players role-play real
+  mayors or solve complex municipal problems.
 - Each player gets one combined check-in per round, with up to two slots.
 - Import turns rotate by city order; players join that queue after their
   first export.
 - Exports are freeform and capped per player per need per round.
 - Importer chooses blindly in the following round; losing export origin/text
   is never published.
+- Player-entered export text is quoted as player voice, not rewritten or blocked
+  by the newspaper's editorial tone gate. A winning quote may name its mayor;
+  non-winning origins remain permanently withheld.
 - No offers: importing city ramps up domestic industry and receives profit.
 - No winner pick: submitted cities split profit as configured.
 - Profit is 2d6-style and accumulates on the visible city leaderboard.
@@ -174,6 +180,8 @@ credentials, or private deployment identifiers.
 - `docs/` — milestone engineering notes and privacy/policy rationale.
   `docs/m10-reading-experience.md` documents the front page, archive, and
   newspaper-layout guarantees.
+  `docs/m11-everyday-imports.md` documents the everyday trade pool and
+  player-voice publication policy.
 
 ## Scope
 

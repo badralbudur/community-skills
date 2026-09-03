@@ -18,14 +18,53 @@ reference (`config.cities.*`, `config.imports.*`,
 [`../config.json`](../config.json); nothing here re-derives a config value
 or hardcodes one.
 
+## What the import needs are about (schema 3)
+
+The seed bank has been rewritten twice, and the second rewrite is the one that
+matters for playing it. Schema 1 asked exporters what a city *should do* about a
+civic problem. Schema 2 (the 2026-08-31 decision) fixed that by making every
+need an order for goods — and left a bank of orders for roof trusses, survey
+crews, hydrophones and seaweed balers. Both were unplayable for the same
+underlying reason: a good offer needed civic or professional knowledge that
+nobody at a game night has any reason to bring.
+
+Schema 3 is the 2026-09-02 decision (spec #13a as it now reads). Every one of
+the 48 seeds is now something a person can picture in a shop, a kitchen or a
+coat pocket, across 16 everyday categories:
+
+| | | | |
+| --- | --- | --- | --- |
+| `candy` | `soft_drinks` | `snacks` | `baked_goods` |
+| `hot_drinks` | `condiments` | `books` | `music` |
+| `games_and_puzzles` | `toys_and_novelties` | `clothes` | `plants` |
+| `pets` | `homeware` | `stationery` | `small_comforts` |
+
+The city is still the player's persona and still the unit of scoring; it is
+light social-game flavour, not a job. A mayor is a person saying what their town
+would like a crate of.
+
+`trade_policy` makes that checkable, and it has **three refusals** rather than
+one — a need may not ask for **advice**, may not be **civic procurement**, and
+may not require **specialist problem solving**. They are separate lists because
+they are separate failures: an advice request is not an order at all, a
+procurement notice is a perfectly good order that asks a player to behave like a
+council officer, and "trusses, ties, and a stamped calculation from somebody
+insured" is honest goods that only a professional could answer. All three are
+enforced at all three doors into the pool (seeds at load, player suggestions,
+and an importing mayor's freeform order) by `engine/trade.py`. The affirmative
+half of the check is the declared `trade_family`, whose six values now enumerate
+only everyday kinds of thing.
+
 ## Deterministic checks
 
 These invariants were verified with `jq` against the committed files. Run
-from the repo root to re-check.
+from the repo root to re-check. `tests/test_import_choice.py` holds the same
+checks as tests, plus the refusal/acceptance cases the policy exists for.
 
-**Import needs** — `48` needs, `16` categories, ids and titles unique, every
-need in a declared category, every category used, every brief and prompt
-city-agnostic (`{city}` present per `placeholders`), min 3 needs per category:
+**Import needs** — `48` needs, `16` categories, ids, titles and briefs unique,
+every need in a declared category, every category used, every brief and prompt
+city-agnostic (`{city}` present per `placeholders`), no placeholder in any
+title, min 3 needs per category:
 
 ```sh
 jq -c '[ (.needs|length),
@@ -36,20 +75,37 @@ jq -c '[ (.needs|length),
          (.needs|map(select(.need_brief|contains("{city}")))|length),
          (.needs|map(select(.exporter_prompt|contains("{city}")))|length),
          ((.needs|map(.title)|unique|length)==(.needs|length)),
+         ((.needs|map(.need_brief)|unique|length)==(.needs|length)),
+         (.needs|map(select(.title|contains("{")))|length),
          (.needs|group_by(.category)|map(length)|min) ]' content/import_needs.json
-# => [48,true,16,16,0,48,48,true,3]
+# => [48,true,16,16,0,48,48,true,true,0,3]
 ```
 
-All required fields present on all 48, every seed tagged, `74` distinct tags
-across the pool (the variety check for #33):
+All required fields present on all 48, every seed tagged, `61` distinct tags
+across the pool (the variety check for #33), and every seed declaring one of the
+six everyday trade families — with all six actually used:
 
 ```sh
-jq -c '[ (.needs|map(select(has("id") and has("category") and has("title")
-             and has("need_brief") and has("exporter_prompt")
+jq -c '[ (.needs|map(select(has("id") and has("category") and has("trade_family")
+             and has("title") and has("need_brief") and has("exporter_prompt")
              and has("excess_flavor") and has("tags") and has("source")))|length),
          (.needs|map(select(.tags|length>0))|length),
-         (.needs|map(.tags)|flatten|unique|length) ]' content/import_needs.json
-# => [48,48,74]
+         (.needs|map(.tags)|flatten|unique|length),
+         ((.needs|map(.trade_family)|unique|sort)==(.trade_policy.families|keys|sort)) ]' \
+   content/import_needs.json
+# => [48,48,61,true]
+```
+
+The three refusal lists are non-empty and disjoint, so no phrase can be
+attributed to the wrong refusal in a message to a mayor:
+
+```sh
+jq -c '.trade_policy | [ (.advice_markers|length), (.civic_markers|length),
+         (.specialist_markers|length),
+         ((.advice_markers + .civic_markers + .specialist_markers)|length)
+           == ((.advice_markers + .civic_markers + .specialist_markers)|unique|length) ]' \
+   content/import_needs.json
+# => [26,39,26,true]
 ```
 
 A maximum-size game (10 cities × 2 rotations, per `config.players.max_players`

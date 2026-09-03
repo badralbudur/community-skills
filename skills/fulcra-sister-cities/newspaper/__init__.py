@@ -44,6 +44,13 @@ What M9 adds
   an edition lands, which is the paper's voice and so is the paper's content,
   even though it is the one piece of it that is never printed in an edition
 
+What M11 adds
+-------------
+* :mod:`newspaper.voice`: which passages in an edition a *player* wrote. Their
+  wording prints as typed, cited to the mayor who wrote it (or to nobody, when
+  spec #21 says the sender is not the paper's to name), and the editorial
+  register grades the desk's own copy rather than a mayor's (spec #30b)
+
 What it does not cover: serving the archive at an unguessable, noindex URL
 (spec #26, #27), which is the :mod:`hosting` package, and *when* any of this
 happens, which is :mod:`facilitator`. This package renders and writes; it is
