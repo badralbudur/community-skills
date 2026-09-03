@@ -246,10 +246,13 @@ class GameEngine:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        # Also makes snapshots made before these transient fields existed safe
-        # to load during the package's evolution.
+        # Also makes snapshots made before these fields existed safe to load
+        # during the package's evolution.  ``_checkin_asks`` became durable
+        # state when asks were fixed per round, so older snapshots correctly
+        # start with no cached asks.
         self._round_completed_hooks = []
         self._completing_round = None
+        self._checkin_asks = getattr(self, "_checkin_asks", {})
 
     # -- roster -----------------------------------------------------------
 
@@ -379,6 +382,20 @@ class GameEngine:
         """Run the lockstep once. The only way rounds move."""
         if self.phase != RUNNING:
             raise PhaseError("cannot advance a game that is %s" % self.phase)
+        current = self.rounds.get(self.current_round)
+        if current is not None and not current.completed and self._game_is_over():
+            # A caller may use the explicit advance API rather than waiting for
+            # tick after final publication failed.  Retry that terminal round;
+            # do not manufacture a successor after the game is already over.
+            self.phase = ENDED
+            self.ended_round = self.current_round
+            try:
+                self._complete_round(self.current_round)
+            except Exception:
+                self.phase = RUNNING
+                self.ended_round = None
+                raise
+            return current
         return self._begin_round(self.current_round + 1)
 
     def tick(self, now=None):

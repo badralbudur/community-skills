@@ -223,12 +223,15 @@ class AutomaticPublicationTest(unittest.TestCase):
         self.assertFalse(game.rounds[final_round].completed)
         self.assertEqual(calls, [final_round])
 
-        self.assertEqual(game.tick(), [])
+        # Both public retry paths complete the same final round.  Explicit
+        # advancement must not create a fictional successor round.
+        game.advance_round()
         self.assertEqual(calls, [final_round, final_round])
         self.assertTrue(game.rounds[final_round].completed)
         self.assertEqual(game.phase, "ended")
         self.assertEqual(game.ended_round, final_round)
         self.assertEqual(game.current_round, final_round)
+        self.assertNotIn(final_round + 1, game.rounds)
 
 
 class NoticeTest(unittest.TestCase):

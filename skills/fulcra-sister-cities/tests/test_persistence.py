@@ -67,6 +67,17 @@ class PersistenceTests(unittest.TestCase):
                 restored = store.load()
         self.assertEqual(restored._round_completed_hooks, [])
 
+    def test_old_snapshot_without_checkin_asks_remains_usable(self):
+        """Pre-check-in-ask snapshots resume with an empty per-round cache."""
+        game = new_game()
+        old_state = game.__getstate__()
+        old_state.pop("_checkin_asks")
+        restored = game.__class__.__new__(game.__class__)
+        restored.__setstate__(old_state)
+
+        self.assertEqual(restored._checkin_asks, {})
+        self.assertEqual(restored.checkin("p1"), game.checkin("p1"))
+
     def test_second_process_must_own_lock_and_locked_writer_waits(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "game.snapshot")
