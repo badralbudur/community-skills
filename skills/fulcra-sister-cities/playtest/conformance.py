@@ -136,7 +136,8 @@ def run(game, journal, artifacts):
         _roster_size, _city_uniqueness, _late_joins, _facilitator_first,
         _queue_on_first_export, _facilitator_fixed, _facilitator_plays,
         _facilitator_relays, _one_timer_lockstep, _round_window, _one_checkin,
-        _two_rotations, _importer_chooses, _needs_are_trade, _import_repetition,
+        _current_trade_first, _two_rotations, _importer_chooses, _needs_are_trade,
+        _import_repetition,
         _freeform_capped_exports,
         _silent_skip, _ramp_up, _pick_the_round_after, _even_split, _profit_rolls,
         _origin_never_exposed, _exposure_is_configured, _two_slots, _question_framing,
@@ -326,6 +327,53 @@ def _one_checkin(game, journal, artifacts):
         "#11", "one check-in per player per round, two slots", not problems,
         "%d check-ins, none using more than two slots (max seen: %d)"
         % (len(used), max(used) if used else 0),
+        problems or None,
+    )
+
+
+def _current_trade_first(game, journal, artifacts):
+    """#11a: nobody is asked to file paperwork instead of trading.
+
+    Two things, over every round that opened a need: every mayor eligible to
+    answer it was offered the export slot, and any import order that could not
+    fit beside their other pending action was deferred rather than allowed to
+    take the export's place.
+    """
+    may_export_to_own = game.config.require_bool(
+        "exports.importer_may_export_to_own_need"
+    )
+    opened = {need.opened_round: need for need in game.needs.values()}
+    problems = []
+    trades = 0
+    deferrals = 0
+    for index, entry in sorted(journal.rounds.items()):
+        need = opened.get(index)
+        if need is None:
+            continue
+        for player_id, checkin in entry["checkins"].items():
+            if player_id == need.importing_player_id and not may_export_to_own:
+                continue
+            trades += 1
+            kinds = [slot["kind"] for slot in checkin["slots"]]
+            if SLOT_EXPORT not in kinds:
+                problems.append(
+                    "round %d offered %s %s and no export, though %s's need was open"
+                    % (index, player_id, kinds or "nothing", need.importing_city)
+                )
+        for player_id, checkin in entry["checkins"].items():
+            held = [item["kind"] for item in checkin.get("deferred", [])]
+            if held:
+                deferrals += 1
+            if held and SLOT_EXPORT not in [s["kind"] for s in checkin["slots"]]:
+                problems.append(
+                    "round %d deferred %s for %s without offering the export it was "
+                    "deferred for" % (index, held, player_id)
+                )
+    return _verdict(
+        "#11a", "the open trade outranks a future import order", not problems,
+        "%d mayor-rounds were eligible for an open need and every one of them was "
+        "offered it; %d check-in(s) held an import order back to make room, and none "
+        "of them cost a mayor the trade in front of them" % (trades, deferrals),
         problems or None,
     )
 

@@ -197,6 +197,8 @@ class AutomaticPublicationTest(unittest.TestCase):
         self.assertFalse(game.rounds[1].completed)
         self.assertEqual(calls, [1])
 
+        # The same elapsed tick retries round 1; it may create round 2 only
+        # after the formerly unpublished round's hook has succeeded.
         game.tick()
         self.assertEqual(calls, [1, 1])
         self.assertTrue(game.rounds[1].completed)

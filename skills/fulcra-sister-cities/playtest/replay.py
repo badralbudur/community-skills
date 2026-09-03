@@ -67,6 +67,9 @@ class Journal:
             "engagement": seat.engagement,
             "slots": [slot for slot in payload["slots"] if slot],
             "pending_game_actions": payload["pending_game_actions"],
+            # What the round asked of them and then held back, so a reader of
+            # the journal can tell "never applied" from "deferred" (spec #11a).
+            "deferred": payload["deferred"],
             "deadline": payload["deadline"],
             "did": [],
         }

@@ -1,7 +1,7 @@
 {
-  "checked": 38,
+  "checked": 39,
   "counts": {
-    "pass": 31,
+    "pass": 32,
     "process": 3,
     "judged": 4
   },
@@ -133,6 +133,12 @@
       "title": "one check-in per player per round, two slots",
       "status": "pass",
       "detail": "100 check-ins, none using more than two slots (max seen: 2)"
+    },
+    {
+      "spec": "#11a",
+      "title": "the open trade outranks a future import order",
+      "status": "pass",
+      "detail": "79 mayor-rounds were eligible for an open need and every one of them was offered it; 0 check-in(s) held an import order back to make room, and none of them cost a mayor the trade in front of them"
     },
     {
       "spec": "#12",

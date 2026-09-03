@@ -70,11 +70,16 @@ A lapsed pick costs the whole table a winner (#19's even split fires), an
 unfiled order costs its city an import turn, a missed export costs one offer.
 That is the order of harm, so it is the order of the slots.
 
+Priority is not the same question as *what leaves the room when three actions
+apply and only two fit* — M12 and spec #11a settle that one, and the answer is
+never the export. See [`docs/m12-current-trade-priority.md`](m12-current-trade-priority.md).
+
 The check-in only asks within `imports.choice_offered_rounds_ahead` rounds of
 the turn. Two reasons, and the second is the load-bearing one:
 
 1. asking earlier would be asking about something a mayor cannot usefully think
-   about yet;
+   about yet — spec #13 says to ask "on the city's actual import turn, not
+   prematurely", which is why the shipped lookahead is 1 (M12 lowered it from 2);
 2. a game action that is pending *every* round from the moment a mayor joins
    would crowd the getting-to-know-you question out of every check-in, and #23's
    question is not a nice-to-have — it is the input to #25's aggregate.

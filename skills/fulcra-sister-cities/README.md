@@ -37,6 +37,7 @@ snapshot.
 | **M9** — the mayor orders their own import, the orders are actual trade, and a finished round publishes itself ([`engine/trade.py`](engine/trade.py), [`facilitator/`](facilitator)) | built — see [`docs/m9-imports-and-publication.md`](docs/m9-imports-and-publication.md) |
 | **M10** — the reading experience: the address opens the current issue, every page can be navigated, and the paper looks like one ([`hosting/page.py`](hosting/page.py), [`content/site.css`](content/site.css)) | built — see [`docs/m10-reading-experience.md`](docs/m10-reading-experience.md) |
 | **M11** — everyday imports: the whole seed bank is candy, drinks, books, games and small comforts, the city is flavour rather than a job, and a mayor's own words print as typed ([`content/import_needs.json`](content/import_needs.json), [`engine/trade.py`](engine/trade.py), [`newspaper/voice.py`](newspaper/voice.py)) | built — see [`docs/m11-everyday-imports.md`](docs/m11-everyday-imports.md) |
+| **M12** — the open trade comes first: an import order defers rather than displacing an export, and a mayor is asked for one on their turn instead of two rounds early ([`engine/game.py`](engine/game.py), [`engine/rotation.py`](engine/rotation.py)) | built — see [`docs/m12-current-trade-priority.md`](docs/m12-current-trade-priority.md) |
 
 The engine covers the round timer and its lockstep, the city order queue and its
 two rotations, the import/export/winner cycle with every fallback, the import
@@ -49,7 +50,12 @@ Nothing draws a city's import for it. Before a city's turn comes round, its
 mayor files the order themselves — from a slate of eligible seeds or in their
 own words — and what they file is what opens (spec #13). A turn nobody has
 ordered for is held, and then simply lost; it is never filled with something
-that city did not ask for.
+that city did not ask for. The check-in asks for that order on the turn it
+belongs to — one round before the need opens, so a mayor in a three-city game
+orders every third round — and if a round has more to ask than a mayor has slots
+for, the order is the thing that waits. An export to the need that is open right
+now is never displaced by paperwork for a turn that has not come round (spec
+#11a).
 
 What may be ordered is **everyday trade**: candy, soft drinks, snacks, bakes,
 coffee and tea, sauces, books, music, games, toys, clothes, plants, pets,

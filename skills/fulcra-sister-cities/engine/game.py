@@ -102,12 +102,27 @@ SLOT_IMPORT_CHOICE = "import_choice"
 SLOT_EXPORT = "export"
 SLOT_QUESTION = "mayor_question"
 
+#: How many slots one check-in has (spec #11, #23). Not configurable: two is
+#: the requirement, not a preference.
+CHECKIN_SLOTS = 2
+
 #: The order the check-in fills its two slots with pending game actions.
 #: A lapsed pick costs the whole table a winner (spec #19's even split), an
 #: unfiled order costs its city the import turn (spec #13), and a missed export
 #: costs one offer -- so they queue in that order, and the question fills what
 #: is left over (spec #23).
 GAME_ACTION_PRIORITY = (SLOT_IMPORT_PICK, SLOT_IMPORT_CHOICE, SLOT_EXPORT)
+
+#: What gets held back when more game actions apply than the check-in has slots
+#: for (spec #11a, user decision of 2026-09-03). Only the import-order choice is
+#: deferrable, and deferring it is not a penalty: the order is for a turn that
+#: has not come round yet, the round after this one will ask again, and the
+#: queue holds an unfiled turn open besides (spec #13). An export cannot be
+#: deferred in the same way -- the need it answers closes at the end of *this*
+#: round -- so the trade in front of the mayor outranks the paperwork for the
+#: one behind it. Priority above still decides which two of the survivors are
+#: offered; this decides who leaves the room first.
+DEFERRABLE_GAME_ACTIONS = (SLOT_IMPORT_CHOICE,)
 
 
 class GameEngine:
@@ -155,6 +170,9 @@ class GameEngine:
 
         self._city_keys = {}
         self._checkin_used = {}
+        # The set of game actions a round asks of a mayor, fixed the first time
+        # the round is asked and reused after -- see :meth:`_pending_game_actions`.
+        self._checkin_asks = {}
         self._asked_question_ids = []
         self._need_counter = 0
         self._submission_counter = 0
@@ -193,11 +211,10 @@ class GameEngine:
                 % suggestions
             )
         ahead = self.config.require_int("imports.choice_offered_rounds_ahead")
-        if ahead < 1:
+        if ahead < 0:
             raise ConfigError(
-                "config.imports.choice_offered_rounds_ahead must be at least 1 -- a "
-                "mayor has to be asked before the round their turn opens in, or the "
-                "turn is held (spec #13), got %d" % ahead
+                "config.imports.choice_offered_rounds_ahead must be 0 or more (0 asks "
+                "only once the queue is already holding the turn open), got %d" % ahead
             )
         grace = self.config.require_int("imports.unchosen_turn_grace_rounds")
         if grace < 0:
@@ -368,14 +385,6 @@ class GameEngine:
         """Advance as many rounds as the one round timer says have elapsed."""
         if self.phase != RUNNING:
             return []
-        # The final round has no successor to trigger its completion.  In
-        # particular, do this before consulting the clock: a failed terminal
-        # publication must be retryable immediately, not only after another
-        # (otherwise meaningless) round window has elapsed.
-        if (self.current_round in self.rounds and self._game_is_over()
-                and not self.rounds[self.current_round].completed):
-            self._complete_terminal_round(self.current_round)
-            return []
         now = ensure_aware(now if now is not None else self.clock.now())
         advanced = []
         while self.phase == RUNNING and self.timer.round_index_at(now) > self.current_round:
@@ -387,12 +396,6 @@ class GameEngine:
         # where it is completed -- its standing fixed, its edition published --
         # after every check-in it was going to get, including a mayor who joined
         # part-way through it.
-        # A failed final-round transaction leaves the game running and its
-        # round incomplete.  Retrying an advance must finish that same round,
-        # never open a fictional successor.
-        if (self.current_round in self.rounds and self._game_is_over()
-                and not self.rounds[self.current_round].completed):
-            return self._complete_terminal_round(self.current_round)
         self._complete_round(index - 1)
         record = RoundRecord(index, self.timer.round_start(index), self.timer.round_end(index))
         self.rounds[index] = record
@@ -406,26 +409,13 @@ class GameEngine:
 
         self._select_question(record)
         if self._game_is_over():
+            self.phase = ENDED
+            self.ended_round = index
             # No round follows this one, so nothing else will complete it -- and
             # the last round's edition is also the one the endgame is published
             # with (spec #31), so it must not be skipped.
-            self._complete_terminal_round(index)
+            self._complete_round(index)
         return record
-
-    def _complete_terminal_round(self, index):
-        """Publish the last round and atomically commit its terminal state."""
-        # The final-edition transaction needs to see the terminal state, but a
-        # failed transaction must not strand the game there.  Roll it back so
-        # the public retry routes can reach this incomplete final round again.
-        previous_phase, previous_ended_round = self.phase, self.ended_round
-        self.phase = ENDED
-        self.ended_round = index
-        try:
-            return self._complete_round(index)
-        except Exception:
-            self.phase = previous_phase
-            self.ended_round = previous_ended_round
-            raise
 
     def on_round_completed(self, hook):
         """Run ``hook(game, round_index)`` the moment a round finishes.
@@ -758,13 +748,32 @@ class GameEngine:
         has already filed for their next turn is being asked about the one after
         it, and telling them it is one round away would be a lie in the
         direction that makes them hurry.
+
+        A turn past the end of the rotation now running is quoted
+        *pessimistically*, by one round for every registered mayor who has not
+        taken their place in the queue yet. Those mayors are appended when their
+        first export lands (spec #5), which puts them ahead of every
+        later-rotation turn, so the queue as it stands is a floor and not a
+        fact. Quoting the floor is what asks the facilitator in round 1 -- when
+        theirs is the only city in the queue -- to order for a turn that will
+        not open until round 5, which is precisely spec #13's "not prematurely".
+        Erring the other way is recoverable and erring this way is not: a turn
+        asked for a round late is held rather than lost (#13's grace), while a
+        turn asked for four rounds early has already cost the mayor a slot.
         """
         if not player.is_queued:
             return None
         upcoming = self.queue.upcoming(self.players)
         positions = [i for i, pid in enumerate(upcoming) if pid == player.player_id]
         filed = len(player.import_programme)
-        return positions[filed] + 1 if filed < len(positions) else None
+        if filed >= len(positions):
+            return None
+        index = positions[filed]
+        if index < self.queue.turns_left_in_rotation(self.players):
+            return index + 1
+        return index + 1 + sum(
+            1 for other in self.players.values() if not other.is_queued
+        )
 
     def import_choice_offer(self, player_id):
         """What this mayor may order for their city's next import turn (#13).
@@ -881,8 +890,11 @@ class GameEngine:
             source = "freeform"
 
         # Guarded before anything is written down, so a refused check-in leaves
-        # no half-filed order behind.
-        asked_this_round = self.phase == RUNNING and self._import_choice_is_due(player)
+        # no half-filed order behind. "Asked" means the slot was actually
+        # offered, not merely due: an order deferred under spec #11a was not
+        # asked for, so filing it anyway costs no slot -- the same rule as
+        # filing before being asked.
+        asked_this_round = self.phase == RUNNING and self._import_choice_is_offered(player)
         if asked_this_round:
             self._guard_checkin(player_id, SLOT_IMPORT_CHOICE)
 
@@ -952,6 +964,16 @@ class GameEngine:
         if distance is None:
             return False
         return distance <= self._validate_import_rules()["ahead"]
+
+    def _import_choice_is_offered(self, player):
+        """Whether this round's check-in actually put the order in front of them.
+
+        Due (:meth:`_import_choice_is_due`) and offered differ by exactly one
+        thing: an order that was due but deferred to keep a mayor in the current
+        trade (spec #11a).
+        """
+        offered, _ = self._pending_game_actions(player)
+        return any(kind == SLOT_IMPORT_CHOICE for kind, _ in offered)
 
     # -- the round's mayor question ----------------------------------------
 
@@ -1143,6 +1165,11 @@ class GameEngine:
         would eat the slot their still-outstanding winner pick needed. The set of
         slots a round offers is fixed when the round opens; ``slots`` below just
         omits the ones already filled.
+
+        When more than two game actions apply, the surplus is deferred rather
+        than truncated away -- see :meth:`_pending_game_actions` and spec #11a.
+        What was held back is reported under ``deferred``, as a note and not as
+        a slate: a mayor is told their order can wait, not asked for it.
         """
         player = self._player(player_id)
         if self.phase != RUNNING:
@@ -1150,23 +1177,7 @@ class GameEngine:
         used = self._checkin_used.get((player_id, self.current_round), {})
         deadline = self.rounds[self.current_round].ends_at
 
-        # Which game actions this round asks of this player, regardless of what
-        # they have already done, in GAME_ACTION_PRIORITY order: a lapsed pick
-        # costs the table a winner, an unfiled order costs this city its import
-        # turn, a missed export costs one offer.
-        applicable = []
-        pick_need = self.picking_need_for(player_id)
-        if pick_need is not None and self.submissions_for(pick_need.need_key):
-            applicable.append((SLOT_IMPORT_PICK, pick_need))
-        if self._import_choice_is_due(player):
-            applicable.append((SLOT_IMPORT_CHOICE, None))
-        open_need = self.collecting_need()
-        if open_need is not None and self._export_slot_applies(player, open_need):
-            applicable.append((SLOT_EXPORT, open_need))
-        # Ordered by the table above rather than by the order they were appended
-        # in, so the priority is a fact of GAME_ACTION_PRIORITY and not of how
-        # this function happens to be written.
-        applicable.sort(key=lambda item: GAME_ACTION_PRIORITY.index(item[0]))
+        applicable, deferred = self._pending_game_actions(player)
 
         outstanding = [
             self._game_action_slot(player, kind, need, deadline)
@@ -1174,8 +1185,8 @@ class GameEngine:
             if used.get(kind, 0) < self._slot_allowance(kind)
         ]
         slots = [
-            outstanding[0] if outstanding else None,
-            outstanding[1] if len(outstanding) > 1 else None,
+            outstanding[index] if index < len(outstanding) else None
+            for index in range(CHECKIN_SLOTS)
         ]
 
         gate = self.config.require_bool(
@@ -1201,7 +1212,92 @@ class GameEngine:
             "deadline": deadline.isoformat(),
             "slots": slots,
             "pending_game_actions": len(applicable),
+            "deferred": [self._deferral_notice(player, kind) for kind, _ in deferred],
             "already_used": dict(used),
+        }
+
+    def _pending_game_actions(self, player):
+        """What this round asks of this mayor: ``(offered, deferred)``.
+
+        Every game action that applies to them this round, in
+        ``GAME_ACTION_PRIORITY`` order -- regardless of what they have already
+        done, because the set is fixed for the round -- split at the two-slot
+        budget (spec #11, #23).
+
+        Fixed, and therefore worked out once and remembered. Most of what makes
+        an action apply cannot move mid-round anyway (needs open, close and
+        resolve at round boundaries, spec #9), but one thing can: an import
+        order falls due the moment its mayor's first export puts them in the
+        queue (spec #5), and stops being due the moment they file it. Recomputed
+        each time, that turns one check-in into two different check-ins -- a
+        mayor offered an export and a question, who exports and is then told no
+        question was ever pending; a mayor offered a pick and an order, who
+        files the order and finds a question in the freed slot, taking three
+        actions in a two-action round. Both are the budget leaking through a
+        recomputation, so the answer is not to recompute.
+
+        Which one leaves when three apply is spec #11a, and it is not the same
+        question as which one comes first. Priority ranks the three by what
+        missing them costs: a lapsed pick costs the table a winner, an unfiled
+        order costs a city its import turn, a missed export costs one offer. But
+        cost is not the whole story once something has to go, because the three
+        do not have the same deadline. An export answers a need that closes at
+        the end of *this* round; an import order is for a turn that has not come
+        round yet, will be asked for again next round, and is held open by the
+        queue if it still is not filed. So the order defers and the export
+        stands -- "an eligible export to the currently open import need must
+        never be displaced by a prompt to file a future import order" (spec
+        #11a). Truncating the priority list instead is what made a mayor with a
+        pick and an order sit out a trade they were eligible for.
+        """
+        key = (player.player_id, self.current_round)
+        if key not in self._checkin_asks:
+            applicable = []
+            pick_need = self.picking_need_for(player.player_id)
+            if pick_need is not None and self.submissions_for(pick_need.need_key):
+                applicable.append((SLOT_IMPORT_PICK, pick_need))
+            if self._import_choice_is_due(player):
+                applicable.append((SLOT_IMPORT_CHOICE, None))
+            open_need = self.collecting_need()
+            if open_need is not None and self._export_slot_applies(player, open_need):
+                applicable.append((SLOT_EXPORT, open_need))
+            # Ordered by the table above rather than by the order they were
+            # appended in, so the priority is a fact of GAME_ACTION_PRIORITY and
+            # not of how this function happens to be written.
+            applicable.sort(key=lambda item: GAME_ACTION_PRIORITY.index(item[0]))
+            self._checkin_asks[key] = applicable
+        applicable = self._checkin_asks[key]
+
+        offered, deferred = list(applicable), []
+        while len(offered) > CHECKIN_SLOTS:
+            surplus = [item for item in offered if item[0] in DEFERRABLE_GAME_ACTIONS]
+            if not surplus:
+                # Unreachable while the deferrable set covers every way three
+                # actions can co-apply; if that ever stops being true the budget
+                # still holds, by dropping the lowest-priority action.
+                surplus = [offered[-1]]
+            offered.remove(surplus[-1])
+            deferred.append(surplus[-1])
+        return offered, deferred
+
+    def _deferral_notice(self, player, kind):
+        """A held-back action, told as a note rather than offered as a slot.
+
+        Deliberately not the slate :meth:`import_choice_offer` builds: the point
+        of deferring is that the check-in is *not* asking this round (spec #11a),
+        and a mayor who volunteers an order anyway may still file one -- it costs
+        no slot, exactly as filing before being asked never has.
+        """
+        if kind != SLOT_IMPORT_CHOICE:
+            return {"kind": kind, "deferred_to": "a later round", "spec": "#11a"}
+        return {
+            "kind": SLOT_IMPORT_CHOICE,
+            "opens_in_rounds": self._rounds_until_unfiled_turn(player),
+            "reason": "your city's next import order can wait a round; this "
+                      "round's trade cannot (spec #11a). You will be asked "
+                      "again, and you may file one now if you like -- it costs "
+                      "you nothing.",
+            "spec": "#11a, #13",
         }
 
     def _slot_allowance(self, kind):

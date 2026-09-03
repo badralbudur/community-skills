@@ -60,6 +60,9 @@ regression testing; it contains no real participant data.
 - Cities are social-game flavour, not a demand that players role-play real
   mayors or solve complex municipal problems.
 - Each player gets one combined check-in per round, with up to two slots.
+- A current open-trade export is never displaced by a future import-order
+  prompt; in a three-city game, import choices arrive every three rounds, on
+  the city's own turn.
 - Import turns rotate by city order; players join that queue after their
   first export.
 - Exports are freeform and capped per player per need per round.
@@ -182,6 +185,8 @@ credentials, or private deployment identifiers.
   newspaper-layout guarantees.
   `docs/m11-everyday-imports.md` documents the everyday trade pool and
   player-voice publication policy.
+  `docs/m12-current-trade-priority.md` documents export-first slot priority
+  and import-choice cadence.
 
 ## Scope
 

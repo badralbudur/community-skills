@@ -61,10 +61,18 @@ def file_orders(game, player_ids=None):
     slate, which is a choice like any other and keeps a fixture's needs a
     function of the seed. Tests about *not* filing (the held turn, the
     forfeited turn) skip this deliberately; see ``tests/test_import_choice.py``.
+
+    At the table -- before the game starts, or in a round that has not asked
+    this mayor for an order -- filing costs no slot, so both of a mayor's turns
+    can be ordered in one go. Once a round *has* asked and been answered, the
+    slot is spent (spec #11), and the rest of their programme waits for the next
+    round like any other game action would.
     """
     filed = []
     for player_id in sorted(player_ids if player_ids is not None else game.players):
         while game.unfiled_import_turns(player_id) > 0:
+            if game.checkin_used(player_id).get("import_choice"):
+                break
             offer = game.import_choice_offer(player_id)
             filed.append(
                 game.choose_import(player_id, need_id=offer["suggestions"][0]["need_id"])

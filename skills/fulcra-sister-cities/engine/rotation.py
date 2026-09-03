@@ -164,6 +164,27 @@ class CityQueue:
             rotation += 1
             cursor = 0
 
+    def turns_left_in_rotation(self, players):
+        """How many turns the rotation now running still has to open.
+
+        The first that many entries of :meth:`upcoming` are this rotation's;
+        everything after them belongs to a later one. The distinction is what
+        separates a *certain* distance from an *estimated* one: a player enters
+        the queue by being appended to the end of ``order`` (spec #5), which
+        lands ahead of every later-rotation turn and behind every turn left in
+        this one. So a turn inside this rotation cannot be pushed back by a
+        mayor who has not exported yet, and a turn past it can.
+        See ``GameEngine._rounds_until_unfiled_turn``.
+        """
+        if self.exhausted:
+            return 0
+        return sum(
+            1
+            for player_id in self.order[self._cursor:]
+            if players[player_id].import_turns_served
+            < players[player_id].import_turns_allotted
+        )
+
     def rounds_until_turn(self, players, player_id):
         """How many rounds until this mayor's need opens, or ``None``.
 
