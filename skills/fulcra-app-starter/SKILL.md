@@ -76,7 +76,7 @@ Inform the user that these templates work seamlessly with Vercel for deployment:
 
 ### 7. Hand Off to Harness
 
-With the spec, milestones, and working foundation in place, the harness (see [`references/harness-control-flow.md`](references/harness-control-flow.md)) can now process milestones sequentially to build out the app. The user and their agent drive iteration from here.
+With the spec, milestones, and working foundation in place, you can start building milestones following the harness control flow (see [`references/harness-control-flow.md`](references/harness-control-flow.md)). There's no prebuilt harness to run—it's up to you, the agent, to implement and drive that flow (its roles and re-triggering) with whatever mechanism fits, just as you handled the interview and spec steps above. Keep this harness code as simple as possible: the Preferred Coding Style above applies here too, so favor the smallest thing that works over an elaborate framework. The user and their agent drive iteration from here.
 
 ## Fulcra REST API
 
