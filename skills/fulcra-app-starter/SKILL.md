@@ -44,7 +44,15 @@ Choose between two frontend frameworks:
 
 ### 1. Idea and Enhancement
 
-Ask the user what they want to build. Based on their idea, and map it to Fulcra's capabilities to implement and enhance it:
+Ask the user what they want to build.
+
+To understand Fulcra's capabilities, read:
+- **High-level overview**: https://github.com/kubla/fulcra-for-agents/blob/main/fulcra-for-agents.md
+- **Platform capabilities**: https://docs.fulcradynamics.com/fulcra-platform/
+
+These provide conceptual understanding of what Fulcra enables. Don't read the full REST API docs yet—those are for implementation, not planning.
+
+Based on the user's idea, map it to Fulcra's capabilities to implement and enhance it:
 
 - **User authentication** — Already built-in; enables user-specific features
 - **Data persistence** — Store user history, progress, preferences via annotations
