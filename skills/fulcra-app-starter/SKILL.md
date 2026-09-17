@@ -34,8 +34,11 @@ Once scaffolded, the user and their agent can iterate on the project to build th
 
 Choose between two frontend frameworks:
 
-1. **React**: https://github.com/fulcradynamics/app-template-react
-2. **Svelte**: https://github.com/fulcradynamics/app-template-svelte
+1. **Svelte** (default) — Lightweight and beginner-friendly. Great for most projects.  
+   https://github.com/fulcradynamics/app-template-svelte
+
+2. **React** — Industry standard with extensive ecosystem and community resources.  
+   https://github.com/fulcradynamics/app-template-react
 
 ## Workflow
 
@@ -60,7 +63,7 @@ Once you have enough detail, create the spec with milestone breakdown.
 
 ### 3. Choose Template
 
-Ask the user which template they prefer (React or Svelte), unless they've already specified.
+Use Svelte unless the user prefers React or has already specified a preference.
 
 ### 4. Clone and Initialize
 
