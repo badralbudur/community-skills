@@ -66,7 +66,7 @@ Get high-level approval from the user on this enhanced vision before proceeding.
 
 ### 2. Connect to Fulcra and Initialize Workspace
 
-**Authentication**: Run `fulcra-api auth login --get-auth-url` to get authentication URL and device code. Share the URL with the user to authenticate in their browser, then run `fulcra-api auth login --device-code <code>` to complete authentication.
+**Authentication**: Run `uvx fulcra-api auth login --get-auth-url` to get authentication URL and device code. Share the URL with the user to authenticate in their browser, then run `uvx fulcra-api auth login --device-code <code>` to complete authentication.
 
 If the login command fails with a network error, inform the user that CLI authentication cannot be used in this environment and that MCP connector is an alternative option.
 

@@ -66,17 +66,17 @@ Suggested content:
 
 ## Fulcra File Operations
 
-Upload and download workspace files using `fulcra-api file`:
+Upload and download workspace files using `uvx fulcra-api file`:
 
 ```bash
 # Upload to workspace
-fulcra-api file upload /local/path/spec.md "workspace/<project-name>/spec.md"
+uvx fulcra-api file upload /local/path/spec.md "workspace/<project-name>/spec.md"
 
 # Download from workspace
-fulcra-api file download "workspace/<project-name>/progress.md" /local/path/progress.md
+uvx fulcra-api file download "workspace/<project-name>/progress.md" /local/path/progress.md
 
 # List workspace files
-fulcra-api file list "workspace/<project-name>/"
+uvx fulcra-api file list "workspace/<project-name>/"
 ```
 
 ## Update Patterns
