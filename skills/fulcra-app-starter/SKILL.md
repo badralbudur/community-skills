@@ -47,6 +47,7 @@ Choose between two frontend frameworks:
 Ask the user what they want to build.
 
 To understand Fulcra's capabilities, read:
+
 - **High-level overview**: https://github.com/kubla/fulcra-for-agents/blob/main/fulcra-for-agents.md
 - **Platform capabilities**: https://docs.fulcradynamics.com/fulcra-platform/
 
@@ -63,17 +64,25 @@ Present a concise overall plan that includes the core idea including Fulcra-enab
 
 Get high-level approval from the user on this enhanced vision before proceeding.
 
-### 2. Interview for Spec
+### 2. Connect to Fulcra and Initialize Workspace
+
+**Authentication**: Run `uvx fulcra-api auth login --get-auth-url` to get authentication URL and device code. Share the URL with the user to authenticate in their browser, then run `uvx fulcra-api auth login --device-code <code>` to complete authentication.
+
+If the login command fails with a network error, inform the user that CLI authentication cannot be used in this environment and that MCP connector is an alternative option.
+
+**Initialize workspace**: Upload the approved plan to `workspace/<project-name>/plan.md` and initialize the workspace structure (see [`references/workspace.md`](references/workspace.md)).
+
+### 3. Interview for Spec
 
 Ask only necessary clarifying questions one at a time to gather details needed for the spec and milestones. Keep questions concise and focused on what's needed to define milestones that fit the harness flow (see [`references/harness-control-flow.md`](references/harness-control-flow.md)).
 
-Once you have enough detail, create the spec with milestone breakdown.
+Once you have enough detail, create the spec with milestone breakdown and upload it to `workspace/<project-name>/spec.md`.
 
-### 3. Choose Template
+### 4. Choose Template
 
 Use Svelte unless the user prefers React or has already specified a preference.
 
-### 4. Clone and Initialize
+### 5. Clone and Initialize
 
 Clone the chosen template into a new directory named for their project:
 
@@ -84,15 +93,27 @@ rm -rf .git  # Remove template git history
 git init     # Start fresh git history
 ```
 
-### 5. Customize Placeholders
+Create `AGENTS.md` at the project root:
+
+```markdown
+# Agent Information
+
+**Workspace**: `workspace/<project-name>/`  
+**Skill**: fulcra-app-starter (fulcradynamics/community-skills)
+
+The Fulcra workspace is the primary source of truth. Download workspace files 
+(plan.md, spec.md, progress.md) to understand current state and continue work.
+```
+
+### 6. Customize Placeholders
 
 Update placeholder strings in the login flow. Each template includes placeholder text (like "Your App Name", "Your App Description", etc.) that should be replaced with content from the spec.
 
-### 6. Install, Configure, and Verify
+### 7. Install, Configure, and Verify
 
 Follow the template's `README.md` ("Getting Started"): `npm install`, `cp .env.example .env`, then review and configure the Auth0 and Fulcra API values as directed. Run `npm run dev` and confirm the app starts locally and the sign-in screen renders before handing off—this verifies a working authentication foundation.
 
-### 7. Mention Deployment
+### 8. Mention Deployment
 
 Inform the user that these templates work seamlessly with Vercel for deployment:
 
@@ -100,9 +121,11 @@ Inform the user that these templates work seamlessly with Vercel for deployment:
 - Follow Vercel's standard deployment flow
 - Set environment variables in the deploy platform (named per framework: React uses `NEXT_PUBLIC_*`, Svelte uses `PUBLIC_*`)
 
-### 8. Hand Off to Harness
+### 9. Hand Off to Harness
 
 With the spec, milestones, and working foundation in place, you should iterate on the milestones using the flow described in the [`references/harness-control-flow.md`](references/harness-control-flow.md) diagram. There's no prebuilt harness to run—it's up to you, the agent, to generate and run that flow (its roles and re-triggering) with whatever mechanism fits, just as you handled the interview and spec steps above. The diagram defines the principles of the harness and what a single iteration looks like. You might run it directly or through a schedule. Keep this harness implementation as simple as possible: the Preferred Coding Style intention applies to the harness too, so favor the smallest thing that works instead of an elaborate framework.
+
+Track progress using the workspace pattern (see [`references/workspace.md`](references/workspace.md)). The Coordinator updates progress.md after each harness run to enable resume capability.
 
 ## Fulcra REST API
 
