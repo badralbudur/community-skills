@@ -34,22 +34,49 @@ Once scaffolded, the user and their agent can iterate on the project to build th
 
 Choose between two frontend frameworks:
 
-1. **React**: https://github.com/fulcradynamics/app-template-react
-2. **Svelte**: https://github.com/fulcradynamics/app-template-svelte
+1. **Svelte** (default) — Lightweight and beginner-friendly. Great for most projects.  
+   https://github.com/fulcradynamics/app-template-svelte
+
+2. **React** — Industry standard with extensive ecosystem and community resources.  
+   https://github.com/fulcradynamics/app-template-react
 
 ## Workflow
 
-### 1. Interview and Create Spec
+### 1. Idea and Enhancement
 
-Ask the user what they want to build. Based on their response, create a spec that describes the app and breaks it into milestones that fit the harness flow (see [`references/harness-control-flow.md`](references/harness-control-flow.md)). If you need to ask clarifying questions, ask one question at a time.
+Ask the user what they want to build.
 
-Upload the spec to Fulcra workspace and initialize the workspace structure (see [`references/workspace.md`](references/workspace.md)).
+To understand Fulcra's capabilities, read:
 
-### 2. Choose Template
+- **High-level overview**: https://github.com/kubla/fulcra-for-agents/blob/main/fulcra-for-agents.md
+- **Platform capabilities**: https://docs.fulcradynamics.com/fulcra-platform/
 
-Ask the user which template they prefer (React or Svelte), unless they've already specified.
+These provide conceptual understanding of what Fulcra enables. Don't read the full REST API docs yet—those are for implementation, not planning.
 
-### 3. Clone and Initialize
+Based on the user's idea, map it to Fulcra's capabilities to implement and enhance it:
+
+- **User authentication** — Already built-in; enables user-specific features
+- **Data persistence** — Store user history, progress, preferences via annotations
+- **Multi-user interaction** — Leaderboards, sharing, social features across users
+- **File storage** — User-uploaded content
+
+Present a concise overall plan that includes the core idea including Fulcra-enabled enhancements.
+
+Get high-level approval from the user on this enhanced vision before proceeding.
+
+### 2. Interview for Spec
+
+Upload the plan to Fulcra workspace and initialize the workspace structure (see [`references/workspace.md`](references/workspace.md)).
+
+Ask only necessary clarifying questions one at a time to gather details needed for the spec and milestones. Keep questions concise and focused on what's needed to define milestones that fit the harness flow (see [`references/harness-control-flow.md`](references/harness-control-flow.md)).
+
+Once you have enough detail, create the spec with milestone breakdown and upload it to the Fulcra workspace.
+
+### 3. Choose Template
+
+Use Svelte unless the user prefers React or has already specified a preference.
+
+### 4. Clone and Initialize
 
 Clone the chosen template into a new directory named for their project:
 
@@ -60,15 +87,15 @@ rm -rf .git  # Remove template git history
 git init     # Start fresh git history
 ```
 
-### 4. Customize Placeholders
+### 5. Customize Placeholders
 
 Update placeholder strings in the login flow. Each template includes placeholder text (like "Your App Name", "Your App Description", etc.) that should be replaced with content from the spec.
 
-### 5. Install, Configure, and Verify
+### 6. Install, Configure, and Verify
 
 Follow the template's `README.md` ("Getting Started"): `npm install`, `cp .env.example .env`, then review and configure the Auth0 and Fulcra API values as directed. Run `npm run dev` and confirm the app starts locally and the sign-in screen renders before handing off—this verifies a working authentication foundation.
 
-### 6. Mention Deployment
+### 7. Mention Deployment
 
 Inform the user that these templates work seamlessly with Vercel for deployment:
 
@@ -76,7 +103,7 @@ Inform the user that these templates work seamlessly with Vercel for deployment:
 - Follow Vercel's standard deployment flow
 - Set environment variables in the deploy platform (named per framework: React uses `NEXT_PUBLIC_*`, Svelte uses `PUBLIC_*`)
 
-### 7. Hand Off to Harness
+### 8. Hand Off to Harness
 
 With the spec, milestones, and working foundation in place, you should iterate on the milestones using the flow described in the [`references/harness-control-flow.md`](references/harness-control-flow.md) diagram. There's no prebuilt harness to run—it's up to you, the agent, to generate and run that flow (its roles and re-triggering) with whatever mechanism fits, just as you handled the interview and spec steps above. The diagram defines the principles of the harness and what a single iteration looks like. You might run it directly or through a schedule. Keep this harness implementation as simple as possible: the Preferred Coding Style intention applies to the harness too, so favor the smallest thing that works instead of an elaborate framework.
 
