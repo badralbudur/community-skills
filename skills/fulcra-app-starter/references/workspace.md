@@ -15,11 +15,21 @@ All files live in Fulcra File Store under `workspace/<project-name>/`.
 
 ```
 workspace/<project-name>/
+├── plan.md              # Approved enhancement plan (from step 1)
 ├── spec.md              # Requirements and milestones (from interview)
 ├── progress.md          # Current state snapshot
 └── history/             # Timestamped milestone completion records
     └── YYYYMMDD-HHMMSS_milestone-name.md
 ```
+
+### plan.md
+
+Created in step 1 after user approval. Contains:
+- Core app idea
+- Fulcra-enabled enhancements
+- High-level vision
+
+This is the approved plan that guides spec creation and implementation.
 
 ### spec.md
 
@@ -37,6 +47,7 @@ Single source of truth for current state. Updated by Coordinator after each harn
 Suggested sections:
 - **Current Status** — Where we are, what's working
 - **Active Milestone** — Current milestone name from spec.md
+- **Harness State** — Current run status, retry count, last run timestamp
 - **Next Actions** — Specific next steps
 - **Recent Completions** — Last 3-5 completed milestones with dates
 - **Open Questions** — Anything blocking or unclear
@@ -70,11 +81,15 @@ fulcra-api file list "workspace/<project-name>/"
 
 ## Update Patterns
 
-### During Interview (Step 1)
-- Create spec.md locally based on user responses
-- Upload to `workspace/<project-name>/spec.md`
+### During Idea and Enhancement (Step 1)
+- Create plan.md with approved enhancement vision
+- Upload to `workspace/<project-name>/plan.md`
 - Initialize progress.md with empty state
 - Upload to `workspace/<project-name>/progress.md`
+
+### During Interview for Spec (Step 2)
+- Create spec.md locally based on clarifying questions and plan
+- Upload to `workspace/<project-name>/spec.md`
 
 ### During Harness Runs
 
@@ -102,10 +117,11 @@ fulcra-api file list "workspace/<project-name>/"
 
 When resuming work after interruption:
 
-1. Download and read `progress.md` → See active milestone and current state
+1. Download and read `progress.md` → See active milestone, harness state, and current status
 2. Download and read `spec.md` → Find milestone requirements
-3. (Optional) Download recent history files → Understand patterns from past work
-4. Determine where to continue in the harness flow
+3. (Optional) Download `plan.md` → Understand original enhancement vision
+4. (Optional) Download recent history files → Understand patterns from past work
+5. Determine where to continue in the harness flow
 
 The Coordinator uses this same pattern to find the next incomplete milestone.
 
