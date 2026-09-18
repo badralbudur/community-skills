@@ -101,7 +101,7 @@ Create `AGENTS.md` at the project root:
 **Workspace**: `workspace/<project-name>/`  
 **Skill**: fulcra-app-starter (fulcradynamics/community-skills)
 
-The Fulcra workspace is the primary source of truth. Download workspace files 
+The Fulcra workspace is the primary source of truth. Download workspace files
 (plan.md, spec.md, progress.md) to understand current state and continue work.
 ```
 
@@ -111,35 +111,41 @@ Update placeholder strings in the login flow. Each template includes placeholder
 
 ### 7. Install, Configure, and Verify
 
-Follow the template's `README.md` ("Getting Started"): `npm install`, `cp .env.example .env`, then review and configure the Auth0 and Fulcra API values as directed. Run `npm run dev` and confirm the app starts locally and the sign-in screen renders before handing off—this verifies a working authentication foundation.
+Follow the template's `README.md` ("Getting Started"): `npm install`, `cp .env.example .env`, then review and configure the Auth0 and Fulcra API values as directed. Run `npm run dev` and confirm the app starts locally and the sign-in screen renders before deploying—this verifies a working authentication foundation.
 
-### 8. Mention Deployment
+### 8. Deploy Baseline
 
-Inform the user that these templates work seamlessly with Vercel for deployment:
+Deploy the customized, working template to Vercel so the user has a live baseline before feature development. Set environment variables from `.env` using `--env` flags (React uses `NEXT_PUBLIC_*` prefix, Svelte uses `PUBLIC_*`):
 
-- Connect the repository to Vercel
-- Follow Vercel's standard deployment flow
-- Set environment variables in the deploy platform (named per framework: React uses `NEXT_PUBLIC_*`, Svelte uses `PUBLIC_*`)
+```bash
+# For Svelte template:
+vercel --prod \
+  --env PUBLIC_AUTH0_DOMAIN=<value> \
+  --env PUBLIC_AUTH0_CLIENT_ID=<value> \
+  --env PUBLIC_FULCRA_API_URL=<value>
 
-### 9. Hand Off to Harness
+# For React template:
+vercel --prod \
+  --env NEXT_PUBLIC_AUTH0_DOMAIN=<value> \
+  --env NEXT_PUBLIC_AUTH0_CLIENT_ID=<value> \
+  --env NEXT_PUBLIC_FULCRA_API_URL=<value>
+```
 
-With the spec, milestones, and working foundation in place, you should iterate on the milestones using the flow described in the [`references/harness-control-flow.md`](references/harness-control-flow.md) diagram. There's no prebuilt harness to run—it's up to you, the agent, to generate and run that flow (its roles and re-triggering) with whatever mechanism fits, just as you handled the interview and spec steps above. The diagram defines the principles of the harness and what a single iteration looks like. You might run it directly or through a schedule. Keep this harness implementation as simple as possible: the Preferred Coding Style intention applies to the harness too, so favor the smallest thing that works instead of an elaborate framework.
+Share the live deployment URL with the user. This gives the user a working deployed app to see before milestone-based building begins.
 
-Track progress using the workspace pattern (see [`references/workspace.md`](references/workspace.md)). The Coordinator updates progress.md after each harness run to enable resume capability.
+### 9. Set Up Harness and Dashboard
 
-## Fulcra REST API
+Set up the harness tracking system and integrate the owner-only dashboard: create the harness data type, add the environment variables, create the backend-only server endpoints, integrate the dashboard components, and redeploy. The dashboard is owner-gated and calls Fulcra only from the backend.
 
-The Fulcra API provides a general-purpose backend for web applications. Full API documentation is available at:
-**https://docs.fulcradynamics.com/rest-api/**
+Follow [`references/harness-dashboard-setup.md`](references/harness-dashboard-setup.md) for the full step-by-step (commands, env vars, endpoints, and component wiring). React is deferred — leave it as-is until tested.
 
-Key capabilities include:
+### 10. Run Harness
 
-- User authentication and session management
-- Data storage and retrieval (annotations)
-- File storage
-- Custom tracking and analytics
+Implement and run the harness following the flow described in [`references/harness-control-flow.md`](references/harness-control-flow.md). There's no prebuilt harness to run—it's up to you, the agent, to generate and run that flow (its roles and re-triggering) with whatever mechanism fits, just as you handled the interview and spec steps above. The diagram defines the principles of the harness and what a single iteration looks like. You might run it directly or through a schedule.
 
-When building features for the user's app, consult the API docs to understand available endpoints and how to make authenticated requests from the frontend.
+Keep this harness implementation as simple as possible: the Preferred Coding Style intention applies to the harness too, so favor the smallest thing that works instead of an elaborate framework.
+
+**Track progress** using the workspace pattern (see [`references/workspace.md`](references/workspace.md)) and write annotation records at each step (see tracking system instructions in harness-control-flow.md). The Coordinator updates progress.md and the dashboard shows live status.
 
 ## Key Points
 
