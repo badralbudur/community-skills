@@ -83,14 +83,14 @@ slash) to resolve a file's input id, then download by id
   - Copy [`svelte/HarnessDashboard.svelte`](svelte/HarnessDashboard.svelte) to `src/lib/components/HarnessDashboard.svelte`
   - Copy [`svelte/OwnerNav.svelte`](svelte/OwnerNav.svelte) to `src/lib/components/OwnerNav.svelte`
   - Create `src/routes/harness/+page.svelte` (see [`svelte/harness-page.svelte`](svelte/harness-page.svelte))
-  - **CRITICAL**: Add `<OwnerNav />` to `src/routes/+layout.svelte` before the main content so the Harness menu bar is visible.
+  - Add `<OwnerNav />` to `src/routes/+layout.svelte` before the main content
 
 - For React:
   - Install the markdown renderer used for the overview and issues panels: `npm install marked dompurify`. The dashboard runs `marked` to turn the nurse-authored markdown into HTML and `DOMPurify` to sanitize it before injecting with `dangerouslySetInnerHTML`.
   - Copy [`react/HarnessDashboard.tsx`](react/HarnessDashboard.tsx) to your `components/` directory
   - Copy [`react/OwnerNav.tsx`](react/OwnerNav.tsx) to your `components/` directory
   - Create the harness dashboard page route (e.g. `app/harness/page.tsx`) rendering `<HarnessDashboard />`
-  - **CRITICAL**: Add `<OwnerNav />` inside `<UserProvider>` in `app/layout.tsx`, before the main content so the Harness menu bar is visible.
+  - Add `<OwnerNav />` inside `<UserProvider>` in `app/layout.tsx`, before the main content
 
 The navigation bar will only appear when logged in as the owner and provides
 quick access to the home page and harness dashboard. The dashboard will refresh
