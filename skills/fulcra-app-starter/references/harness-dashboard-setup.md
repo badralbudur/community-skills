@@ -18,7 +18,7 @@ records into it.
 
 ## Add environment variables to `.env`
 
-Obtain the owner's Fulcra User ID by running `fulcra user-info` in the CLI and extracting the `userid` field. Do not attempt to use `curl` or decode session tokens to find this ID.
+Obtain the owner's Fulcra User ID by running `uvx fulcra-api user-info` in the CLI and extracting the `"userid"` field from the JSON response. Do not attempt to use `curl` or decode session tokens to find this ID.
 
 ```
 # Server-only — NO PUBLIC_/NEXT_PUBLIC_ prefix. This must never reach the
