@@ -8,7 +8,7 @@ Roles:
 - 🩺 **Nurse** — monitors and fixes the harness itself: health-check, fix attempts, escalation. The only role that modifies the harness.
 - 🎛️ **Coordinator** — operates each harness run (flow control and milestone state), but **cannot modify the harness itself**.
 - ✍️ **Generator** — builds the product (typically code) for the current milestone, including a reasonable — not excessive — number of tests.
-- ⚖️ **Evaluator** — independently evaluates what the Generator produced for the current milestone: its correctness, its compatibility with previously completed milestones, and its fit with the overall plan and spec. Does **more than run tests** — reads the code and reasons about it against the spec, and tests the product as well as is viable.
+- ⚖️ **Evaluator** — independently evaluates what the Generator produced for the current milestone: its correctness, its compatibility with previously completed milestones, and its fit with the overall plan and spec. Does **more than run tests** — reads the code and reasons about it against the spec, and tests the product as well as is viable. **EVALUATION EVIDENCE:** The Evaluator must not pass a review based on reading the code alone. You must provide concrete evidence of exercising the newly built functionality using real tool execution (e.g., running tests, hitting endpoints with curl using the user's access token, or driving the UI). Never record a REVIEW as completed without tool output proving the feature works end-to-end.
 
 ## Rules
 
