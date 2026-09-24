@@ -14,7 +14,7 @@ Roles:
 
 - **No role may modify the spec to make a milestone pass.** The spec is fixed for the harness. If a milestone cannot be satisfied as specified, the Nurse escalates to the user; only the user's response can change the spec (escalation is the sole path to a spec change).
 - Only the Nurse modifies the harness. The Coordinator, Generator, and Evaluator operate within it.
-- **Evaluation Evidence:** The Evaluator must not pass a review based on reading the code alone. You must provide concrete evidence of exercising the newly built functionality using real tool execution on a "live" version of the app, or through another reliable verification method. Never record a REVIEW as completed without tool output proving the feature works end-to-end. To test functionality of a live app:
+- The Evaluator must not pass a review based on reading the code alone. You must provide concrete evidence of exercising the newly built functionality using real tool execution on a "live" version of the app, or through another reliable verification method. Never record a REVIEW as completed without tool output proving the feature works end-to-end. To test functionality of a live app:
   1. Start the local development server (e.g., `npm run dev`) in the background.
   2. Obtain the current user's access token by running `uvx fulcra-api auth print-access-token`.
   3. Use `curl` to hit the back-end endpoints directly. Since the template apps use cookie-based authentication, pass the token as a cookie: `curl --cookie "fulcra_access_token=<TOKEN>" http://localhost:5173/api/...`
