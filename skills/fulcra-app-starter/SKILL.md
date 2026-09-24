@@ -137,7 +137,9 @@ Share the live deployment URL with the user. This gives the user a working deplo
 
 ### 9. Set Up Harness and Dashboard
 
-Set up the harness tracking system and integrate the owner-only dashboard: create the harness data type, add the environment variables, create the backend-only server endpoints, integrate the dashboard components, and redeploy. The dashboard is owner-gated and calls Fulcra only from the backend.
+Set up the harness tracking system and integrate the owner-only dashboard: create the harness data type, add the environment variables (using `fulcra user-info` from the CLI to retrieve the Fulcra owner ID), create the backend-only server endpoints, integrate the dashboard components, and redeploy.
+
+**Crucial detail for the Harness Menu Bar:** Make absolutely sure you add the Harness menu bar component (e.g., `<OwnerNav />`) to the main application layout. In recent tests, agents have forgotten this step, leaving users unable to easily navigate to the dashboard.
 
 Follow [`references/harness-dashboard-setup.md`](references/harness-dashboard-setup.md) for the full step-by-step (commands, env vars, endpoints, and component wiring). React is deferred — leave it as-is until tested.
 
