@@ -145,7 +145,7 @@ After deployment, verify that the Harness dashboard page and the global Harness 
 
 ### 10. Run Harness
 
-Implement and run the harness following the flow described in [`references/harness-control-flow.md`](references/harness-control-flow.md). There's no prebuilt harness to run—it's up to you, the agent, to generate and run that flow (its roles and re-triggering) with whatever mechanism fits, just as you handled the interview and spec steps above. The diagram defines the principles of the harness and what a single iteration looks like. You might run it directly or through a schedule.
+Implement and run the harness following the flow described in [`references/harness-control-flow.md`](references/harness-control-flow.md). You must execute the harness flow using real tool calls. You may embody the roles sequentially yourself for simple tasks, or spawn sub-agents for complex ones—choose the most efficient path. However, you must actually perform the work for each role. The diagram defines the principles of the harness and what a single iteration looks like. You might run it directly or through a schedule.
 
 Keep this harness implementation as simple as possible: the Preferred Coding Style intention applies to the harness too, so favor the smallest thing that works instead of an elaborate framework.
 
